@@ -2,7 +2,7 @@ from flask.views import MethodView
 from flask import render_template, session, redirect, url_for, request, flash
 from database import Database
 from components.user.model import User, Profile, UserToSubscriptions
-from components.blog.model import Posts
+from models.articles import Posts
 from components.auth.decorator import login_required
 
 from datetime import datetime

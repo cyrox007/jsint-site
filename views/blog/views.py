@@ -2,8 +2,8 @@ from flask.views import MethodView
 from flask import render_template, session, redirect, url_for, request, flash
 from database import Database
 from components.auth.decorator import login_required
-from components.user.model import User
-from components.blog.model import Posts
+from models.users import User
+from models.articles import Article
 
 
 class MainPage(MethodView):

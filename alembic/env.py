@@ -20,10 +20,10 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from components.user.model import User
+from models.users import User
 target_metadata = User.__table__.metadata
 
-from components.blog.model import Posts
+from models.articles import Article
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
