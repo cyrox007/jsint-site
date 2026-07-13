@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING, List
 from uuid import (
     UUID as UUIDType,
     uuid4
@@ -7,9 +8,12 @@ from sqlalchemy import (
     UUID as PG_UUID,
     String
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Database
+
+if TYPE_CHECKING:
+    from models.articles import Article
 
 
 class User(Database.Base):
@@ -42,4 +46,11 @@ class User(Database.Base):
         String(255),
         nullable=True,
         default="Doe"
+    )
+
+    articles: Mapped[List["Article"]] = relationship(
+        "Article",
+        back_populates="author",
+        primaryjoin="User.id == Article.author_id",
+        lazy="selectin"
     )

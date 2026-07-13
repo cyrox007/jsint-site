@@ -1,14 +1,18 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session
-
-from setting import Config
+from sqlalchemy.orm import sessionmaker, declarative_base
+from setting import config
 
 class Database:
-    def connect_database():
-        engine = create_engine(Config.databaseUri)
-        db_session = Session(bind=engine)
-        return db_session
-    
+    engine = None
     Base = declarative_base()
 
+    @classmethod
+    def get_engine(cls):
+        if cls.engine is None:
+            cls.engine = create_engine(config.database_url())
+        return cls.engine
+
+    @classmethod
+    def connect_database(cls):
+        """Создаёт новую сессию."""
+        return sessionmaker(bind=cls.get_engine())()

@@ -19,9 +19,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from database import Database
 from datetime import datetime, timezone
-
-if TYPE_CHECKING:
-    from models.users import User
+from models.users import User
 
 class Article(Database.Base):
     __tablename__ = 'articles'
@@ -34,7 +32,7 @@ class Article(Database.Base):
     
     author_id: Mapped[UUIDType] = mapped_column(
         PG_UUID(as_uuid=True), 
-        ForeignKey('user.id')
+        ForeignKey('users.id')
     )
     
     created_at: Mapped[datetime] = mapped_column(
@@ -57,10 +55,9 @@ class Article(Database.Base):
         nullable=False
     )
 
-    user: Mapped["User"] = relationship(
-        "User",
-        secondary="users",  # Название ассоциативной таблицы
-        back_populates="articles",  # Должно совпадать с именем в модели
+    author: Mapped["User"] = relationship(
+        "User",  # или lambda: User
+        back_populates="articles",
         lazy="selectin"
     )
 
