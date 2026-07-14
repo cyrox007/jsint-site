@@ -1,3 +1,5 @@
 {% include '^core/common.css' %}
 {% include '^shared/header/style.css' %}
 {% include '^shared/footer/style.css' %}
+
+{% include 'home/style.css' %}
