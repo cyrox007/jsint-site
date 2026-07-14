@@ -54,3 +54,6 @@ class User(Database.Base):
         primaryjoin="User.id == Article.author_id",
         lazy="selectin"
     )
+
+    def __repr__(self):
+        return f"<User {self.email}>"

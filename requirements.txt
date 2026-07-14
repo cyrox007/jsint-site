@@ -1,4 +1,5 @@
 alembic==1.18.5
+annotated-types==0.7.0
 blinker==1.9.0
 braq==0.0.12
 click==8.4.2
@@ -18,7 +19,11 @@ paradict==0.0.16
 pbr==7.0.3
 pillow==12.3.0
 psycopg2-binary==2.9.12
+pydantic==2.13.4
+pydantic_core==2.46.4
+python-dotenv==1.2.2
 python-magic==0.4.27
+redis==8.0.1
 setuptools==83.0.0
 shared==0.0.32
 six==1.17.0
@@ -26,6 +31,7 @@ SQLAlchemy==2.0.51
 sqlalchemy-media==0.17.4
 sqlparse==0.5.5
 Tempita==0.6.0
+typing-inspection==0.4.2
 typing_extensions==4.16.0
 Werkzeug==3.1.8
 WTForms==3.2.2

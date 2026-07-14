@@ -4,7 +4,7 @@ from flask_admin import Admin
 from components.user import admin as user_admin_view
 
 from app import create_app
-from setting import db_session, config
+from settings import db_session, config
 
 app = create_app()
 app.config.from_object(config)

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from setting import config
+from settings import config
 
 class Database:
     engine = None

@@ -16,6 +16,10 @@ cat ~/.ssh/id_rsa.pub
 ```
 Затем возьмите SSH-ключ из id_rsa.pub и поместите в конфигурацию SSH в Git. Для большего понимания вы можете посмотреть видео - https://www.youtube.com/watch?v=KqzVaUTCPbQ&t=80s 
 
+``` bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ### Создание папки проекта
 Создайте и перейдите в общую папку проекта в удобном для вас месте.
 ``` console

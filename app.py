@@ -1,6 +1,6 @@
 from flask import Flask
 from sqlalchemy.ext.declarative import declarative_base
-from setting import config
+from settings import config
 
 
 def create_app() -> Flask:

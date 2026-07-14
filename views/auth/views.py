@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from components.auth.decorator import login_required
 from components.user.model import Profile, User
 from database import Database
-from setting import config
+from settings import config
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
