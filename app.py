@@ -1,5 +1,4 @@
 from flask import Flask
-from sqlalchemy.ext.declarative import declarative_base
 from settings import config
 
 
@@ -12,6 +11,6 @@ def create_app() -> Flask:
         SECRET_KEY=config.SECRET_KEY
     )
 
-
     home_router.install(app)
+    
     return app

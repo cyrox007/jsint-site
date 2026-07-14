@@ -1,8 +1,0 @@
-<aside class="sidebar">
-    <a href="{{ url_for('profile.index', login=session.get('login')) }}"><i class="fa fa-user-circle-o" aria-hidden="true"></i> Моя страница</a>
-    <a href="{{ url_for('index') }}"><i class="fa fa-newspaper-o" aria-hidden="true"></i> Новости</a>
-    <a href="{{ url_for('authors') }}"><i class="fa-solid fa-at"></i> Авторы</a>
-</aside>
-<script>
-    {% include 'shared/sidebar/script.js' %}
-</script>

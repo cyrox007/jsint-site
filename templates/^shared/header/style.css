@@ -1,0 +1,50 @@
+/* Навигация */
+.navbar {
+	padding: 20px 0;
+	border-bottom: 1px solid var(--border);
+}
+
+.navbar-inner {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.logo-main {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--accent);
+}
+
+.logo-sub {
+	font-size: 0.75rem;
+	color: var(--muted);
+	letter-spacing: 0.05em;
+}
+
+.nav-links {
+	display: flex;
+	gap: 32px;
+}
+
+.nav-links a {
+	color: var(--muted);
+	font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+	color: var(--text);
+}
+
+.nav-cta {
+	padding: 8px 16px;
+	background: rgba(56, 189, 248, 0.1);
+	border: 1px solid rgba(56, 189, 248, 0.3);
+	border-radius: 8px;
+	color: var(--accent);
+	font-size: 0.9rem;
+}
+
+.nav-cta:hover {
+	background: rgba(56, 189, 248, 0.2);
+}

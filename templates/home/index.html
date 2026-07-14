@@ -1,28 +1,203 @@
-{% extends "core/base.html" %}
-{% import 'elements/post/index.html' as post_macro %}
-
-{% set title = 'Новости' %}
+{% extends "^core/base.html" %}
 
 {% block content %}
-    <main>
-        {% include 'shared/sidebar/index.html' %}
-        
-        <section class="feed">
-            {% if posts == None or not posts %}
-                <p id="no-post">А вы тут что? Котеек ждали?</p>
-            {% else %}
-                {% for post in posts %}
-                    {{ post_macro.post(
-                        post.id,
-                        post.title,
-                        post.body,
-                        post.created,
-                        post.username,
-                        post.author_id,
-                        user_id
-                    ) }}
-                {% endfor %}
-            {% endif %}
-        </section>
-    </main>
+<!-- Hero Section -->
+<section class="hero">
+	<div class="container">
+		<div class="hero-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;">
+			<div>
+				<div class="hero-badge"
+					style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 99px; color: var(--accent); font-size: 0.85rem; margin-bottom: 24px;">
+					<span>●</span> Независимая инженерная мини-студия
+				</div>
+				<h1 style="font-size: 3rem; line-height: 1.1; margin-bottom: 24px; font-weight: 800;">
+					+УЛЬТРА <br>
+					<span
+						style="background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">архитектура
+						сложных web-систем</span>
+				</h1>
+				<p style="color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; max-width: 540px;">
+					+УЛЬТРА — независимая студия, специализирующаяся на backend-системах, realtime-инфраструктуре,
+					аудите архитектуры и доработке сложных web-платформ.<br><br>
+					Основное направление — исправление технических проблем, оптимизация production-систем и развитие
+					независимой инфраструктуры.
+				</p>
+				<div class="hero-actions" style="display: flex; gap: 16px; flex-wrap: wrap;">
+					<a href="https://github.com/cyrox007" class="btn btn-primary" target="_blank">GitHub</a>
+					<a href="#systems" class="btn btn-secondary">Системы</a>
+					<a href="mailto:cyrox007@gmail.com" class="btn btn-secondary">Связаться</a>
+				</div>
+				<div class="hero-note" style="margin-top: 32px; color: var(--muted); font-size: 0.85rem; opacity: 0.7;">
+					+УЛЬТРА · backend systems · realtime infrastructure
+				</div>
+			</div>
+
+			<!-- Terminal Card -->
+			<div
+				style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); box-shadow: var(--shadow);">
+				<div style="display: flex; gap: 8px; margin-bottom: 16px;">
+					<div style="width: 12px; height: 12px; border-radius: 50%; background: #ff5f56;"></div>
+					<div style="width: 12px; height: 12px; border-radius: 50%; background: #ffbd2e;"></div>
+					<div style="width: 12px; height: 12px; border-radius: 50%; background: #27c93f;"></div>
+				</div>
+				<div style="font-family: 'Fira Code', monospace; font-size: 0.9rem; line-height: 1.6;">
+					<div style="margin-bottom: 8px;"><span style="color: var(--accent);">&gt;</span> <span
+							style="animation: typing 2s steps(40, end);">booting websocket infrastructure...</span>
+					</div>
+					<div style="margin-bottom: 8px;"><span style="color: var(--accent);">&gt;</span> redis cluster
+						synchronized</div>
+					<div style="margin-bottom: 8px;"><span style="color: var(--accent);">&gt;</span> realtime channels
+						connected</div>
+					<div style="margin-bottom: 8px;"><span style="color: var(--accent);">&gt;</span> latency stabilized:
+						21ms</div>
+					<div><span style="color: #27c93f;">&gt;</span> <strong>system status: ONLINE</strong></div is>
+				</div>
+				<div
+					style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+					<div><small style="color: var(--muted); display: block; font-size: 0.75rem;">Активные
+							узлы</small><strong style="font-size: 1.25rem;">12</strong></div>
+					<div><small style="color: var(--muted); display: block; font-size: 0.75rem;">Средняя
+							задержка</small><strong style="font-size: 1.25rem;">21ms</strong></div>
+					<div><small
+							style="color: var(--muted); display: block; font-size: 0.75rem;">Инфраструктура</small><strong
+							style="font-size: 1.25rem;">Независимая</strong></div>
+					<div><small style="color: var(--muted); display: block; font-size: 0.75rem;">Статус</small><strong
+							style="font-size: 1.25rem; color: #27c93f;">ONLINE</strong></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Philosophy Section -->
+<section class="philosophy" id="philosophy">
+	<div class="container">
+		<h2 class="section-title" style="font-size: 2rem; margin-bottom: 16px;">Философия</h2>
+		<p class="section-subtitle" style="color: var(--muted); max-width: 600px; margin-bottom: 32px;">
+			Сложные backend-системы, realtime взаимодействие и независимая инфраструктура.
+		</p>
+		<div class="philosophy-box"
+			style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; backdrop-filter: blur(10px);">
+			<p style="color: var(--text); line-height: 1.8;">
+				+УЛЬТРА — это не просто персональное портфолио, а независимая инженерная мини-студия, ориентированная на
+				создание, доработку и восстановление сложных web-систем.<br><br>
+				Основной фокус — backend-архитектура, realtime взаимодействие, self-hosted платформы, аудит
+				production-среды и исправление критических инфраструктурных проблем.<br><br>
+				Название вдохновлено выражением «Plus Ultra» — «дальше предела». Этот подход отражает интерес к
+				нестандартным задачам, сложным системам и архитектуре, которая продолжает работать под высокой
+				нагрузкой.
+			</p>
+		</div>
+	</div>
+</section>
+
+<!-- Systems / Articles Section (ЗДЕСЬ ВЫВОДЯТСЯ СТАТЬИ) -->
+<section id="systems">
+	<div class="container">
+		<h2 class="section-title" style="font-size: 2rem; margin-bottom: 16px;">Проекты и Публикации</h2>
+		<p class="section-subtitle" style="color: var(--muted); max-width: 600px; margin-bottom: 48px;">
+			Независимые платформы, backend системы и последние материалы.
+		</p>
+
+		<div class="projects-grid"
+			style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;">
+
+			{% if articles %}
+			{% for article in articles %}
+			<div class="project-card"
+				style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column;">
+				<!-- Иконка: первые 2 буквы заголовка -->
+				<div class="project-icon"
+					style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; font-size: 1.1rem; margin-bottom: 16px;">
+					{{ article.title[:2] | upper }}
+				</div>
+
+				<h3 style="font-size: 1.25rem; margin-bottom: 12px; font-weight: 600;">{{ article.title }}</h3>
+
+				<!-- Обрезка контента до 150 символов -->
+				<p
+					style="color: var(--muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px; flex-grow: 1;">
+					{{ article.content[:150] }}{% if article.content | length > 150 %}...{% endif %}
+				</p>
+
+				<div class="project-stack" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
+					{% if article.category %}
+					<div class="tech"
+						style="padding: 4px 10px; background: rgba(129, 140, 248, 0.1); border: 1px solid rgba(129, 140, 248, 0.2); border-radius: 6px; color: var(--accent2); font-size: 0.8rem;">
+						{{ article.category.title }}
+					</div>
+					{% endif %}
+					<div class="tech"
+						style="padding: 4px 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 0.8rem;">
+						{{ article.created_at.strftime('%d.%m.%Y') }}
+					</div>
+				</div>
+
+				<a href="{{ url_for('article_detail', article_id=article.id) }}" class="project-link"
+					style="color: var(--accent); font-weight: 500; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 4px;">
+					Читать далее <span style="transition: transform 0.2s;">→</span>
+				</a>
+			</div>
+			{% endfor %}
+			{% else %}
+			<div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--muted);">
+				<p>Пока нет опубликованных статей. Загляните позже!</p>
+			</div>
+			{% endif %}
+
+		</div>
+	</div>
+</section>
+
+<!-- About Section -->
+<section id="about">
+	<div class="container">
+		<h2 class="section-title" style="font-size: 2rem; margin-bottom: 32px;">О студии</h2>
+		<div class="about-grid"
+			style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+			<div class="about-card"
+				style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; backdrop-filter: blur(10px);">
+				<h3 style="font-size: 1.25rem; margin-bottom: 16px; color: var(--accent);">Интерактивная инженерия</h3>
+				<p style="color: var(--muted); line-height: 1.7;">
+					Разрабатываю системы для быстрой обработки данных и обмена информацией в реальном времени, включая
+					онлайн-банкинг и интернет-магазины. Использую WebSocket и API для создания серверных и
+					веб-приложений.
+				</p>
+			</div>
+			<div class="about-card"
+				style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; backdrop-filter: blur(10px);">
+				<h3 style="font-size: 1.25rem; margin-bottom: 16px; color: var(--accent2);">Независимый открытый
+					исходный код</h3>
+				<p style="color: var(--muted); line-height: 1.7;">
+					Большая часть проектов развивается как независимые open-source платформы. Особенно интересуют
+					системы, которые пользователь может контролировать сам.
+				</p>
+			</div>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+	/* Небольшая анимация для терминала */
+	@keyframes typing {
+		from {
+			width: 0
+		}
+
+		to {
+			width: 100%
+		}
+	}
+
+	.project-card:hover {
+		transform: translateY(-4px);
+		border-color: rgba(56, 189, 248, 0.3);
+	}
+
+	.project-link:hover span {
+		transform: translateX(4px);
+	}
+</style>
 {% endblock %}

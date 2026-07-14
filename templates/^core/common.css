@@ -1,0 +1,120 @@
+:root {
+	--bg: #060816;
+	--bg-secondary: #0f172a;
+	--card: rgba(15, 23, 42, 0.72);
+	--border: rgba(255, 255, 255, 0.08);
+	--text: #f8fafc;
+	--muted: #b6c2d1;
+	--accent: #38bdf8;
+	--accent2: #818cf8;
+	--radius: 28px;
+	--shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+	--container: 1180px;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	font-family: "Inter", system-ui, -apple-system, sans-serif;
+	background: radial-gradient(circle at top, #111827 0%, #0a1020 35%, #060816 100%);
+	color: var(--text);
+	line-height: 1.65;
+	overflow-x: hidden;
+	position: relative;
+}
+
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.09), transparent 30%),
+		radial-gradient(circle at 80% 0%, rgba(129, 140, 248, 0.08), transparent 35%);
+	pointer-events: none;
+	z-index: -2;
+}
+
+body::after {
+	content: "";
+	position: fixed;
+	inset: 0;
+	background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+	background-size: 80px 80px;
+	mask-image: radial-gradient(circle at center, black 20%, transparent 85%);
+	opacity: .7;
+	mix-blend-mode: soft-light;
+	pointer-events: none;
+	z-index: -1;
+}
+
+a {
+	text-decoration: none;
+	color: inherit;
+	transition: 0.2s;
+}
+
+img {
+	display: block;
+	max-width: 100%;
+}
+
+.container {
+	max-width: var(--container);
+	margin: 0 auto;
+	padding: 0 24px;
+}
+
+section {
+	padding: 65px 0;
+	position: relative;
+}
+
+section::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+	width: min(900px, 90%);
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 12px 18px;
+	border-radius: 12px;
+	font-weight: 500;
+	transition: 0.25s ease;
+	border: 1px solid transparent;
+}
+
+.btn-primary {
+	background: var(--accent);
+	color: #0b1220;
+}
+
+.btn-primary:hover {
+	transform: translateY(-2px);
+	filter: brightness(1.05);
+}
+
+.btn-secondary {
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid var(--border);
+	color: var(--text);
+}
+
+.btn-secondary:hover {
+	border-color: rgba(56, 189, 248, 0.4);
+}

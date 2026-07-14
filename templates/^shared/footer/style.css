@@ -1,0 +1,41 @@
+/* Футер */
+footer {
+	padding: 40px 0;
+	border-top: 1px solid var(--border);
+	margin-top: 40px;
+}
+
+.footer-brand h3 {
+	color: var(--accent);
+	margin-bottom: 8px;
+}
+
+.footer-brand p {
+	color: var(--muted);
+	font-size: 0.9rem;
+	margin-bottom: 24px;
+}
+
+.footer-links {
+	display: flex;
+	gap: 24px;
+	margin-bottom: 24px;
+}
+
+.footer-links a {
+	color: var(--muted);
+	font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+	color: var(--accent);
+}
+
+.footer-bottom {
+	display: flex;
+	gap: 24px;
+	color: var(--muted);
+	font-size: 0.8rem;
+	opacity: 0.6;
+	flex-wrap: wrap;
+}
