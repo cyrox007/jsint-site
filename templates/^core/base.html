@@ -26,9 +26,12 @@
         let wtf = {};
     </script>
     {% include '^shared/header/index.html' %}
+    
     <main>
         {% block content %}{% endblock %}
     </main>
+
+    {% include '^shared/footer/index.html' %}
 
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
