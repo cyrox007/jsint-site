@@ -1,0 +1,47 @@
+<!-- Systems / Articles Section -->
+<section id="systems">
+	<div class="container">
+		<h2 class="section-title" style="font-size: 2rem; margin-bottom: 16px;">Проекты и Публикации</h2>
+		<p class="section-subtitle" style="color: var(--muted); max-width: 600px; margin-bottom: 48px;">
+			Независимые платформы, backend системы и последние материалы.
+		</p>
+
+		<div class="projects-grid"
+			style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;">
+			{% if articles %}
+			{% for article in articles %}
+			<div class="project-card">
+				<div class="project-icon"
+					style="width: 48px; height: 48px; background: rgba(56, 189, 248, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; font-size: 1.1rem; margin-bottom: 16px;">
+					{{ article.title[:2] | upper }}
+				</div>
+				<h3 style="font-size: 1.25rem; margin-bottom: 12px; font-weight: 600;">{{ article.title }}</h3>
+				<p
+					style="color: var(--muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px; flex-grow: 1;">
+					{{ article.content[:150] }}{% if article.content | length > 150 %}...{% endif %}
+				</p>
+				<div class="project-stack" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
+					{% if article.category %}
+					<div class="tech"
+						style="padding: 4px 10px; background: rgba(129, 140, 248, 0.1); border: 1px solid rgba(129, 140, 248, 0.2); border-radius: 6px; color: var(--accent2); font-size: 0.8rem;">
+						{{ article.category.title }}
+					</div>
+					{% endif %}
+					<div class="tech"
+						style="padding: 4px 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 0.8rem;">
+						{{ article.created_at.strftime('%d.%m.%Y') }}
+					</div>
+				</div>
+				<a href="{{ url_for('article_detail', article_id=article.id) }}" class="project-link">
+					Читать далее <span>→</span>
+				</a>
+			</div>
+			{% endfor %}
+			{% else %}
+			<div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--muted);">
+				<p>Пока нет опубликованных статей. Загляните позже!</p>
+			</div>
+			{% endif %}
+		</div>
+	</div>
+</section>
