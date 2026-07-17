@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 from database import Database
 
 if TYPE_CHECKING:
-    from models.articles import Article
+    from models.publication import Publication
 
 
 class Category(Database.Base):
@@ -42,8 +42,8 @@ class Category(Database.Base):
     slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    articles: Mapped[List["Article"]] = relationship(
-        "Article",
+    articles: Mapped[List["Publication"]] = relationship(
+        "Publication",
         back_populates="category",
         lazy="selectin"
     )

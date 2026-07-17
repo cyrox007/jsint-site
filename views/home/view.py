@@ -3,14 +3,14 @@ from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
 
-from services.articles import ArticleService
+from services.publication import PublicationService
 
 
 class MainPage(MethodView):
     decorators = [with_db_session]
     def get(self, db_session):
         """Главная страница"""
-        articles = ArticleService.get_latest_posts(db_session, limit=5)
+        articles = PublicationService.get_publications(db_session, limit=5)
         
         context = {
             'articles': articles

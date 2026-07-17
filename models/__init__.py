@@ -1,13 +1,13 @@
-# 1. Сначала User (от него зависят другие модели)
+# 1. Независимые модели (не имеют внешних ключей на другие наши модели)
+from models.technology import Technology
 from models.users import User
-
-# 2. Потом Category (от неё зависит Article)
 from models.categories import Category
 
-# 3. В конце Article (зависит от User и Category)
-from models.articles import Article
+# 2. Модели, зависящие от других
+from models.publication import Publication
+from models.task import Task
 
 # Если будут другие модели — добавляйте в правильном порядке
 # from models.comments import Comment  # зависит от Article и User
 
-__all__ = ["User", "Category", "Article"]
+__all__ = ["User", "Category", "Technology", "Publication", "Task"]
