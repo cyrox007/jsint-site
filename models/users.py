@@ -13,7 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Database
 
 if TYPE_CHECKING:
-    from models.articles import Article
+    from models.publication import Publication
 
 
 class User(Database.Base):
@@ -48,10 +48,10 @@ class User(Database.Base):
         default="Doe"
     )
 
-    articles: Mapped[List["Article"]] = relationship(
-        "Article",
+    articles: Mapped[List["Publication"]] = relationship(
+        "Publication",
         back_populates="author",
-        primaryjoin="User.id == Article.author_id",
+        primaryjoin="User.id == Publication.author_id",
         lazy="selectin"
     )
 
