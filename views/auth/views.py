@@ -2,11 +2,12 @@ import os
 from flask import render_template, request, flash, redirect, url_for, session
 from flask.views import MethodView
 
+from sqlalchemy.orm import Session
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
-from components.auth.decorator import login_required
-from components.user.model import Profile, User
+from components.auth.decorator import login_required, with_db_session
+from models.users import User
 from database import Database
 from settings import config
 
@@ -15,22 +16,24 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 class LoginPage(MethodView):
     def get(self):
-        return render_template('auth/login.html')
+        return render_template('dashboard/auth/index.html')
 
-    def post(self):
-        db_session = Database.connect_database()
-        username = request.form.get('username')
+    @with_db_session
+    def post(self, db_session: Session):
+        email = request.form.get('email')
         password = request.form.get('password')
 
-        user = User.login(db_session, username)
-        db_session.close()
-        if user is not None and check_password_hash(user.password, password): 
-            session['login'] = user.username
-            db_session.close()
-            return redirect(url_for('index'))
+        user = db_session.query(User).filter(User.email == email).first()
+        if not user:
+            flash('Неправильный логин и/или пароль', 'error')
+            return redirect(url_for('auth.login'))
+
+        if check_password_hash(user.password, password) is False: 
+            flash('Неправильный логин и/или пароль', 'error')
+            return redirect(url_for('auth.login'))
         
-        flash('Пользователя не существует')
-        return redirect(url_for('login'))
+        session['login'] = user.email
+        return redirect(url_for('index'))
 
 
 class RegisterPage(MethodView):

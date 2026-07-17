@@ -1,10 +1,13 @@
+from flask import Flask
+
 from views.auth import views
 
+from settings import config
 
-def install(app):
+def install(app: Flask):
     app.add_url_rule(
-        '/login',
-        view_func=views.LoginPage.as_view('login')
+        f'{config.ADMIN_ROUTE_PREFIX}/login',
+        view_func=views.LoginPage.as_view('auth.login')
     )
     app.add_url_rule(
         '/register',

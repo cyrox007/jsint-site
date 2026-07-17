@@ -1,0 +1,84 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ===== Уведомления (flash-сообщения) ===== */
+.flashes {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	z-index: 1050;
+	max-width: 400px;
+	width: 100%;
+}
+
+.flashes .flash {
+	padding: var(--spacing-md);
+	margin-bottom: var(--spacing-sm);
+	border-radius: var(--border-radius);
+	font-weight: 500;
+	color: var(--text-primary);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	opacity: 0;
+	transform: translateY(-20px);
+	transition: opacity 0.3s ease, transform 0.3s ease;
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Анимация появления */
+.flashes .flash.animate-in {
+ 	animation: flashFadeIn 0.4s forwards;
+}
+
+/* Анимация исчезновения */
+.flashes .flash.animate-out {
+  	animation: flashFadeOut 0.4s forwards;
+}
+
+@keyframes flashFadeIn {
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes flashFadeOut {
+	to {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+}
+
+/* Стили по типам */
+.flashes .flash.flash-success {
+	background: var(--color-success);
+	color: var(--color-success-text);
+	border: 2px solid var(--color-secondary); /* зелёный акцент → вторичный цвет */
+}
+
+.flashes .flash.flash-error,
+.flashes .flash.flash-danger {
+	background: #f8d7da;
+	color: var(--color-danger-text);
+	border: 2px solid var(--color-danger);
+}
+
+.flashes .flash.flash-warning {
+	background: #fff3cd;
+	color: #856404;
+	border: 2px solid var(--color-warning);
+}
+
+/* Иконки (опционально) */
+.flashes .flash::before {
+  	font-size: 1.2em;
+}
+.flashes .flash.flash-success::before { content: "✓"; }
+.flashes .flash.flash-error::before,
+.flashes .flash.flash-danger::before { content: "⚠"; }
+.flashes .flash.flash-warning::before { content: "❗"; }

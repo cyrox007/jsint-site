@@ -13,7 +13,7 @@ def login_required(view):
     def wrapped_view(*args, **kwargs):
         if session.get('login') is None:
             flash('Пожалуйста, войдите в систему.', 'warning')
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
         return view(*args, **kwargs)
     return wrapped_view
 

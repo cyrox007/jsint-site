@@ -1,0 +1,12 @@
+{% extends '/dashboard/^core/base.html' %}
+
+{% block title %}Авторизация{% endblock %}
+
+
+{% block content %}
+<form action="{{ url_for('auth.login') }}" method="post">
+    <input type="email" name="email" id="email" required>
+    <input type="password" name="password" id="password" required>
+    <button type="submit">Войти</button>
+</form>
+{% endblock %}

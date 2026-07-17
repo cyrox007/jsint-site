@@ -1,23 +1,20 @@
 from flask.views import MethodView
 from flask import render_template, session, redirect, url_for, request, flash
 from database import Database
-from components.auth.decorator import login_required
+from components.auth.decorator import login_required, with_db_session
 from models.users import User
-from models.articles import Article
+from models.publication import Publication
 
 
-class MainPage(MethodView):
+class PublicationListPage(MethodView):
+    @with_db_session
     @login_required
-    def get(self):
-        db_session = Database.connect_database()
-        user = User.login(db_session, session.get('login'))
-        posts = Posts.get_feed(db_session, user.id)
-        db_session.close()
-        return render_template(
-            'home/index.html', 
-            user_id=user.id, 
-            posts=posts
-            )
+    def get(self, db_session):
+        """ db_session = Database.connect_database() """
+        """ user = User.login(db_session, session.get('login')) """
+        """ posts = Posts.get_feed(db_session, user.id) """
+        """ db_session.close() """
+        return render_template('home/index.html')
 
 
 class CreatePost(MethodView):

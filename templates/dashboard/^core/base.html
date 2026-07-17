@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>{% block title %}{% endblock %}</title>
+
+	<style>
+		{% include 'dashboard/styles.css' %}
+	</style>
+</head>
+
+<body>
+	{% with messages = get_flashed_messages(with_categories=true) %}
+		{% if messages %}
+			<div class="flashes">
+				{% for category, message in messages %}
+					<div class="flash flash-{{ category }} animate-in" data-timeout="5000">{{ message }}</div>
+				{% endfor %}
+			</div>
+		{% endif %}
+	{% endwith %}
+	{% block content %}{% endblock %}
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+			const flashes = document.querySelectorAll('.flashes .flash[data-timeout]');
+			flashes.forEach(flash => {
+				const timeout = parseInt(flash.dataset.timeout);
+				// Для ошибок можно не скрывать автоматически — раскомментируйте, если нужно:
+				// if (flash.classList.contains('flash-error') || flash.classList.contains('flash-danger')) return;
+
+				setTimeout(() => {
+					flash.classList.add('animate-out');
+					flash.addEventListener('animationend', () => flash.remove());
+				}, timeout);
+			});
+		});
+	</script>
+</body>
+
+</html>
