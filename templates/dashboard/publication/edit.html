@@ -6,115 +6,139 @@
 
 
 {% block title %}
-{{ 'Редактирование публикации' if publication else 'Новая публикация' }}
+    {{ 'Редактирование публикации' if publication else 'Новая публикация' }}
 {% endblock %}
 
 
 {% block content %}
+<form class="publication-editor" method="post">
+    <div class="page-title">
+        <div>
+            <h1>{{ 'Редактирование публикации' if publication else 'Создание публикации' }}</h1>
+        </div>
 
+        <button class="btn primary">
+            Сохранить
+        </button>
+    </div>
+    <div class="editor-left">  
 
-<form 
-    method="post"
-    enctype="multipart/form-data"
-    class="editor-layout">
+        <div class="card">
+            {{ text_input(
+                name="title",
+                label="Название",
+                value=publication.title if publication else ''
+            ) }}
 
-
-    <!-- Основной контент -->
-    <section class="editor-main">
-
-
-        <div class="editor-header">
-
-            <h1>
-                {{ 'Редактирование' if publication else 'Создание публикации' }}
-            </h1>
-
-
-            {{ button(
-                "Сохранить",
-                type="submit",
-                btn_class="primary"
+            {{ editor.Editor(
+                fieldName="content",
+                fieldId="publication-content",
+                labelText="Описание",
+                value=publication.content if publication else ''
             ) }}
 
         </div>
+    </div>
 
-
-        {{ text_input(
-            name="title",
-            label="Название",
-            value=publication.title if publication else ''
-        ) }}
-
-
-
-        {{ editor.Editor(
-            fieldName="content",
-            fieldId="publication-content",
-            labelText="Описание",
-            value=publication.content if publication else ''
-        ) }}
-
-
-    </section>
-
-
-
-    <!-- Правая колонка -->
-    <aside class="editor-sidebar">
-
-
-        {{ image_input(
-            name="preview",
-            label="Изображение",
-            current_image_path=
-                publication.preview if publication else ''
-        ) }}
-
-
-
-        {{ text_input(
-            name="slug",
-            label="URL",
-            value=publication.slug if publication else ''
-        ) }}
-
-
-
-        {{ text_input(
-            name="description",
-            label="Описание",
-            value=publication.description if publication else ''
-        ) }}
-
-
-
+    <aside class="editor-right">
         <div class="card">
-
-            <h3>Настройки</h3>
-
-
-            <label class="checkbox">
-
-                <input 
-                    type="checkbox"
-                    name="published"
-                    {% if publication and publication.published %}
-                        checked
-                    {% endif %}
-                >
-
-                Опубликовано
-
-            </label>
-
-
+            {{ image_input(
+                name="preview",
+                label="Изображение"
+            ) }}
         </div>
 
+        <div class="card">
+            {{ text_input(
+                name="slug",
+                label="URL",
+                value=publication.slug if publication else ''
+            ) }}
 
+            <label class="switch">
+                <input type="checkbox" name="published" {% if publication and publication.is_published %}checked{% endif %}>
+                <span class="slider"></span>
+                <span class="label">Опубликовано</span>
+            </label>
+        </div>
+
+        <div class="card">
+            <label for="category_id">Категория</label>
+            <select name="category_id" id="category_id">
+                <option value="">Без категории</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if publication and publication.category_id == cat.id %}selected{% endif %}>
+                    {{ cat.title }}
+                </option>
+                {% endfor %}
+            </select>
+        
+            <label for="">Тип статьи</label>
+            <select name="source-type" id="source-type">
+                <option value="article" {% if publication and publication.source_type == 'article' %}selected{% endif %}>Статья</option>
+                <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчет</option>
+                <option value="case" {% if publication and publication.source_type == 'case' %}selected{% endif %}>Кейс</option>
+                <option value="changelog" {% if publication and publication.source_type == 'changelog' %}selected{% endif %}>Changelog</option>
+            </select>
+        </div>
     </aside>
-
-
 </form>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ruToEnMap = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+            'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
+            'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+            'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+            'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch',
+            'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '',
+            'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+
+        function transliterate(text) {
+            return text.split('').map(char => {
+                const lower = char.toLowerCase();
+                return ruToEnMap[lower] || char;
+            }).join('');
+        }
+
+        const titleField = document.getElementById('title');
+        // ✅ Используем обычную функцию или получаем value через event.target
+        titleField.addEventListener('change', function(event) {
+            // Безопасно берём значение из event.target или this
+            let title = event.target.value.trim();
+
+            // Транслитерация и очистка
+            title = transliterate(title);
+            title = title.toLowerCase();
+            title = title.replace(/[\s\u00A0]+/g, '-');
+            title = title.replace(/[^a-z0-9\-]/g, '');
+            title = title.replace(/-+/g, '-');
+            title = title.replace(/^-+|-+$/g, '');
+
+            const slugInput = document.getElementById('slug');
+            slugInput.value = title || 'default-slug';
+
+            // 🚀 Вызываем проверку уникальности
+            checkSlug(slugInput.value);
+        });
+
+        async function checkSlug(slug) {
+            if (!slug) return;
+            const url = '/x321/dashboard/publications/check-slug/' + encodeURIComponent(slug);
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const slugInput = document.getElementById('slug');
+                
+                slugInput.value = data.slug;
+                 
+            } catch (error) {
+                console.error('❌ Ошибка проверки слага:', error);
+            }
+        }
+    });
+</script>
 
 {% endblock %}

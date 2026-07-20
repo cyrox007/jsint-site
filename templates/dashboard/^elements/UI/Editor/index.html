@@ -1,13 +1,58 @@
 {% macro Editor(fieldName, fieldId, labelText, value='') %}
-<div class="js-text-area">
-    <label for="{{ fieldId }}-editor">{{ labelText }}</label>
-    <!-- Скрытое поле для отправки данных -->
-    <textarea 
-        name="{{ fieldName }}" 
-        id="{{ fieldId }}-input" 
-        style="display: none;"
-    >{{ value | safe }}</textarea>
-    <!-- Контейнер редактора (пустой!) -->
-    <div id="{{ fieldId }}-editor" class="quill-editor-container" style="min-height: 300px;"></div>
+
+<div class="form-field" style="flex: 1">
+    <label for="{{ fieldId }}-editor">
+        {{ labelText }}
+    </label>
+    <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value|safe }}</textarea>
+    <div id="{{ fieldId }}-editor" class="quill-editor-container">
+    </div>
 </div>
+
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+            const editor =
+                document.getElementById(
+                    "{{ fieldId }}-editor"
+                );
+
+            const input =
+                document.getElementById(
+                    "{{ fieldId }}-input"
+                );
+
+            const quill =
+                new Quill(
+                    editor,
+                    {
+                        theme: "snow",
+                        modules: {
+                            toolbar: [
+                                ['bold', 'italic', 'underline'],
+                                ['blockquote', 'code-block'],
+                                [{header: [2, 3, 4, 5, 6, false]}],
+                                [
+                                    {list: 'ordered'},
+                                    {list: 'bullet'}
+                                ],
+                                ['link', 'image']
+                            ]
+                        }
+                    }
+                );
+
+            if (input.value) {
+                quill.root.innerHTML = input.value;
+            }
+
+            quill.on(
+                'text-change',
+                () => {
+                    input.value = quill.root.innerHTML;
+                }
+            );
+        });
+</script>
 {% endmacro %}

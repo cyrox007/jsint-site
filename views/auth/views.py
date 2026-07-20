@@ -17,7 +17,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 class LoginPage(MethodView):
     def get(self):
-        if session.get('login'):
+        if session.get('user_id'):
             return redirect(url_for('admin.publication.index'))
         return render_template('dashboard/auth/index.html')
 
@@ -36,6 +36,7 @@ class LoginPage(MethodView):
             return redirect(url_for('auth.login'))
         
         session['login'] = user.email
+        session['user_id'] = user.id
         return redirect(url_for('admin.publication.index'))
 
 

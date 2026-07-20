@@ -17,9 +17,7 @@
 
 
 <div class="card">
-
     <table>
-
         <thead>
             <tr>
                 <th>ID</th>
@@ -35,32 +33,19 @@
         {% for publication in publications %}
 
             <tr>
-
+                <td>{{ publication.id }}</td>
                 <td>
-                    {{ publication.id }}
+                    <strong>{{ publication.title }}</strong>
                 </td>
+                <td>{{ publication.author.firstname }}</td>
+                <td>{{ publication.created_at }}</td>
 
                 <td>
-                    <strong>
-                        {{ publication.title }}
-                    </strong>
-                </td>
-
-                <td>
-                    {{ publication.author }}
-                </td>
-
-                <td>
-                    {{ publication.created_at }}
-                </td>
-
-                <td>
-
-                    <a href="#" class="btn btn-small">
+                    <a href="{{ url_for('admin.publication.edit', id=publication.id) }}" class="btn btn-small">
                         Изменить
                     </a>
 
-                    <a href="#" class="btn btn-small danger">
+                    <a href="{{ url_for('admin.publication.delete', id=publication.id) }}" class="btn btn-small danger">
                         Удалить
                     </a>
 

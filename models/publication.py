@@ -25,7 +25,6 @@ class Publication(Database.Base):
     # Основные поля
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    #description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Тип и источник (полиморфная связь)

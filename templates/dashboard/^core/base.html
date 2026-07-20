@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{% block title %}{% endblock %}</title>
-
+	<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
 	<style>
 		{% include 'dashboard/styles.css' %}
 	</style>
@@ -25,7 +25,8 @@
 	<main>
 		{% block content %}{% endblock %}
 	</main>
-
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
 			const flashes = document.querySelectorAll('.flashes .flash[data-timeout]');

@@ -1,6 +1,5 @@
 import functools
 import logging
-import traceback
 from flask import redirect, url_for, session, g, flash, current_app
 from werkzeug.exceptions import InternalServerError
 from database import Database
@@ -11,9 +10,12 @@ logger = logging.getLogger(__name__)
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(*args, **kwargs):
-        if session.get('login') is None:
+        user_id = session.get('user_id', None)
+
+        if user_id is None:
             flash('Пожалуйста, войдите в систему.', 'warning')
             return redirect(url_for('auth.login'))
+
         return view(*args, **kwargs)
     return wrapped_view
 

@@ -1,41 +1,21 @@
-{% macro text_input(
-    name,
-    label,
-    value='',
-    type='text',
-    help_text=''
-) %}
-
+{% macro text_input(name, label, value='', type='text', help_text='') %}
 <div class="form-field">
-
     <label for="{{ name }}">
         {{ label }}
     </label>
 
-    <input
-        type="{{ type }}"
-        name="{{ name }}"
-        id="{{ name }}"
-        value="{{ value }}"
-    >
+    <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value }}">
 
     {% if help_text %}
-    <small>
-        {{ help_text }}
-    </small>
+        <small>{{ help_text }}</small>
     {% endif %}
-
 </div>
 
 {% endmacro %}
 
 
 
-{% macro image_input(
-    name,
-    label,
-    current_image_path=''
-) %}
+{% macro image_input(name, label, current_image_path='') %}
 
 <div class="form-field">
 
@@ -53,11 +33,7 @@
     {% endif %}
 
 
-    <input
-        type="file"
-        name="{{ name }}"
-        accept="image/*"
-    >
+    <input type="file" name="{{ name }}" accept="image/*">
 
 </div>
 
@@ -66,37 +42,32 @@
 
 
 {% macro select_input(
-    name,
-    label,
-    options=[],
-    selected_value=''
+name,
+label,
+options=[],
+selected_value=''
 ) %}
 
 <div class="form-field">
 
-<label for="{{ name }}">
-    {{ label }}
-</label>
+    <label for="{{ name }}">
+        {{ label }}
+    </label>
 
 
-<select name="{{ name }}" id="{{ name }}">
+    <select name="{{ name }}" id="{{ name }}">
 
-{% for value,text in options %}
+        {% for value,text in options %}
 
-<option
-    value="{{ value }}"
-    {% if value|string == selected_value|string %}
-        selected
-    {% endif %}
->
+        <option value="{{ value }}" {% if value|string==selected_value|string %} selected {% endif %}>
 
-{{ text }}
+            {{ text }}
 
-</option>
+        </option>
 
-{% endfor %}
+        {% endfor %}
 
-</select>
+    </select>
 
 </div>
 

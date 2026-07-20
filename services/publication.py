@@ -1,6 +1,6 @@
 # services/publication.py
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.orm import Session
 from models.publication import Publication
@@ -31,8 +31,7 @@ class PublicationService:
             return cached
 
         pub = session.query(Publication).filter(
-            Publication.id == pub_id, 
-            Publication.is_published == True
+            Publication.id == pub_id
         ).first()
         if not pub:
             return None
@@ -44,8 +43,12 @@ class PublicationService:
     @classmethod
     def get_publications(cls, session: Session, **filters) -> List[PublicationOut]:
         # По умолчанию только опубликованные
-        if 'is_published' not in filters:
-            filters['is_published'] = True
+        if 'is_published' in filters:
+            if filters['is_published'] is None:
+                pass  # не фильтруем
+            else:
+                query = query.filter(Publication.is_published == filters['is_published'])
+            del filters['is_published']
 
         params_hash = cls._hash_params(**filters)
         cached = cache.get_list("publications", params_hash, PublicationOut)
@@ -57,7 +60,6 @@ class PublicationService:
             if hasattr(Publication, key):
                 query = query.filter(getattr(Publication, key) == value)
             elif key == 'tech_slugs' and value:
-                # Фильтр по технологиям (через связующую таблицу)
                 query = query.join(Publication.technologies).filter(Technology.slug.in_(value))
 
         query = query.order_by(Publication.published_at.desc())
@@ -85,7 +87,7 @@ class PublicationService:
             content=data.content,
             source_type=data.source_type,
             source_uid=data.source_uid,
-            metadata=data.metadata or {},
+            metadata=data.extra_data or {},
             category_id=data.category_id,
             author_id=data.author_id,
             is_published=data.is_published,
