@@ -1,7 +1,300 @@
-* {
+/* ==========================================================
+   RESET
+========================================================== */
+
+*,
+*::before,
+*::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* ==========================================================
+   THEME
+========================================================== */
+
+:root {
+
+    /* Colors */
+
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+
+    --border: #dce3ea;
+
+    --text: #20262d;
+    --text-light: #6c7785;
+
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #dc2626;
+
+    /* Radius */
+
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+
+    /* Shadow */
+
+    --shadow:
+        0 2px 8px rgba(0,0,0,.06);
+
+    /* Spacing */
+
+    --space-xs: .35rem;
+    --space-sm: .5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+
+    /* Animation */
+
+    --transition: .18s ease;
+}
+
+/* ==========================================================
+   BODY
+========================================================== */
+
+html {
+    font-size: 15px;
+}
+
+body {
+
+    min-height: 100vh;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+
+    background: var(--bg);
+
+    color: var(--text);
+
+    font-family:
+        Inter,
+        "Segoe UI",
+        sans-serif;
+
+    line-height: 1.45;
+}
+
+/* ==========================================================
+   TYPOGRAPHY
+========================================================== */
+
+h1,h2,h3,h4,h5 {
+    font-weight: 600;
+    margin-bottom: .7rem;
+}
+
+p {
+    color: var(--text-light);
+}
+
+/* ==========================================================
+   LINKS
+========================================================== */
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* ==========================================================
+   BUTTONS
+========================================================== */
+
+button,
+.btn {
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: .5rem;
+
+    padding: .7rem 1rem;
+
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+
+    background: var(--primary);
+    color: white;
+
+    cursor: pointer;
+
+    transition: var(--transition);
+}
+
+button:hover,
+.btn:hover {
+    background: var(--primary-hover);
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+/* ==========================================================
+   INPUTS
+========================================================== */
+
+input,
+textarea,
+select {
+
+    width: 100%;
+
+    padding: .75rem .9rem;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+
+    background: white;
+
+    color: var(--text);
+
+    transition: var(--transition);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+
+    outline: none;
+
+    border-color: var(--primary);
+
+    box-shadow:
+        0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ==========================================================
+   TABLES
+========================================================== */
+
+table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    background: white;
+
+    border-radius: var(--radius);
+
+    overflow: hidden;
+}
+
+thead {
+
+    background: #eef2f7;
+}
+
+th {
+
+    text-align: left;
+
+    padding: 14px;
+
+    font-weight: 600;
+}
+
+td {
+
+    padding: 14px;
+
+    border-top: 1px solid var(--border);
+}
+
+tbody tr {
+
+    transition: var(--transition);
+}
+
+tbody tr:hover {
+
+    background: var(--surface-hover);
+}
+
+/* ==========================================================
+   CARD
+========================================================== */
+
+.card {
+
+    background: var(--surface);
+
+    border: 1px solid var(--border);
+
+    border-radius: var(--radius-lg);
+
+    box-shadow: var(--shadow);
+
+    padding: var(--space-lg);
+}
+
+/* ==========================================================
+   BADGES
+========================================================== */
+
+.badge {
+
+    display: inline-block;
+
+    padding: .3rem .6rem;
+
+    border-radius: 999px;
+
+    font-size: .82rem;
+
+    font-weight: 600;
+}
+
+.badge.success {
+    background: rgba(22,163,74,.15);
+    color: var(--success);
+}
+
+.badge.warning {
+    background: rgba(245,158,11,.15);
+    color: var(--warning);
+}
+
+.badge.danger {
+    background: rgba(220,38,38,.15);
+    color: var(--danger);
+}
+
+/* ==========================================================
+   SCROLLBAR
+========================================================== */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c8d0d9;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aeb8c3;
 }
 
 /* ===== Уведомления (flash-сообщения) ===== */

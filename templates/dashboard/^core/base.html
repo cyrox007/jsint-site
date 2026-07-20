@@ -21,7 +21,10 @@
 			</div>
 		{% endif %}
 	{% endwith %}
-	{% block content %}{% endblock %}
+	{% include 'dashboard/^shared/header/index.html' %}
+	<main>
+		{% block content %}{% endblock %}
+	</main>
 
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {

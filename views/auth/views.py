@@ -28,7 +28,7 @@ class LoginPage(MethodView):
             flash('Неправильный логин и/или пароль', 'error')
             return redirect(url_for('auth.login'))
 
-        if check_password_hash(user.password, password) is False: 
+        if check_password_hash(user.hash_password, password) is False: 
             flash('Неправильный логин и/или пароль', 'error')
             return redirect(url_for('auth.login'))
         

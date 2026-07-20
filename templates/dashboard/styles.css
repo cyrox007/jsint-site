@@ -1,1 +1,4 @@
 {% include '/dashboard/^core/common.css' %}
+{% include '/dashboard/^shared/header/style.css' %}
+
+{% include '/dashboard/auth/style.css' %}
