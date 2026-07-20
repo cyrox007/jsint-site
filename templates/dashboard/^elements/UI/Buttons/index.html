@@ -1,0 +1,13 @@
+{% macro button(text, type="button", btn_class="", id="") %}
+
+<button
+    type="{{ type }}"
+    class="btn {{ btn_class }}"
+    {% if id %}
+        id="{{ id }}"
+    {% endif %}
+>
+    {{ text }}
+</button>
+
+{% endmacro %}

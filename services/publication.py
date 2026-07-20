@@ -30,7 +30,10 @@ class PublicationService:
         if cached:
             return cached
 
-        pub = session.query(Publication).filter(Publication.id == pub_id, Publication.is_published == True).first()
+        pub = session.query(Publication).filter(
+            Publication.id == pub_id, 
+            Publication.is_published == True
+        ).first()
         if not pub:
             return None
 

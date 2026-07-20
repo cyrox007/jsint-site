@@ -375,3 +375,7 @@ tbody tr:hover {
 .flashes .flash.flash-error::before,
 .flashes .flash.flash-danger::before { content: "⚠"; }
 .flashes .flash.flash-warning::before { content: "❗"; }
+
+main {
+    padding: 0 28px;
+}

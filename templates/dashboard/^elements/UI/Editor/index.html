@@ -1,0 +1,13 @@
+{% macro Editor(fieldName, fieldId, labelText, value='') %}
+<div class="js-text-area">
+    <label for="{{ fieldId }}-editor">{{ labelText }}</label>
+    <!-- Скрытое поле для отправки данных -->
+    <textarea 
+        name="{{ fieldName }}" 
+        id="{{ fieldId }}-input" 
+        style="display: none;"
+    >{{ value | safe }}</textarea>
+    <!-- Контейнер редактора (пустой!) -->
+    <div id="{{ fieldId }}-editor" class="quill-editor-container" style="min-height: 300px;"></div>
+</div>
+{% endmacro %}

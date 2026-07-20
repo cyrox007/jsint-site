@@ -1,0 +1,103 @@
+{% macro text_input(
+    name,
+    label,
+    value='',
+    type='text',
+    help_text=''
+) %}
+
+<div class="form-field">
+
+    <label for="{{ name }}">
+        {{ label }}
+    </label>
+
+    <input
+        type="{{ type }}"
+        name="{{ name }}"
+        id="{{ name }}"
+        value="{{ value }}"
+    >
+
+    {% if help_text %}
+    <small>
+        {{ help_text }}
+    </small>
+    {% endif %}
+
+</div>
+
+{% endmacro %}
+
+
+
+{% macro image_input(
+    name,
+    label,
+    current_image_path=''
+) %}
+
+<div class="form-field">
+
+    <label>
+        {{ label }}
+    </label>
+
+
+    {% if current_image_path %}
+
+    <div class="image-preview">
+        <img src="{{ current_image_path }}">
+    </div>
+
+    {% endif %}
+
+
+    <input
+        type="file"
+        name="{{ name }}"
+        accept="image/*"
+    >
+
+</div>
+
+{% endmacro %}
+
+
+
+{% macro select_input(
+    name,
+    label,
+    options=[],
+    selected_value=''
+) %}
+
+<div class="form-field">
+
+<label for="{{ name }}">
+    {{ label }}
+</label>
+
+
+<select name="{{ name }}" id="{{ name }}">
+
+{% for value,text in options %}
+
+<option
+    value="{{ value }}"
+    {% if value|string == selected_value|string %}
+        selected
+    {% endif %}
+>
+
+{{ text }}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+</div>
+
+{% endmacro %}

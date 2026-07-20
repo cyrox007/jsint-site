@@ -1,0 +1,42 @@
+.btn {
+
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:10px 18px;
+
+    border:none;
+    border-radius:var(--radius);
+
+    cursor:pointer;
+
+    font-size:.9rem;
+    font-weight:600;
+
+    transition:.2s ease;
+
+}
+
+
+.btn.primary {
+
+    background:var(--primary);
+    color:white;
+
+}
+
+
+.btn.primary:hover {
+
+    background:var(--primary-hover);
+
+}
+
+
+.btn.secondary {
+
+    background:#e5e7eb;
+    color:var(--text);
+
+}

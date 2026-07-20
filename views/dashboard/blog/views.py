@@ -4,23 +4,21 @@ from database import Database
 from components.auth.decorator import login_required, with_db_session
 from models.users import User
 from models.publication import Publication
+from services.publication import PublicationService
 
 
 class PublicationListPage(MethodView):
     @with_db_session
     @login_required
     def get(self, db_session):
-        """ db_session = Database.connect_database() """
-        """ user = User.login(db_session, session.get('login')) """
-        """ posts = Posts.get_feed(db_session, user.id) """
-        """ db_session.close() """
-        return render_template('home/index.html')
+        publications = PublicationService.get_publications(db_session)
+        return render_template('dashboard/publication/index.html', publications=publications)
 
 
 class CreatePost(MethodView):
     @login_required
     def get(self):
-        return render_template('home/create.html')
+        return render_template('dashboard/publication/edit.html')
 
     @login_required
     def post(self):

@@ -10,12 +10,15 @@ from components.auth.decorator import login_required, with_db_session
 from models.users import User
 from database import Database
 from settings import config
+from utils.hash_password import verify_password
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 class LoginPage(MethodView):
     def get(self):
+        if session.get('login'):
+            return redirect(url_for('admin.publication.index'))
         return render_template('dashboard/auth/index.html')
 
     @with_db_session
@@ -28,12 +31,12 @@ class LoginPage(MethodView):
             flash('Неправильный логин и/или пароль', 'error')
             return redirect(url_for('auth.login'))
 
-        if check_password_hash(user.hash_password, password) is False: 
+        if verify_password(password, user.hash_password) is False: 
             flash('Неправильный логин и/или пароль', 'error')
             return redirect(url_for('auth.login'))
         
         session['login'] = user.email
-        return redirect(url_for('index'))
+        return redirect(url_for('admin.publication.index'))
 
 
 class RegisterPage(MethodView):

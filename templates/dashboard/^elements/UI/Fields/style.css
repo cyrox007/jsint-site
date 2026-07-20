@@ -1,0 +1,36 @@
+.form-field {
+
+    display:flex;
+    flex-direction:column;
+
+    gap:8px;
+
+    margin-bottom:20px;
+
+}
+
+
+.form-field label {
+
+    font-size:.9rem;
+    font-weight:600;
+
+}
+
+
+.form-field small {
+
+    color:var(--text-light);
+
+}
+
+
+.form-field img {
+
+    max-width:200px;
+
+    border-radius:var(--radius);
+
+    border:1px solid var(--border);
+
+}

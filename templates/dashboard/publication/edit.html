@@ -1,0 +1,120 @@
+{% extends '/dashboard/^core/base.html' %}
+
+{% import '/dashboard/^elements/UI/Editor/index.html' as editor %}
+{% from '/dashboard/^elements/UI/Fields/index.html' import text_input, image_input %}
+{% from '/dashboard/^elements/UI/Buttons/index.html' import button %}
+
+
+{% block title %}
+{{ 'Редактирование публикации' if publication else 'Новая публикация' }}
+{% endblock %}
+
+
+{% block content %}
+
+
+<form 
+    method="post"
+    enctype="multipart/form-data"
+    class="editor-layout">
+
+
+    <!-- Основной контент -->
+    <section class="editor-main">
+
+
+        <div class="editor-header">
+
+            <h1>
+                {{ 'Редактирование' if publication else 'Создание публикации' }}
+            </h1>
+
+
+            {{ button(
+                "Сохранить",
+                type="submit",
+                btn_class="primary"
+            ) }}
+
+        </div>
+
+
+        {{ text_input(
+            name="title",
+            label="Название",
+            value=publication.title if publication else ''
+        ) }}
+
+
+
+        {{ editor.Editor(
+            fieldName="content",
+            fieldId="publication-content",
+            labelText="Описание",
+            value=publication.content if publication else ''
+        ) }}
+
+
+    </section>
+
+
+
+    <!-- Правая колонка -->
+    <aside class="editor-sidebar">
+
+
+        {{ image_input(
+            name="preview",
+            label="Изображение",
+            current_image_path=
+                publication.preview if publication else ''
+        ) }}
+
+
+
+        {{ text_input(
+            name="slug",
+            label="URL",
+            value=publication.slug if publication else ''
+        ) }}
+
+
+
+        {{ text_input(
+            name="description",
+            label="Описание",
+            value=publication.description if publication else ''
+        ) }}
+
+
+
+        <div class="card">
+
+            <h3>Настройки</h3>
+
+
+            <label class="checkbox">
+
+                <input 
+                    type="checkbox"
+                    name="published"
+                    {% if publication and publication.published %}
+                        checked
+                    {% endif %}
+                >
+
+                Опубликовано
+
+            </label>
+
+
+        </div>
+
+
+    </aside>
+
+
+</form>
+
+
+{% endblock %}

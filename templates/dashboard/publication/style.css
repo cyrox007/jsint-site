@@ -1,0 +1,102 @@
+.page-header {
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-bottom:24px;
+}
+
+
+.page-header h1 {
+    margin-bottom:5px;
+}
+
+
+.btn-small {
+
+    padding:
+        6px 10px;
+
+    font-size:.85rem;
+}
+
+
+.btn.danger {
+
+    background:var(--danger);
+}
+
+
+.btn.danger:hover {
+
+    background:#b91c1c;
+}
+
+.editor-layout {
+
+    display:grid;
+
+    grid-template-columns:
+        1fr 350px;
+
+    gap:24px;
+
+}
+
+
+.editor-main,
+.editor-sidebar {
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:20px;
+
+}
+
+
+
+.editor-header {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:10px;
+
+}
+
+
+
+.editor-sidebar .card {
+
+    padding:20px;
+
+}
+
+
+.checkbox {
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+
+
+@media(max-width:900px){
+
+    .editor-layout {
+
+        grid-template-columns:1fr;
+
+    }
+
+}

@@ -14,8 +14,8 @@ def install(app: Flask):
         view_func=views.PublicationListPage.as_view('admin.publication.index')
     )
     app.add_url_rule(
-        '/create',
-        view_func=views.CreatePost.as_view('blog.create')
+        f'{config.ADMIN_ROUTE_PREFIX}/create',
+        view_func=views.CreatePost.as_view('admin.publication.create')
     )
     app.add_url_rule(
         '/<int:uuid>/update',
