@@ -30,9 +30,7 @@ class PublicationService:
         if cached:
             return cached
 
-        pub = session.query(Publication).filter(
-            Publication.id == pub_id
-        ).first()
+        pub = Publication.get_by_id(session, pub_id)
         if not pub:
             return None
 
@@ -42,102 +40,88 @@ class PublicationService:
 
     @classmethod
     def get_publications(cls, session: Session, **filters) -> List[PublicationOut]:
-        # По умолчанию только опубликованные
-        if 'is_published' in filters:
-            if filters['is_published'] is None:
-                pass  # не фильтруем
-            else:
-                query = query.filter(Publication.is_published == filters['is_published'])
-            del filters['is_published']
+        # Подготавливаем параметры для хеша
+        filter_copy = {k: v for k, v in filters.items() if v is not None}
+        params_hash = cls._hash_params(**filter_copy)
 
-        params_hash = cls._hash_params(**filters)
+        # Проверяем кеш
         cached = cache.get_list("publications", params_hash, PublicationOut)
         if cached is not None:
             return cached
 
-        query = session.query(Publication)
-        for key, value in filters.items():
-            if hasattr(Publication, key):
-                query = query.filter(getattr(Publication, key) == value)
-            elif key == 'tech_slugs' and value:
-                query = query.join(Publication.technologies).filter(Technology.slug.in_(value))
+        # Запрос к БД через модель
+        pubs = Publication.get_all(session, **filters)
 
-        query = query.order_by(Publication.published_at.desc())
-        if 'limit' in filters:
-            query = query.limit(filters['limit'])
-        if 'offset' in filters:
-            query = query.offset(filters['offset'])
-
-        pubs = query.all()
+        # Преобразуем в Pydantic
         schemas = [PublicationOut.model_validate(p) for p in pubs]
-        cache.set_list("publications", params_hash, schemas, ttl=cls.TTL_LIST)
+
+        # Сохраняем в кеш (только если есть данные, чтобы не кешировать пустоту)
+        if schemas:
+            cache.set_list("publications", params_hash, schemas, ttl=cls.TTL_LIST)
         return schemas
 
     @classmethod
     def create_publication(cls, session: Session, data: PublicationCreate) -> Optional[PublicationOut]:
-        # Валидация источника (если указан)
-        if data.source_uid:
-            # Проверяем существование источника (зависит от source_type)
-            # Можно сделать через словарь хендлеров
-            pass
+        # Проверяем уникальность slug
+        existing = Publication.get_by_slug(session, data.slug)
+        if existing:
+            return None
 
-        pub = Publication(
+        # Создаём через модель
+        pub = Publication.create(
+            session,
             title=data.title,
             slug=data.slug,
             content=data.content,
             source_type=data.source_type,
             source_uid=data.source_uid,
-            metadata=data.extra_data or {},
+            extra_data=data.extra_data or {},
             category_id=data.category_id,
             author_id=data.author_id,
             is_published=data.is_published,
             published_at=datetime.now(timezone.utc) if data.is_published else None,
         )
-        session.add(pub)
-        session.commit()
-        session.refresh(pub)
 
-        # Привязка технологий
+        # Привязываем технологии
         if data.technology_ids:
             techs = session.query(Technology).filter(Technology.id.in_(data.technology_ids)).all()
             pub.technologies = techs
-            session.commit()
 
-        # Инвалидация кеша списков
+        session.commit()
+        session.refresh(pub)
+
+        # Инвалидируем кеш списков
         cache.invalidate("publications")
+
         return PublicationOut.model_validate(pub)
 
     @classmethod
     def update_publication(cls, session: Session, pub_id: UUID, data: PublicationUpdate) -> Optional[PublicationOut]:
-        pub = session.query(Publication).filter(Publication.id == pub_id).first()
+        update_data = data.model_dump(exclude_unset=True)
+
+        # Обрабатываем технологии отдельно
+        technology_ids = update_data.pop('technology_ids', None)
+        if technology_ids is not None:
+            techs = session.query(Technology).filter(Technology.id.in_(technology_ids)).all()
+            update_data['technologies'] = techs
+
+        # Обновляем через модель
+        pub = Publication.update(session, pub_id, **update_data)
         if not pub:
             return None
-
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            if key == 'technology_ids':
-                if value is not None:
-                    techs = session.query(Technology).filter(Technology.id.in_(value)).all()
-                    pub.technologies = techs
-                continue
-            setattr(pub, key, value)
-
-        if data.is_published and not pub.published_at:
-            pub.published_at = datetime.now(timezone.utc)
 
         session.commit()
         session.refresh(pub)
 
-        # Инвалидация кеша
+        # Инвалидируем кеш
         cache.invalidate("publications", str(pub_id))
+
         return PublicationOut.model_validate(pub)
 
     @classmethod
     def delete_publication(cls, session: Session, pub_id: UUID) -> bool:
-        pub = session.query(Publication).filter(Publication.id == pub_id).first()
-        if not pub:
-            return False
-        session.delete(pub)
-        session.commit()
-        cache.invalidate("publications", str(pub_id))
-        return True
+        success = Publication.delete(session, pub_id)
+        if success:
+            session.commit()
+            cache.invalidate("publications", str(pub_id))
+        return success
