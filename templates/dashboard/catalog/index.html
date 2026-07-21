@@ -1,0 +1,59 @@
+{% extends "/dashboard/^core/base.html" %}
+
+{% block title %}Каталог{% endblock %}
+
+{% block content %}
+<div class="catalog-container">
+    <div class="catalog-sidebar">
+        <h2>Категории</h2>
+        <ul class="category-tree">
+            <li>
+                <a href="{{ url_for('admin.catalog.index') }}" 
+                   class="{% if not selected_category_id %}active{% endif %}">
+                    Все публикации
+                </a>
+            </li>
+            {% for node in tree %}
+                {{ render_category_node(node, selected_category_id) }}
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="catalog-main">
+        <h2>Публикации</h2>
+        {% if publications %}
+            <ul class="publication-list">
+                {% for pub in publications %}
+                    <li>
+                        <a href="{{ url_for('admin.publication.edit', id=pub.id) }}">
+                            {{ pub.title }}
+                        </a>
+                        <span class="badge">{{ pub.source_type }}</span>
+                        <span class="badge {% if pub.is_published %}published{% else %}draft{% endif %}">
+                            {{ 'Опубликовано' if pub.is_published else 'Черновик' }}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>В выбранной категории нет публикаций.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% macro render_category_node(node, selected_id) %}
+    <li>
+        <a href="{{ url_for('admin.catalog.index', category_id=node.id) }}"
+           class="{% if selected_id|string == node.id|string %}active{% endif %}">
+            {{ node.title }}
+        </a>
+        {% if node.children %}
+            <ul>
+                {% for child in node.children %}
+                    {{ render_category_node(child, selected_id) }}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </li>
+{% endmacro %}
+{% endblock %}

@@ -7,3 +7,4 @@
 
 {% include '/dashboard/auth/style.css' %}
 {% include '/dashboard/publication/style.css' %}
+{% include '/dashboard/catalog/style.css' %}

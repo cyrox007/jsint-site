@@ -5,6 +5,7 @@ from uuid import UUID as UUIDType, uuid4
 from sqlalchemy import (
     UUID as PG_UUID,
     DateTime,
+    ForeignKey,
     String,
     Text,
     asc,
@@ -27,6 +28,12 @@ class Category(Database.Base):
         default=uuid4
     )
 
+    parent_id: Mapped[Optional[UUIDType]] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey('categories.id', ondelete='CASCADE'),
+        nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -47,6 +54,7 @@ class Category(Database.Base):
         back_populates="category",
         lazy="selectin"
     )
+    parent = relationship("Category", remote_side=[id], backref="children", lazy="selectin")
 
     def __repr__(self):
         return f"<Category {self.title} ({self.id})>"
@@ -109,14 +117,89 @@ class Category(Database.Base):
         return query.all()
 
     @classmethod
-    def get_category_by_id(cls, session: Session, category_id: UUIDType) -> Optional["Category"]:
+    def get_by_id(cls, session: Session, category_id: UUIDType) -> Optional["Category"]:
         return session.query(cls).filter(cls.id == category_id).first()
 
     @classmethod
-    def get_category_by_slug(cls, session: Session, slug: str) -> Optional["Category"]:
+    def get_by_slug(cls, session: Session, slug: str) -> Optional["Category"]:
         return session.query(cls).filter(cls.slug == slug).first()
     
+    @classmethod
+    def get_tree(cls, session: Session, parent_id: Optional[UUIDType] = None) -> List[dict]:
+        """
+        Возвращает дерево категорий в виде вложенного списка словарей.
+        Если parent_id=None – возвращаются все корневые категории.
+        """
+        query = session.query(cls).filter(cls.parent_id == parent_id).order_by(cls.title)
+        categories = query.all()
 
+        tree = []
+        for cat in categories:
+            node = {
+                'id': cat.id,
+                'title': cat.title,
+                'slug': cat.slug,
+                'description': cat.description,
+                'children': cls.get_tree(session, cat.id),
+            }
+            tree.append(node)
+        return tree
+    
+    @classmethod
+    def get_ancestors(cls, session: Session, category_id: UUIDType) -> List["Category"]:
+        """
+        Возвращает цепочку предков от корня до указанной категории.
+        Используется для хлебных крошек.
+        """
+        category = cls.get_by_id(session, category_id)
+        if not category:
+            return []
+
+        ancestors = []
+        current = category
+        while current.parent_id:
+            parent = cls.get_by_id(session, current.parent_id)
+            if not parent:
+                break
+            ancestors.insert(0, parent)  # вставляем в начало, чтобы корень был первым
+            current = parent
+        return ancestors
+    
+    @classmethod
+    def get_children(cls, session: Session, category_id: UUIDType) -> List["Category"]:
+        """Возвращает прямых потомков категории."""
+        return session.query(cls).filter(cls.parent_id == category_id).order_by(cls.title).all()
+
+    @classmethod
+    def get_all_descendants(cls, session: Session, category_id: UUIDType) -> List["Category"]:
+        """
+        Возвращает всех потомков категории (рекурсивно).
+        Используется для получения всех публикаций из вложенных категорий.
+        """
+        result = []
+        stack = [category_id]
+        while stack:
+            current_id = stack.pop()
+            children = session.query(cls).filter(cls.parent_id == current_id).all()
+            for child in children:
+                result.append(child)
+                stack.append(child.id)
+        return result
+    
+    @classmethod
+    def get_path(cls, session: Session, category_id: UUIDType) -> List["Category"]:
+        """Алиас для get_ancestors (удобство)."""
+        return cls.get_ancestors(session, category_id)
+    
+    @classmethod
+    def get_publication_count(cls, session: Session, category_id: UUIDType) -> int:
+        """Возвращает количество публикаций в категории и всех её потомках."""
+        from models.publication import Publication
+        # Получаем все ID потомков
+        descendants = cls.get_all_descendants(session, category_id)
+        ids = [cat.id for cat in descendants] + [category_id]
+        return session.query(Publication).filter(Publication.category_id.in_(ids)).count()
+    
     @classmethod
     def update(
         cls,
