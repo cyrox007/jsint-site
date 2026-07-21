@@ -1,12 +1,9 @@
-from datetime import datetime, timezone
 from uuid import UUID
 
 from flask.views import MethodView
 from flask import jsonify, render_template, session, redirect, url_for, request, flash
 from sqlalchemy.orm import Session
-from database import Database
 from components.auth.decorator import login_required, with_db_session
-from models.users import User
 from models.publication import Publication
 from schemas.publication import PublicationCreate, PublicationUpdate
 from services.publication import PublicationService
