@@ -1,0 +1,5 @@
+{% include 'public/^core/common.css' %}
+{% include 'public/^shared/header/style.css' %}
+{% include 'public/^shared/footer/style.css' %}
+
+{% include 'public/home/style.css' %}

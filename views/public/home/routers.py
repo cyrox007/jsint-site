@@ -1,9 +1,9 @@
 from flask import Flask
 
-from views.home import view
+from views.public.home import views
 
 def install(app: Flask):
     app.add_url_rule(
         '/',
-        view_func=view.MainPage.as_view('index')
+        view_func=views.MainPage.as_view('index')
     )

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from schemas.category import CategoryOut
 from schemas.user import UserOut
 
 
@@ -50,5 +51,7 @@ class PublicationOut(BaseModel):
     technology_ids: Optional[List[UUID]] = None
     created_at: datetime
     author: UserOut
+
+    category: Optional[CategoryOut] = None
 
     model_config = ConfigDict(from_attributes=True)

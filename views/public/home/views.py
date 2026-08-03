@@ -15,4 +15,4 @@ class MainPage(MethodView):
         context = {
             'articles': articles
         }
-        return render_template('home/index.html', **context)
+        return render_template('public/home/index.html', **context)

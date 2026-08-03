@@ -7,7 +7,7 @@
     <title>{% block title %}JSInteractive | +УЛЬТРА{% endblock %}</title>
     <meta name="yandex-verification" content="725d05a47d08b13d">
     <style>
-        {% include 'styles.css' %}
+        {% include 'public/styles.css' %}
     </style>
 
     <!-- Скрипты из оригинала (замените пути на актуальные, если используете сборщик) -->
@@ -25,13 +25,13 @@
     <script>
         let wtf = {};
     </script>
-    {% include '^shared/header/index.html' %}
+    {% include 'public/^shared/header/index.html' %}
     
     <main>
         {% block content %}{% endblock %}
     </main>
 
-    {% include '^shared/footer/index.html' %}
+    {% include 'public/^shared/footer/index.html' %}
 
     <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
