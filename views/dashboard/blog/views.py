@@ -19,8 +19,10 @@ class PublicationListPage(MethodView):
 
 class CreatePost(MethodView):
     @login_required
-    def get(self):
-        categories = []
+    @with_db_session
+    def get(self, db_session: Session):
+        from models.categories import Category
+        categories = db_session.query(Category).order_by(Category.title).all()
 
         return render_template('dashboard/publication/edit.html', categories=categories)
 
@@ -99,9 +101,10 @@ class UpdatePost(MethodView):
     @with_db_session
     def get(self, db_session: Session, id):
         publication = PublicationService.get_publication(db_session, id)
-
+        from models.categories import Category
+        categories = db_session.query(Category).order_by(Category.title).all()
         context = {
-            'categories': [],
+            'categories': categories,
             'publication': publication
         }
         

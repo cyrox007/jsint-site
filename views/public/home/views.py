@@ -10,7 +10,7 @@ class MainPage(MethodView):
     decorators = [with_db_session]
     def get(self, db_session):
         """Главная страница"""
-        articles = PublicationService.get_publications(db_session, limit=5)
+        articles = PublicationService.get_publications(db_session, is_published=True, limit=5)
         
         context = {
             'articles': articles

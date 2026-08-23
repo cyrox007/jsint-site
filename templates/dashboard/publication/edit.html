@@ -56,7 +56,7 @@
             ) }}
 
             <label class="switch">
-                <input type="checkbox" name="published" {% if publication and publication.is_published %}checked{% endif %}>
+                <input type="checkbox" name="is_published" {% if publication and publication.is_published %}checked{% endif %}>
                 <span class="slider"></span>
                 <span class="label">Опубликовано</span>
             </label>
