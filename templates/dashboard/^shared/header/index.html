@@ -5,14 +5,14 @@
     </div>
 
     <nav>
-        <a class="{{'active' if request.endpoint == 'admin.catalog.index'}}" href="{{ url_for('admin.catalog.index') }}">
+        <a class="{{'active' if request.endpoint == 'admin.publication.index'}}" href="{{ url_for('admin.publication.index') }}">
             Публикации
         </a>
-
-        <!-- <a href="#">
-            Страницы
+        <a class="{{'active' if request.endpoint == 'admin.catalog.index'}}" href="{{ url_for('admin.catalog.index') }}">
+            Каталог
         </a>
 
+        <!-- 
         <a href="#">
             Пользователи
         </a>
