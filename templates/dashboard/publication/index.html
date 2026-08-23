@@ -20,7 +20,7 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
+                <!-- <th>ID</th> -->
                 <th>Название</th>
                 <th>Автор</th>
                 <th>Дата</th>
@@ -33,9 +33,10 @@
         {% for publication in publications %}
 
             <tr>
-                <td>{{ publication.id }}</td>
+                <!-- <td></td> -->
                 <td>
                     <strong>{{ publication.title }}</strong>
+                    <small>{{ publication.id }}</small>
                 </td>
                 <td>{{ publication.author.firstname }}</td>
                 <td>{{ publication.created_at }}</td>
