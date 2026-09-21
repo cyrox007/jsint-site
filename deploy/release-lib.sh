@@ -73,9 +73,12 @@ load_environment() {
     set +a
 
     : "${DB_HOST:?DB_HOST is required}"
+    : "${DB_PORT:?DB_PORT is required}"
     : "${DB_NAME:?DB_NAME is required}"
     : "${DB_USER:?DB_USER is required}"
+    : "${DB_PASSWORD:?DB_PASSWORD is required}"
     : "${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}"
+    DB_SSLMODE="${DB_SSLMODE:-prefer}"
     APP_BIND="${APP_BIND:-127.0.0.1:18080}"
 
     validate_identifier "${DB_NAME}" "DB_NAME"
@@ -205,14 +208,21 @@ switch_current_release() {
 database_backup() {
     load_environment
 
-    [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]         || die "Автоматический backup сейчас поддерживает только локальный PostgreSQL."
-
     local stamp backup_file
     stamp="$(date -u +'%Y%m%d%H%M%S')"
     backup_file="${BACKUP_ROOT}/${DB_NAME}-${stamp}.dump"
 
     log "Создание PostgreSQL backup: ${backup_file}"
-    sudo -u postgres pg_dump         --format=custom         --no-owner         --no-acl         --file="${backup_file}"         "${DB_NAME}"
+    PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        pg_dump \
+        --host="${DB_HOST}" \
+        --port="${DB_PORT}" \
+        --username="${DB_USER}" \
+        --dbname="${DB_NAME}" \
+        --format=custom \
+        --no-owner \
+        --no-acl \
+        --file="${backup_file}"
 
     chmod 0640 "${backup_file}"
     chown root:"${APP_GROUP}" "${backup_file}"
@@ -226,13 +236,27 @@ database_restore() {
     load_environment
 
     [[ -f "${backup_file}" && -s "${backup_file}" ]] || die "Некорректный backup: ${backup_file}"
-    [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]         || die "Автоматический restore сейчас поддерживает только локальный PostgreSQL."
 
     log "Восстановление PostgreSQL из ${backup_file}."
-    sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1         --command="SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" >/dev/null
-    sudo -u postgres dropdb --if-exists "${DB_NAME}"
-    sudo -u postgres createdb --owner="${DB_USER}" "${DB_NAME}"
-    sudo -u postgres pg_restore         --exit-on-error         --no-owner         --no-acl         --role="${DB_USER}"         --dbname="${DB_NAME}"         "${backup_file}"
+    if [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]; then
+        sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1 \
+            --command="SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" >/dev/null
+        sudo -u postgres dropdb --if-exists "${DB_NAME}"
+        sudo -u postgres createdb --owner="${DB_USER}" "${DB_NAME}"
+    fi
+
+    PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        pg_restore \
+        --host="${DB_HOST}" \
+        --port="${DB_PORT}" \
+        --username="${DB_USER}" \
+        --dbname="${DB_NAME}" \
+        --exit-on-error \
+        --clean \
+        --if-exists \
+        --no-owner \
+        --no-acl \
+        "${backup_file}"
 }
 
 install_service_units() {
