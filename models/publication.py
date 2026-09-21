@@ -36,11 +36,11 @@ class Publication(Database.Base):
 
     # Категория (для статей/кейсов)
     category_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), ForeignKey('categories.id'), nullable=True)
-    category = relationship("Category", lazy="selectin")
+    category = relationship("Category", back_populates="articles", lazy="selectin")
 
     # Автор
     author_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    author = relationship("User", lazy="selectin")
+    author = relationship("User", back_populates="articles", lazy="selectin")
 
     # Статус публикации
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
