@@ -35,7 +35,7 @@ def apply_security_headers(response):
     if config.IS_PRODUCTION:
         response.headers.setdefault(
             "Strict-Transport-Security",
-            "max-age=31536000; includeSubDomains",
+            "max-age=31536000",
         )
 
     if request.path.startswith(config.ADMIN_ROUTE_PREFIX):
