@@ -144,7 +144,16 @@ sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd 
 sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python manage.py set-password --email=you@example.com'
 ```
 
-## 8. Проверка зависимостей
+## 8. Preflight перед первым запуском
+
+Сначала проверьте Python-код и security/runtime smoke:
+
+```bash
+sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python -m compileall -q .'
+sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python -m unittest discover -s tests -v'
+```
+
+После этого проверьте production-зависимости:
 
 ```bash
 sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python manage.py health'
@@ -234,10 +243,11 @@ Redis содержит кеш и rate-limit state и не является ис�
 1. backup PostgreSQL;
 2. получить exact release commit;
 3. обновить virtualenv/requirements;
-4. `alembic upgrade head`;
-5. `python manage.py health`;
-6. `systemctl restart jsint-site`;
-7. проверить `/healthz` и browser smoke.
+4. выполнить `compileall` и test suite;
+5. `alembic upgrade head`;
+6. `python manage.py health`;
+7. `systemctl restart jsint-site`;
+8. проверить `/healthz` и browser smoke.
 
 Не запускайте Flask development server в production.
 
