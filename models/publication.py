@@ -10,9 +10,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship, selectinload
 
 from database import Database
+from models.technology import Technology
 
 if TYPE_CHECKING:
-    from models.technology import Technology
     from models.categories import Category
     from models.users import User
 
@@ -159,8 +159,11 @@ class Publication(Database.Base):
             elif hasattr(pub, key) and key not in ['id', 'created_at', 'updated_at']:
                 setattr(pub, key, value)
 
-        if 'is_published' in kwargs and kwargs['is_published'] and not pub.published_at:
-            pub.published_at = datetime.now(timezone.utc)
+        if 'is_published' in kwargs:
+            if kwargs['is_published'] and not pub.published_at:
+                pub.published_at = datetime.now(timezone.utc)
+            elif not kwargs['is_published']:
+                pub.published_at = None
 
         session.add(pub)
         return pub
