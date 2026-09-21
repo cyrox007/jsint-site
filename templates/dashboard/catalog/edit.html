@@ -4,42 +4,42 @@
 
 {% block content %}
 <div class="page-header">
-	<div>
-		<h1>Редактирование категории</h1>
-		<p>Измените данные категории</p>
-	</div>
+    <div>
+        <h1>Редактирование категории</h1>
+        <p>Измените данные категории</p>
+    </div>
 </div>
 
-<div class="card" style="max-width: 600px;">
-	<form method="post">
-		<div class="form-field">
-			<label for="title">Название</label>
-			<input type="text" name="title" id="title" value="{{ category.title }}" required>
-		</div>
-		<div class="form-field">
-			<label for="slug">URL (слаг)</label>
-			<input type="text" name="slug" id="slug" value="{{ category.slug }}" required>
-			<small>Латиница, без пробелов, через дефис</small>
-		</div>
-		<div class="form-field">
-			<label for="description">Описание</label>
-			<textarea name="description" id="description" rows="3">{{ category.description or '' }}</textarea>
-		</div>
-		<div class="form-field">
-			<label for="parent_id">Родительская категория</label>
-			<select name="parent_id" id="parent_id">
-				<option value="">Корневая</option>
-				{% for cat in all_categories %}
-				<option value="{{ cat.id }}" {% if category.parent_id==cat.id %}selected{% endif %}>
-					{{ cat.title }}
-				</option>
-				{% endfor %}
-			</select>
-		</div>
-		<div style="display:flex; gap:12px; margin-top:16px;">
-			<button type="submit" class="btn primary">Сохранить</button>
-			<a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">Отмена</a>
-		</div>
-	</form>
+<div class="card" style="max-width:600px;">
+    <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-field">
+            <label for="title">Название</label>
+            <input type="text" name="title" id="title" maxlength="50" value="{{ category.title }}" required>
+        </div>
+        <div class="form-field">
+            <label for="slug">URL</label>
+            <input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ category.slug }}" required>
+            <small>Латиница и цифры, слова разделяются дефисом</small>
+        </div>
+        <div class="form-field">
+            <label for="description">Описание</label>
+            <textarea name="description" id="description" rows="3">{{ category.description or '' }}</textarea>
+        </div>
+        <div class="form-field">
+            <label for="parent_id">Родительская категория</label>
+            <select name="parent_id" id="parent_id">
+                <option value="">Корневая</option>
+                {% for cat in all_categories %}
+                <option value="{{ cat.id }}" {% if category.parent_id == cat.id %}selected{% endif %}>{{ cat.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display:flex; gap:12px; margin-top:16px;">
+            <button type="submit" class="btn primary">Сохранить</button>
+            <a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">Отмена</a>
+        </div>
+    </form>
 </div>
 {% endblock %}
