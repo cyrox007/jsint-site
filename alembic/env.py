@@ -1,6 +1,4 @@
 from logging.config import fileConfig
-from re import U
-
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -23,8 +21,10 @@ config.set_main_option('sqlalchemy.url', app_config.database_url())
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from models import *
-target_metadata = User.__table__.metadata
+from database import Database
+import models  # noqa: F401 - import all mapped models before reading metadata
+
+target_metadata = Database.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
