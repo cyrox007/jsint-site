@@ -252,13 +252,18 @@ service_start() {
     systemctl start "${SERVICE_NAME}" || return 1
     systemctl start "${WORKER_SERVICE_NAME}" || return 1
     systemctl start "${BEAT_SERVICE_NAME}" || return 1
+    sleep 1
+    services_are_active
 }
 
 background_healthcheck() {
     local release_dir="$1"
     local wait_seconds="${2:-75}"
-    log "Ожидание Celery Beat -> Worker heartbeat."
-    run_release "${release_dir}"         "${release_dir}/.venv/bin/python"         manage.py background-health         --wait="${wait_seconds}"
+    local expected_version
+    expected_version="$(tr -d '\r\n' < "${release_dir}/.release-version")"
+
+    log "Ожидание свежего Celery Beat -> Worker heartbeat версии ${expected_version}."
+    run_release "${release_dir}"         "${release_dir}/.venv/bin/python"         manage.py background-health         --fresh         --expect-version="${expected_version}"         --wait="${wait_seconds}"
 }
 
 local_healthcheck() {
