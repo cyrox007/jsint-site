@@ -36,6 +36,10 @@ require_commands() {
     done
 }
 
+repo_git() {
+    sudo -H -u "${APP_USER}" git -C "${REPO_DIR}" "$@"
+}
+
 validate_identifier() {
     local value="$1"
     local label="$2"
@@ -97,14 +101,14 @@ resolve_ref() {
     local ref="$1"
     local commit=""
 
-    sudo -H -u "${APP_USER}" git -C "${REPO_DIR}" fetch --prune --tags origin >&2
+    repo_git fetch --prune --tags origin >&2
 
-    if commit="$(git -C "${REPO_DIR}" rev-parse --verify "origin/${ref}^{commit}" 2>/dev/null)"; then
+    if commit="$(repo_git rev-parse --verify "origin/${ref}^{commit}" 2>/dev/null)"; then
         printf '%s\n' "${commit}"
         return 0
     fi
 
-    if commit="$(git -C "${REPO_DIR}" rev-parse --verify "${ref}^{commit}" 2>/dev/null)"; then
+    if commit="$(repo_git rev-parse --verify "${ref}^{commit}" 2>/dev/null)"; then
         printf '%s\n' "${commit}"
         return 0
     fi
@@ -126,7 +130,7 @@ release_version_for_commit() {
     local commit="$1"
     local version=""
 
-    version="$(git -C "${REPO_DIR}" show "${commit}:VERSION" 2>/dev/null | tr -d '\r\n' || true)"
+    version="$(repo_git show "${commit}:VERSION" 2>/dev/null | tr -d '\r\n' || true)"
     [[ -n "${version}" ]] || die "В commit ${commit} отсутствует VERSION."
     [[ "${version}" =~ ^[0-9A-Za-z][0-9A-Za-z.+-]*$ ]] || die "Некорректная VERSION: ${version}"
     printf '%s\n' "${version}"
@@ -147,7 +151,7 @@ prepare_release() {
     log "Подготовка release ${release_name} из commit ${commit}."
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0755 "${temp_dir}"
 
-    git -C "${REPO_DIR}" archive --format=tar "${commit}" | tar -xf - -C "${temp_dir}"
+    repo_git archive --format=tar "${commit}" | tar -xf - -C "${temp_dir}"
     chown -R "${APP_USER}:${APP_GROUP}" "${temp_dir}"
 
     sudo -H -u "${APP_USER}" python3 -m venv "${temp_dir}/.venv"
