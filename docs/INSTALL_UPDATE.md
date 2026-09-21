@@ -256,3 +256,60 @@ PostgreSQL backups:
 ```bash
 ls -lh /var/backups/jsint-site/
 ```
+
+
+## Сервисы production runtime
+
+После установки должны быть активны:
+
+```text
+nginx.service
+postgresql.service
+redis-server.service
+jsint-site.service
+jsint-site-celery-worker.service
+jsint-site-celery-beat.service
+certbot.timer            # если TLS выпускается через Certbot
+```
+
+Проверка:
+
+```bash
+systemctl status jsint-site --no-pager
+systemctl status jsint-site-celery-worker --no-pager
+systemctl status jsint-site-celery-beat --no-pager
+systemctl status postgresql --no-pager
+systemctl status redis-server --no-pager
+systemctl status nginx --no-pager
+systemctl status certbot.timer --no-pager
+```
+
+Логи:
+
+```bash
+journalctl -u jsint-site -n 100 --no-pager
+journalctl -u jsint-site-celery-worker -n 100 --no-pager
+journalctl -u jsint-site-celery-beat -n 100 --no-pager
+```
+
+Celery использует отдельные logical Redis databases:
+
+```env
+REDIS_URL=redis://127.0.0.1:6379/0
+CELERY_BROKER_URL=redis://127.0.0.1:6379/1
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
+```
+
+Beat каждые 30 секунд ставит системную heartbeat-задачу. Worker выполняет её и пишет состояние в Redis. Проверка всей цепочки:
+
+```bash
+sudo -H -u jsint-site /bin/bash -c '
+  set -a
+  source /etc/jsint-site.env
+  set +a
+  cd /opt/jsint-site/current
+  .venv/bin/python manage.py background-health --fresh --expect-version=0.1.0 --wait=75
+'
+```
+
+Эта задача служебная. Бизнес-задачи мониторинга, лицензий и релизов будут добавляться поверх уже работающего Worker/Beat.
