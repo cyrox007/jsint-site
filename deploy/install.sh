@@ -192,6 +192,8 @@ DB_SSLMODE=prefer
 
 REDIS_URL=redis://127.0.0.1:6379/0
 REDIS_REQUIRED=true
+CELERY_BROKER_URL=redis://127.0.0.1:6379/1
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
 AUTH_RATE_LIMIT_ATTEMPTS=5
 AUTH_RATE_LIMIT_WINDOW_SECONDS=300
 
@@ -208,12 +210,12 @@ run_release_tests "${RELEASE_DIR}"
 run_health_command "${RELEASE_DIR}"
 switch_current_release "${RELEASE_DIR}"
 
-log "Установка systemd unit."
-install -o root -g root -m 0644     "${RELEASE_DIR}/deploy/jsint-site.service"     "/etc/systemd/system/${SERVICE_NAME}"
-systemctl daemon-reload
-systemctl enable "${SERVICE_NAME}"
+log "Установка systemd units: web + Celery Worker + Celery Beat."
+install_service_units "${RELEASE_DIR}"
+service_enable_all
 service_start
 local_healthcheck
+background_healthcheck "${RELEASE_DIR}" 75
 
 log "Создание HTTP-конфигурации Nginx."
 cat > /etc/nginx/sites-available/jsint-site.conf <<EOF
