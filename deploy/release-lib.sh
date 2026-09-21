@@ -99,6 +99,16 @@ resolve_ref() {
     die "Не удалось разрешить Git ref: ${ref}"
 }
 
+version_is_newer() {
+    local installed="$1"
+    local candidate="$2"
+
+    [[ "${installed}" != "${candidate}" ]] || return 1
+    local highest
+    highest="$(printf '%s\n%s\n' "${installed}" "${candidate}" | sort -V | tail -n 1)"
+    [[ "${highest}" == "${candidate}" ]]
+}
+
 release_version_for_commit() {
     local commit="$1"
     local version=""
