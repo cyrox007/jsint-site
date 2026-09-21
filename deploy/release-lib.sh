@@ -48,6 +48,13 @@ validate_domain() {
     [[ "${value}" != .* && "${value}" != *. && "${value}" != *..* ]] || die "Некорректный домен: ${value}"
 }
 
+validate_loopback_bind() {
+    local value="$1"
+    [[ "${value}" =~ ^127\.0\.0\.1:([0-9]{2,5})$ ]] || die "APP_BIND должен иметь вид 127.0.0.1:<port>."
+    local port="${BASH_REMATCH[1]}"
+    (( port >= 1024 && port <= 65535 )) || die "APP_BIND port должен быть в диапазоне 1024..65535."
+}
+
 ensure_layout() {
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0755 "${APP_ROOT}" "${RELEASES_DIR}"
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${CELERY_STATE_DIR}"
@@ -65,9 +72,11 @@ load_environment() {
     : "${DB_NAME:?DB_NAME is required}"
     : "${DB_USER:?DB_USER is required}"
     : "${ALLOWED_HOSTS:?ALLOWED_HOSTS is required}"
+    APP_BIND="${APP_BIND:-127.0.0.1:18080}"
 
     validate_identifier "${DB_NAME}" "DB_NAME"
     validate_identifier "${DB_USER}" "DB_USER"
+    validate_loopback_bind "${APP_BIND}"
 }
 
 run_release() {
@@ -272,8 +281,8 @@ local_healthcheck() {
     host="${host//[[:space:]]/}"
     validate_domain "${host}"
 
-    log "HTTP healthcheck через локальный Gunicorn, Host=${host}."
-    curl --fail --silent --show-error --max-time 15         --header "Host: ${host}"         "http://127.0.0.1:8080/healthz"
+    log "HTTP healthcheck через локальный Gunicorn ${APP_BIND}, Host=${host}."
+    curl --fail --silent --show-error --max-time 15         --header "Host: ${host}"         "http://${APP_BIND}/healthz"
     printf '\n'
 }
 
