@@ -12,6 +12,7 @@ REPO_URL="git@github.com:cyrox007/jsint-site.git"
 SOURCE_REPO=""
 TARGET_REF="master"
 CERTBOT_EMAIL=""
+DEPLOY_KEY=""
 DB_NAME_ARG="jsint"
 DB_USER_ARG="jsint"
 SKIP_PACKAGES=0
@@ -50,6 +51,7 @@ for arg in "$@"; do
         --source-repo=*) SOURCE_REPO="${arg#*=}" ;;
         --ref=*) TARGET_REF="${arg#*=}" ;;
         --certbot-email=*) CERTBOT_EMAIL="${arg#*=}" ;;
+        --deploy-key=*) DEPLOY_KEY="${arg#*=}" ;;
         --db-name=*) DB_NAME_ARG="${arg#*=}" ;;
         --db-user=*) DB_USER_ARG="${arg#*=}" ;;
         --skip-packages) SKIP_PACKAGES=1 ;;
@@ -80,17 +82,44 @@ if (( SKIP_PACKAGES == 0 )); then
     apt-get install -y         ca-certificates         curl         git         nginx         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         sudo         tar         util-linux
 fi
 
-require_commands     curl flock git nginx pg_dump pg_restore psql python3 sudo systemctl tar
+require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 sudo systemctl tar useradd
 
 acquire_update_lock
 
+if ! getent group "${APP_GROUP}" >/dev/null 2>&1; then
+    log "Создание системной группы ${APP_GROUP}."
+    groupadd --system "${APP_GROUP}"
+fi
+
 if ! id "${APP_USER}" >/dev/null 2>&1; then
     log "Создание системного пользователя ${APP_USER}."
-    useradd         --system         --home "${APP_ROOT}"         --shell /usr/sbin/nologin         --no-create-home         "${APP_USER}"
+    useradd \
+        --system \
+        --gid "${APP_GROUP}" \
+        --home "${APP_ROOT}" \
+        --shell /usr/sbin/nologin \
+        --no-create-home \
+        "${APP_USER}"
 fi
 
 ensure_layout
 install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0700 "${APP_ROOT}/.ssh"
+
+if [[ -n "${DEPLOY_KEY}" ]]; then
+    [[ -f "${DEPLOY_KEY}" ]] || die "Не найден --deploy-key: ${DEPLOY_KEY}"
+    log "Установка read-only Git deploy key для service account."
+    install -o "${APP_USER}" -g "${APP_GROUP}" -m 0600 "${DEPLOY_KEY}" "${APP_ROOT}/.ssh/id_ed25519"
+    cat > "${APP_ROOT}/.ssh/config" <<'EOF'
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+EOF
+    chown "${APP_USER}:${APP_GROUP}" "${APP_ROOT}/.ssh/config"
+    chmod 0600 "${APP_ROOT}/.ssh/config"
+fi
 
 systemctl enable --now postgresql
 systemctl enable --now redis-server
@@ -101,11 +130,15 @@ if [[ ! -d "${REPO_DIR}/.git" ]]; then
         [[ -d "${SOURCE_REPO}/.git" ]] || die "--source-repo не является Git repository: ${SOURCE_REPO}"
         SOURCE_REMOTE="$(git -C "${SOURCE_REPO}" remote get-url origin 2>/dev/null || true)"
         [[ -n "${SOURCE_REMOTE}" ]] || die "У --source-repo отсутствует remote origin."
-        sudo -u "${APP_USER}" git clone --no-hardlinks "${SOURCE_REPO}" "${REPO_DIR}"
-        sudo -u "${APP_USER}" git -C "${REPO_DIR}" remote set-url origin "${SOURCE_REMOTE}"
+        git clone --no-hardlinks "${SOURCE_REPO}" "${REPO_DIR}"
+        chown -R "${APP_USER}:${APP_GROUP}" "${REPO_DIR}"
+        sudo -H -u "${APP_USER}" git -C "${REPO_DIR}" remote set-url origin "${SOURCE_REMOTE}"
     else
         [[ "${REPO_URL}" != http*://*@* ]] || die "Не помещайте credentials/token в --repo-url. Используйте deploy key."
-        sudo -u "${APP_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
+        if [[ "${REPO_URL}" == git@github.com:* && ! -f "${APP_ROOT}/.ssh/id_ed25519" ]]; then
+            die "Private GitHub repository требует --deploy-key или --source-repo."
+        fi
+        sudo -H -u "${APP_USER}" git clone "${REPO_URL}" "${REPO_DIR}"
     fi
 fi
 
