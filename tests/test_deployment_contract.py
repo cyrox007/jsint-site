@@ -64,9 +64,16 @@ class DeploymentContractTests(unittest.TestCase):
         runtime = self.read("deploy/release-lib.sh")
         self.assertIn("RELEASES_DIR", runtime)
         self.assertIn("CURRENT_LINK", runtime)
-        self.assertIn("git -C", runtime)
-        self.assertIn("archive --format=tar", runtime)
+        self.assertIn("repo_git()", runtime)
+        self.assertIn('sudo -H -u "${APP_USER}" git -C "${REPO_DIR}"', runtime)
+        self.assertIn("repo_git archive --format=tar", runtime)
         self.assertNotIn("git pull", runtime)
+
+    def test_release_runtime_reads_repository_as_service_account(self):
+        runtime = self.read("deploy/release-lib.sh")
+        self.assertIn("repo_git fetch --prune --tags origin", runtime)
+        self.assertIn('repo_git rev-parse --verify "origin/${ref}^{commit}"', runtime)
+        self.assertIn('repo_git show "${commit}:VERSION"', runtime)
 
 
 if __name__ == "__main__":
