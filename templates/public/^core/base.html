@@ -1,53 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link type="image/png" sizes="16x16" rel="icon" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-16.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-192.png') }}">
+    <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#060816">
     <title>{% block title %}JSInteractive | +УЛЬТРА{% endblock %}</title>
+    <meta name="description" content="{% block description %}+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, аудит и архитектура web-систем.{% endblock %}">
     <meta name="yandex-verification" content="725d05a47d08b13d">
     <style>
         {% include 'public/styles.css' %}
     </style>
-
-    <!-- Скрипты из оригинала (замените пути на актуальные, если используете сборщик) -->
-    <script async src="https://mc.yandex.ru/metrika/tag.js?id=109367112"></script>
-    <!-- <link type="image/png" sizes="16x16" rel="icon" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-16.png') }}">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-192.png') }}">
-    <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
-    <link color="#26E07F" rel="mask-icon" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-128.svg') }}">
-    <meta name="msapplication-square70x70logo" content="{{ url_for('static', filename='favicon/icons8-pastel-glyph-70.png') }}">
-    <meta name="msapplication-TileColor" content="#C0FFEE">
-    <meta name="application-name" content="Beautiful application name">
-    <script src="https://kit.fontawesome.com/45cc6d666e.js" crossorigin="anonymous"></script> -->
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <script>
-        let wtf = {};
-    </script>
     {% include 'public/^shared/header/index.html' %}
-    
+
     <main>
         {% block content %}{% endblock %}
     </main>
 
     {% include 'public/^shared/footer/index.html' %}
 
-    <!-- Yandex.Metrika counter -->
-    <script type="text/javascript">
+    {% if config.YANDEX_METRIKA_ID %}
+    <script>
         (function (m, e, t, r, i, k, a) {
             m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments) };
             m[i].l = 1 * new Date();
-            for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
-            k = e.createElement(t), a = e.getElementsByTagName(t)[0], k.async = 1, k.src = r, a.parentNode.insertBefore(k, a)
-        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=109367112', 'ym');
+            for (var j = 0; j < document.scripts.length; j++) {
+                if (document.scripts[j].src === r) return;
+            }
+            k = e.createElement(t);
+            a = e.getElementsByTagName(t)[0];
+            k.async = 1;
+            k.src = r;
+            a.parentNode.insertBefore(k, a);
+        })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id={{ config.YANDEX_METRIKA_ID|e }}', 'ym');
 
-        ym(109367112, 'init', { ssr: true, webvisor: true, clickmap: true, ecommerce: "dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce: true, trackLinks: true });
+        ym({{ config.YANDEX_METRIKA_ID|int }}, 'init', {
+            ssr: true,
+            webvisor: true,
+            clickmap: true,
+            accurateTrackBounce: true,
+            trackLinks: true
+        });
     </script>
     <noscript>
-        <div><img src="https://mc.yandex.ru/watch/109367112" style="position:absolute; left:-9999px;" alt="" /></div>
+        <div>
+            <img src="https://mc.yandex.ru/watch/{{ config.YANDEX_METRIKA_ID|e }}"
+                 style="position:absolute; left:-9999px;"
+                 alt="">
+        </div>
     </noscript>
-    <!-- /Yandex.Metrika counter -->
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>
