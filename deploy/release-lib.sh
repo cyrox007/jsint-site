@@ -223,7 +223,8 @@ service_restart() {
 }
 
 service_stop() {
-    systemctl stop "${SERVICE_NAME}" || true
+    systemctl stop "${SERVICE_NAME}" || return 1
+    ! systemctl is-active --quiet "${SERVICE_NAME}"
 }
 
 service_start() {
