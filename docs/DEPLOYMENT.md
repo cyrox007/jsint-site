@@ -1,6 +1,8 @@
 # Production-развёртывание jsint-site
 
-Эта инструкция описывает рекомендуемый запуск портфолио на Ubuntu/Debian через Nginx + Gunicorn + PostgreSQL + Redis.
+Для стартовой production-линии используется release-layout с атомарным symlink `current`. Не копируйте новую версию поверх работающего application tree.
+
+Подробный контракт installer/updater: [INSTALL_UPDATE.md](INSTALL_UPDATE.md).
 
 ## Архитектура
 
@@ -11,259 +13,266 @@ Internet
   v
 Nginx
   |
-  +-- /static/* -> /opt/jsint-site/static/
+  +-- /static/* -> /opt/jsint-site/current/static/
   |
   +-- остальные запросы -> 127.0.0.1:8080
                               |
                               v
                            Gunicorn
                               |
+                  /opt/jsint-site/current
+                              |
                            Flask
                           /     \
                     PostgreSQL  Redis
 ```
 
-Gunicorn, PostgreSQL и Redis не должны быть доступны напрямую из Internet.
+Файловая layout:
 
-## 1. Системные пакеты
+```text
+/opt/jsint-site/
+├── repository/
+├── releases/
+│   ├── 0.1.0-<sha>-<timestamp>/
+│   └── ...
+├── current -> releases/<active-release>/
+└── .ssh/
+
+/etc/jsint-site.env
+/var/backups/jsint-site/
+```
+
+PostgreSQL, Redis и Gunicorn не публикуются напрямую в Internet.
+
+## Рекомендуемая первая установка
+
+Подготовьте read-only GitHub deploy key для private repository и добавьте его public half в Repository → Settings → Deploy keys.
+
+Затем из доверенного checkout:
 
 ```bash
-sudo apt update
-sudo apt install -y python3 python3-venv python3-pip postgresql redis-server nginx git
+sudo bash deploy/install.sh \
+  --domain=portfolio.example.com \
+  --www-domain=www.portfolio.example.com \
+  --admin-email=you@example.com \
+  --deploy-key=/root/jsint-site-deploy-key \
+  --source-repo="$PWD" \
+  --ref=v0.1.0 \
+  --certbot-email=you@example.com
 ```
 
-Для TLS используйте Certbot или другой ACME-клиент.
+Installer сам:
 
-## 2. Отдельный системный пользователь
+- устанавливает системные dependencies;
+- создаёт Unix account `jsint-site`;
+- создаёт PostgreSQL role/database;
+- генерирует production secrets;
+- создаёт `/etc/jsint-site.env`;
+- собирает immutable release и venv;
+- применяет Alembic migrations;
+- запускает tests/healthcheck;
+- устанавливает systemd/Nginx;
+- создаёт первого administrator;
+- при необходимости выпускает TLS через Certbot.
 
-```bash
-sudo useradd --system --home /opt/jsint-site --shell /usr/sbin/nologin jsint-site
-sudo install -d -o jsint-site -g jsint-site -m 0755 /opt/jsint-site
+Installer предназначен только для чистой установки и не перезаписывает уже установленную систему.
+
+## Production environment
+
+Основная конфигурация живёт вне repository:
+
+```text
+/etc/jsint-site.env
 ```
 
-## 3. Код и virtualenv
+Файл принадлежит `root:jsint-site` и имеет mode `0640`.
 
-```bash
-sudo -u jsint-site git clone https://github.com/cyrox007/jsint-site.git /opt/jsint-site
-cd /opt/jsint-site
-sudo -u jsint-site python3 -m venv .venv
-sudo -u jsint-site .venv/bin/pip install --upgrade pip
-sudo -u jsint-site .venv/bin/pip install -r requirements.txt
-```
-
-Если production-серверу нужен доступ к private repository, используйте read-only deploy key. Не сохраняйте personal access token в URL remote.
-
-## 4. PostgreSQL
-
-Создайте отдельного пользователя и БД приложения:
-
-```sql
-CREATE ROLE jsint LOGIN PASSWORD 'replace-with-a-strong-random-password';
-CREATE DATABASE jsint OWNER jsint;
-```
-
-Приложение не должно использовать PostgreSQL superuser.
-
-## 5. Production environment
-
-Создайте environment-файл вне репозитория:
-
-```bash
-sudo install -o root -g jsint-site -m 0640 /dev/null /etc/jsint-site.env
-sudoedit /etc/jsint-site.env
-```
-
-Перечень переменных есть в `default.env`.
-
-Минимальный пример:
+Ключевые параметры:
 
 ```env
 APP_ENV=production
-SECRET_KEY=<случайная строка не короче 32 символов>
+SECRET_KEY=<случайное значение>
 ADMIN_ROUTE_PREFIX=/x321/dashboard
 ADMIN_EMAILS=you@example.com
 
 ALLOWED_HOSTS=portfolio.example.com,www.portfolio.example.com
 BEHIND_PROXY=true
 SESSION_COOKIE_SECURE=true
-SESSION_COOKIE_NAME=jsint_session
-SESSION_LIFETIME_HOURS=12
-MAX_CONTENT_LENGTH=2097152
-LOG_LEVEL=INFO
 
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_NAME=jsint
 DB_USER=jsint
-DB_PASSWORD=<пароль PostgreSQL>
-DB_SSLMODE=prefer
+DB_PASSWORD=<случайный пароль>
 
 REDIS_URL=redis://127.0.0.1:6379/0
 REDIS_REQUIRED=true
-AUTH_RATE_LIMIT_ATTEMPTS=5
-AUTH_RATE_LIMIT_WINDOW_SECONDS=300
-
-YANDEX_METRIKA_ID=
 ```
 
-SECRET_KEY можно получить так:
+Production startup fail-closed, если обязательные secrets/hosts/admin allowlist отсутствуют.
 
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
+## Проверка состояния
 
-`ADMIN_EMAILS` — явный allowlist пользователей CMS. Само наличие строки в таблице `users` административного доступа не даёт.
-
-## 6. Миграции
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/alembic upgrade head'
-```
-
-Проверка revision:
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/alembic current'
-```
-
-Не выводите содержимое `/etc/jsint-site.env` в логи или CI.
-
-## 7. Создание администратора
-
-Email должен присутствовать в `ADMIN_EMAILS`:
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python manage.py create-admin --email=you@example.com'
-```
-
-Пароль вводится интерактивно и не попадает в shell history.
-
-Смена пароля:
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python manage.py set-password --email=you@example.com'
-```
-
-## 8. Preflight перед первым запуском
-
-Сначала проверьте Python-код и security/runtime smoke:
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python -m compileall -q .'
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python -m unittest discover -s tests -v'
-```
-
-После этого проверьте production-зависимости:
-
-```bash
-sudo -u jsint-site /bin/bash -c 'set -a; source /etc/jsint-site.env; set +a; cd /opt/jsint-site && .venv/bin/python manage.py health'
-```
-
-При исправной production-среде ожидается:
-
-```json
-{"status":"ok","checks":{"config":true,"database":true,"redis":true}}
-```
-
-## 9. systemd
-
-```bash
-sudo cp /opt/jsint-site/deploy/jsint-site.service /etc/systemd/system/jsint-site.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now jsint-site
-sudo systemctl status jsint-site
-```
-
-Логи:
-
-```bash
-journalctl -u jsint-site -f
-```
-
-Проверка Gunicorn напрямую:
-
-```bash
-curl -fsS -H 'Host: portfolio.example.com' http://127.0.0.1:8080/healthz
-```
-
-## 10. Nginx и TLS
-
-```bash
-sudo cp /opt/jsint-site/deploy/nginx.conf.example /etc/nginx/sites-available/jsint-site.conf
-sudoedit /etc/nginx/sites-available/jsint-site.conf
-```
-
-Замените домен и пути сертификатов. Затем:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/jsint-site.conf /etc/nginx/sites-enabled/jsint-site.conf
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-После выпуска сертификата:
+HTTP:
 
 ```bash
 curl -fsS https://portfolio.example.com/healthz
 ```
 
-## 11. Проверка после deployment
+Пример:
 
-Проверить вручную:
-
-1. главная открывается по HTTPS;
-2. header links ведут на реальные секции;
-3. опубликованный материал открывается только по своей категории;
-4. `/register` возвращает 404;
-5. admin login доступен по HTTPS;
-6. несколько неверных паролей включают rate limit;
-7. создание/редактирование публикации работает;
-8. delete требует POST+CSRF;
-9. logout завершает сессию;
-10. `/healthz` возвращает 200;
-11. в browser console нет ошибок Vue/неизвестных компонентов;
-12. в Nginx/Gunicorn logs нет traceback.
-
-## 12. Backup
-
-Перед deployment с миграциями:
-
-```bash
-pg_dump --format=custom --file=/secure/backups/jsint-$(date +%Y%m%d-%H%M%S).dump jsint
+```json
+{
+  "status": "ok",
+  "version": "0.1.0",
+  "checks": {
+    "database": true,
+    "redis": true
+  }
+}
 ```
 
-Периодически делайте restore drill в отдельную тестовую БД. Наличие dump без проверенного восстановления не считается достаточной гарантией.
+CLI:
 
-Redis содержит кеш и rate-limit state и не является источником пользовательских данных.
+```bash
+sudo -H -u jsint-site /bin/bash -c '
+  set -a
+  source /etc/jsint-site.env
+  set +a
+  cd /opt/jsint-site/current
+  .venv/bin/python manage.py health
+'
+```
 
-## 13. Обновление production
+Текущий exact release:
 
-Рекомендуемый порядок:
+```bash
+readlink -f /opt/jsint-site/current
+cat /opt/jsint-site/current/.release-version
+cat /opt/jsint-site/current/.release-commit
+```
 
-1. backup PostgreSQL;
-2. получить exact release commit;
-3. обновить virtualenv/requirements;
-4. выполнить `compileall` и test suite;
-5. `alembic upgrade head`;
-6. `python manage.py health`;
-7. `systemctl restart jsint-site`;
-8. проверить `/healthz` и browser smoke.
+## Обновление production
 
-Не запускайте Flask development server в production.
+Каждый production release обязан увеличивать `VERSION` и желательно публиковаться immutable Git tag.
 
-## 14. Rollback
+Например:
 
-Если новая версия не меняла schema, верните предыдущий release commit и перезапустите service.
+```bash
+sudo bash /opt/jsint-site/current/deploy/update.sh \
+  --yes \
+  --ref=v0.1.1
+```
 
-Если deployment включал миграции, сначала оцените совместимость предыдущего кода с новой schema. Не выполняйте `alembic downgrade` вслепую. При несовместимости восстанавливайте PostgreSQL backup вместе с предыдущей версией приложения.
-
-## 15. Notes Update Service
-
-Портфолио и Notes Update Service остаются отдельными приложениями:
+Updater:
 
 ```text
-portfolio.example.com -> jsint-site / Flask
+fetch exact commit
+  -> VERSION guard
+  -> candidate release + venv
+  -> PostgreSQL backup
+  -> stop application
+  -> migrations
+  -> candidate tests
+  -> candidate health
+  -> atomic current switch
+  -> start
+  -> HTTP healthcheck
+```
+
+Если после начала migrations возникает ошибка, updater возвращает previous release и восстанавливает PostgreSQL из pre-update dump.
+
+Подробности: [INSTALL_UPDATE.md](INSTALL_UPDATE.md).
+
+## Systemd
+
+Unit устанавливается в:
+
+```text
+/etc/systemd/system/jsint-site.service
+```
+
+Он всегда запускает:
+
+```text
+/opt/jsint-site/current/.venv/bin/gunicorn
+```
+
+Проверка:
+
+```bash
+systemctl status jsint-site
+journalctl -u jsint-site -f
+```
+
+## Nginx и TLS
+
+Installer сначала создаёт HTTP reverse proxy. Если задан `--certbot-email`, Certbot выпускает certificate и переводит host на HTTPS.
+
+Проверка конфигурации:
+
+```bash
+nginx -t
+systemctl status nginx
+```
+
+HSTS приложение отдаёт только для реально HTTPS requests.
+
+## Backup
+
+Updater автоматически создаёт PostgreSQL rollback dump перед каждым обновлением:
+
+```text
+/var/backups/jsint-site/
+```
+
+Для отдельного планового backup:
+
+```bash
+sudo -u postgres pg_dump \
+  --format=custom \
+  --no-owner \
+  --no-acl \
+  --file=/secure/backups/jsint-$(date +%Y%m%d-%H%M%S).dump \
+  jsint
+```
+
+Периодически выполняйте restore drill. Наличие dump без проверенного восстановления не считается достаточной гарантией.
+
+Redis содержит cache/rate-limit state и не является источником пользовательских данных.
+
+## Smoke после deployment
+
+Проверить:
+
+1. главная открывается по HTTPS;
+2. мобильный header/hero не создаёт horizontal overflow;
+3. article открывается только по своей category;
+4. `/register` возвращает 404;
+5. CMS доступна только пользователю из `ADMIN_EMAILS`;
+6. login rate limit работает;
+7. создание/редактирование публикации работает;
+8. destructive actions требуют POST+CSRF;
+9. logout завершает session;
+10. `/healthz` возвращает `status=ok`;
+11. dashboard «Обзор» показывает версию/PostgreSQL/Redis;
+12. в Nginx/Gunicorn logs нет traceback.
+
+## Notes Update Service
+
+Портфолио и Notes Update Service остаются разными приложениями даже на одном VPS:
+
+```text
+portfolio.example.com -> jsint-site
 updates.example.com   -> Notes Update Service
 ```
 
-На одном VPS это могут быть разные systemd services и Unix users. CMS портфолио позже можно превратить в операторский frontend публикации релизов Notes, но production private signing key Notes на этот сервер не переносится.
+Админка портфолио будет расширяться как операторская панель:
+
+- публикации;
+- релизы Workspace Organizer;
+- лицензии;
+- установки;
+- мониторинг.
+
+Но private signing key обновлений Workspace Organizer никогда не переносится в web-приложение.
