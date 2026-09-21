@@ -6,6 +6,7 @@ from sqlalchemy import text
 from cache.redis import redis_client
 from database import Database
 from settings import config
+from version import application_version
 
 
 def healthcheck():
@@ -31,4 +32,4 @@ def healthcheck():
         else ("degraded" if critical_ok else "error")
     )
 
-    return jsonify({"status": status, "checks": checks}), (200 if critical_ok else 503)
+    return jsonify({"status": status, "version": application_version(), "checks": checks}), (200 if critical_ok else 503)
