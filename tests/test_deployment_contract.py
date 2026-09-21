@@ -13,6 +13,13 @@ class DeploymentContractTests(unittest.TestCase):
         version = self.read("VERSION").strip()
         self.assertRegex(version, r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
+    def test_server_preflight_is_read_only_contract(self):
+        preflight = self.read("deploy/server-preflight.sh")
+        self.assertIn("nginx -T", preflight)
+        self.assertIn("ss -ltnp", preflight)
+        self.assertNotIn("apt-get install", preflight)
+        self.assertNotIn("systemctl restart", preflight)
+
     def test_systemd_uses_atomic_current_release(self):
         unit = self.read("deploy/jsint-site.service")
         self.assertIn("WorkingDirectory=/opt/jsint-site/current", unit)
@@ -27,6 +34,7 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("WorkingDirectory=/opt/jsint-site/current", beat)
         self.assertIn("celery_app:celery_app beat", beat)
         self.assertIn("/var/lib/jsint-site/celery/celerybeat-schedule", beat)
+        self.assertIn("ReadWritePaths=/var/lib/jsint-site/celery", beat)
 
     def test_installer_is_clean_install_only(self):
         installer = self.read("deploy/install.sh")
