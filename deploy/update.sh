@@ -87,7 +87,12 @@ rollback_update() {
     log "ROLLBACK: ${reason}"
 
     set +e
-    service_stop
+    if ! service_stop; then
+        log "КРИТИЧЕСКАЯ ОШИБКА: не удалось гарантированно остановить ${SERVICE_NAME}; restore БД не выполняется."
+        log "Backup сохранён: ${BACKUP_FILE}"
+        set -e
+        return 2
+    fi
     switch_current_release "${OLD_RELEASE}"
     database_restore "${BACKUP_FILE}"
     service_start
