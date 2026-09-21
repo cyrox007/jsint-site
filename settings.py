@@ -80,8 +80,18 @@ class Config:
 
     @classmethod
     def validate(cls) -> None:
-        if not cls.SECRET_KEY or len(cls.SECRET_KEY) < 32:
-            raise RuntimeError("SECRET_KEY must contain at least 32 characters")
+        unsafe_secret_keys = {
+            "",
+            "replace-with-at-least-32-random-characters",
+            "fallback-secret-key-for-development",
+            "development-only-secret-key-change-me",
+        }
+        if (
+            not cls.SECRET_KEY
+            or cls.SECRET_KEY in unsafe_secret_keys
+            or len(cls.SECRET_KEY) < 32
+        ):
+            raise RuntimeError("SECRET_KEY must be a non-placeholder value of at least 32 characters")
 
         if not cls.ADMIN_ROUTE_PREFIX.startswith("/") or cls.ADMIN_ROUTE_PREFIX == "/":
             raise RuntimeError("ADMIN_ROUTE_PREFIX must be a non-root absolute URL path")
