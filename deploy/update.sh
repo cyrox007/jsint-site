@@ -96,7 +96,12 @@ rollback_update() {
     switch_current_release "${OLD_RELEASE}"
     database_restore "${BACKUP_FILE}"
     install_service_units "${OLD_RELEASE}"
-    service_start
+    if ! service_start; then
+        log "КРИТИЧЕСКАЯ ОШИБКА: предыдущий Web/Celery runtime не запустился после restore."
+        log "Backup сохранён: ${BACKUP_FILE}"
+        set -e
+        return 2
+    fi
 
     if local_healthcheck && background_healthcheck "${OLD_RELEASE}" 75; then
         log "Rollback подтверждён: восстановлен ${OLD_VERSION} (${OLD_COMMIT:0:12})."
