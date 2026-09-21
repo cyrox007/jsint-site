@@ -31,6 +31,14 @@ def _publication_payload(schema_cls):
     )
 
 
+def _validate_publication_references(db_session: Session, data) -> str | None:
+    if data.category_id is not None and Category.get_by_id(db_session, data.category_id) is None:
+        return "Выбранная категория не существует"
+    if data.is_published and data.category_id is None:
+        return "Для публикации материала выберите категорию"
+    return None
+
+
 def _validation_message(exc: ValidationError) -> str:
     first = exc.errors()[0] if exc.errors() else {}
     return str(first.get("msg") or "Проверьте заполненные поля")
@@ -83,6 +91,11 @@ class CreatePost(MethodView):
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
+            return redirect(url_for("admin.publication.create"))
+
+        reference_error = _validate_publication_references(db_session, data)
+        if reference_error:
+            flash(reference_error, "error")
             return redirect(url_for("admin.publication.create"))
 
         if db_session.query(Publication).filter(Publication.slug == data.slug).first():
@@ -143,6 +156,11 @@ class UpdatePost(MethodView):
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
+            return redirect(url_for("admin.publication.edit", id=id))
+
+        reference_error = _validate_publication_references(db_session, data)
+        if reference_error:
+            flash(reference_error, "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
         existing = db_session.query(Publication).filter(Publication.slug == data.slug).first()
