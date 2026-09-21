@@ -10,7 +10,7 @@ Group=jsint-site
 WorkingDirectory=/opt/jsint-site/current
 EnvironmentFile=/etc/jsint-site.env
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app worker --loglevel=INFO --concurrency=2 --hostname=jsint-worker@%H
+ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app worker --loglevel=INFO --concurrency=${CELERY_CONCURRENCY} --hostname=jsint-worker@%H
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=45
