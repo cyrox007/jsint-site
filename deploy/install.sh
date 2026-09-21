@@ -331,9 +331,13 @@ if [[ -n "${CERTBOT_EMAIL}" ]]; then
     curl --fail --silent --show-error --max-time 20 "https://${DOMAIN}/healthz"
     printf '\n'
 else
-    log "TLS автоматически не выпускался."
-    log "До входа в CMS настройте HTTPS. Можно повторно запустить Certbot вручную:"
-    log "  certbot --nginx -d ${DOMAIN}"
+    if (( SKIP_NGINX == 1 )); then
+        log "Nginx/TLS не изменялись (--skip-nginx). Используется существующий reverse proxy/certificate."
+    else
+        log "TLS автоматически не выпускался."
+        log "До входа в CMS настройте HTTPS. Можно повторно запустить Certbot вручную:"
+        log "  certbot --nginx -d ${DOMAIN}"
+    fi
 fi
 
 log "Установка завершена."
