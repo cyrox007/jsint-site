@@ -47,6 +47,10 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("background_healthcheck", installer)
         self.assertIn("CELERY_BROKER_URL=", installer)
         self.assertIn("CELERY_RESULT_BACKEND=", installer)
+        self.assertIn("--existing-db", installer)
+        self.assertIn("--db-host=", installer)
+        self.assertIn("--db-password-file=", installer)
+        self.assertIn("PGPASSWORD=", installer)
 
     def test_updater_requires_backup_migration_and_rollback(self):
         updater = self.read("deploy/update.sh")
@@ -74,6 +78,14 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("repo_git fetch --prune --tags origin", runtime)
         self.assertIn('repo_git rev-parse --verify "origin/${ref}^{commit}"', runtime)
         self.assertIn('repo_git show "${commit}:VERSION"', runtime)
+
+    def test_release_runtime_supports_remote_postgresql_backup_restore(self):
+        runtime = self.read("deploy/release-lib.sh")
+        self.assertIn('PGPASSWORD="${DB_PASSWORD}"', runtime)
+        self.assertIn('--host="${DB_HOST}"', runtime)
+        self.assertIn('--port="${DB_PORT}"', runtime)
+        self.assertIn("--clean", runtime)
+        self.assertIn("--if-exists", runtime)
 
 
 if __name__ == "__main__":
