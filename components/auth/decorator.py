@@ -5,9 +5,10 @@ import logging
 from uuid import UUID
 
 from flask import current_app, flash, g, redirect, session, url_for
-from werkzeug.exceptions import InternalServerError
+from werkzeug.exceptions import HTTPException, InternalServerError
 
 from database import Database
+from settings import config
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +31,8 @@ def _session_user_exists() -> bool:
         db_session = Database.connect_database()
 
     try:
-        return (
-            db_session.query(User.id)
-            .filter(User.id == user_id)
-            .first()
-            is not None
-        )
+        user = db_session.query(User.id, User.email).filter(User.id == user_id).first()
+        return user is not None and config.is_admin_email(user.email)
     except Exception:
         logger.exception("Unable to validate authenticated user")
         return False
@@ -71,6 +68,9 @@ def with_db_session(view):
 
         try:
             return view(*args, **kwargs)
+        except HTTPException:
+            db_session.rollback()
+            raise
         except Exception as exc:
             db_session.rollback()
             logger.exception(
