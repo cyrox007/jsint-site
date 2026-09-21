@@ -8,6 +8,7 @@ from components.auth.decorator import login_required, with_db_session
 from components.auth.rate_limit import LoginRateLimiter
 from components.security.csrf import rotate_csrf_token
 from models.users import User
+from settings import config
 from utils.hash_password import verify_password
 
 
@@ -35,7 +36,11 @@ class LoginPage(MethodView):
             return redirect(url_for("auth.login"))
 
         user = db_session.query(User).filter(User.email == email).first()
-        valid = user is not None and verify_password(password, user.hash_password)
+        valid = (
+            user is not None
+            and config.is_admin_email(user.email)
+            and verify_password(password, user.hash_password)
+        )
 
         if not valid:
             try:
