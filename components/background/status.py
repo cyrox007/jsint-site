@@ -26,6 +26,10 @@ def record_background_heartbeat() -> dict[str, Any]:
     return payload
 
 
+def clear_background_heartbeat() -> None:
+    redis_client.delete(BACKGROUND_HEARTBEAT_KEY)
+
+
 def get_background_status() -> dict[str, Any]:
     try:
         raw = redis_client.get(BACKGROUND_HEARTBEAT_KEY)
