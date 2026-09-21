@@ -42,7 +42,7 @@ bash deploy/server-preflight.sh --domain=jsinteractive.ru
 - старые jsint-site systemd services;
 - существующие deployment paths.
 
-Если хостер уже создал Nginx virtual host для `jsinteractive.ru`, сначала сверяем его. При необходимости installer запускается с `--skip-nginx`, а существующий reverse proxy направляется на `127.0.0.1:8080`.
+Если хостер уже создал Nginx virtual host для `jsinteractive.ru`, сначала сверяем его. При необходимости installer запускается с `--skip-nginx`, а существующий reverse proxy направляется на `127.0.0.1:18080`.
 
 ## Первая установка
 
