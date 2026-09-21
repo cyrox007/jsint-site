@@ -15,7 +15,7 @@ from utils.hash_password import verify_password
 class LoginPage(MethodView):
     def get(self):
         if session.get("user_id"):
-            return redirect(url_for("admin.publication.index"))
+            return redirect(url_for("admin.index"))
         return render_template("dashboard/auth/index.html")
 
     @with_db_session
