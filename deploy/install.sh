@@ -15,6 +15,7 @@ CERTBOT_EMAIL=""
 DEPLOY_KEY=""
 DB_NAME_ARG="jsint"
 DB_USER_ARG="jsint"
+APP_PORT_ARG="18080"
 SKIP_PACKAGES=0
 SKIP_ADMIN=0
 SKIP_NGINX=0
@@ -35,6 +36,7 @@ usage() {
     [--deploy-key=/root/jsint-site-deploy-key] \
     [--db-name=jsint] \
     [--db-user=jsint] \
+    [--app-port=18080] \
     [--skip-packages] \
     [--skip-admin] \
     [--skip-nginx]
@@ -57,6 +59,7 @@ for arg in "$@"; do
         --deploy-key=*) DEPLOY_KEY="${arg#*=}" ;;
         --db-name=*) DB_NAME_ARG="${arg#*=}" ;;
         --db-user=*) DB_USER_ARG="${arg#*=}" ;;
+        --app-port=*) APP_PORT_ARG="${arg#*=}" ;;
         --skip-packages) SKIP_PACKAGES=1 ;;
         --skip-admin) SKIP_ADMIN=1 ;;
         --skip-nginx) SKIP_NGINX=1 ;;
@@ -72,6 +75,8 @@ validate_domain "${DOMAIN}"
 [[ -z "${WWW_DOMAIN}" ]] || validate_domain "${WWW_DOMAIN}"
 validate_identifier "${DB_NAME_ARG}" "DB name"
 validate_identifier "${DB_USER_ARG}" "DB user"
+[[ "${APP_PORT_ARG}" =~ ^[0-9]{2,5}$ ]] || die "Некорректный --app-port."
+(( APP_PORT_ARG >= 1024 && APP_PORT_ARG <= 65535 )) || die "--app-port должен быть в диапазоне 1024..65535."
 [[ "${ADMIN_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die "Некорректный --admin-email."
 if (( SKIP_NGINX == 1 )) && [[ -n "${CERTBOT_EMAIL}" ]]; then
     die "--certbot-email нельзя использовать вместе с --skip-nginx."
@@ -89,7 +94,16 @@ if (( SKIP_PACKAGES == 0 )); then
     apt-get install -y         ca-certificates         curl         git         nginx         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         openssh-client         sudo         tar         util-linux
 fi
 
-require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 sudo systemctl tar useradd
+require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 ss sudo systemctl tar useradd
+
+python3 - <<'PY' || die "Требуется Python >= 3.10."
+import sys
+raise SystemExit(0 if sys.version_info >= (3, 10) else 1)
+PY
+
+if ss -ltnH | awk '{print $4}' | grep -Eq "[:.]\${APP_PORT_ARG}$"; then
+    die "Порт ${APP_PORT_ARG} уже занят. Выберите другой --app-port."
+fi
 
 acquire_update_lock
 
@@ -188,6 +202,10 @@ SESSION_COOKIE_NAME=jsint_session
 SESSION_LIFETIME_HOURS=12
 MAX_CONTENT_LENGTH=2097152
 LOG_LEVEL=INFO
+APP_BIND=127.0.0.1:${APP_PORT_ARG}
+GUNICORN_WORKERS=1
+GUNICORN_THREADS=4
+CELERY_CONCURRENCY=1
 
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -251,7 +269,7 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://127.0.0.1:${APP_PORT_ARG};
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -283,7 +301,7 @@ EOF
     systemctl enable --now nginx
     systemctl reload nginx
 else
-    log "Nginx пропущен (--skip-nginx). Настройте reverse proxy к 127.0.0.1:8080 вручную."
+    log "Nginx пропущен (--skip-nginx). Настройте reverse proxy к 127.0.0.1:${APP_PORT_ARG} вручную."
 fi
 
 if (( SKIP_ADMIN == 0 )); then
