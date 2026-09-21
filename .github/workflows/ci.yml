@@ -73,6 +73,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Validate deployment shell scripts
+        run: bash -n deploy/release-lib.sh deploy/install.sh deploy/update.sh
+
       - name: Compile Python sources
         run: python -m compileall -q .
 
