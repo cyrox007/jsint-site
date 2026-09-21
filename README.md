@@ -90,7 +90,7 @@ Nginx -> Gunicorn -> Flask -> PostgreSQL / Redis
 
 ```bash
 sudo bash deploy/install.sh \
-  --domain=portfolio.example.com \
+  --domain=jsinteractive.ru \
   --admin-email=you@example.com \
   --deploy-key=/root/jsint-site-deploy-key \
   --source-repo="$PWD" \
@@ -192,7 +192,7 @@ alembic upgrade head
 Этот репозиторий остаётся портфолио. Notes Update Service разворачивается как отдельный сервис, даже если использует тот же VPS:
 
 ```text
-portfolio.example.com -> jsint-site
+jsinteractive.ru -> jsint-site
 updates.example.com   -> Notes Update Service
 ```
 
