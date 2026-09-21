@@ -14,6 +14,7 @@ from database import Database
 from models.users import User
 from settings import config
 from utils.hash_password import hash_password
+from version import application_version
 
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -102,7 +103,7 @@ def cmd_health(_args) -> int:
 
     checks["redis"] = redis_client.ping()
     ok = checks["config"] and checks["database"] and (checks["redis"] or not config.REDIS_REQUIRED)
-    print(json.dumps({"status": "ok" if ok else "error", "checks": checks}, ensure_ascii=False))
+    print(json.dumps({"status": "ok" if ok else "error", "version": application_version(), "checks": checks}, ensure_ascii=False))
     return 0 if ok else 3
 
 
