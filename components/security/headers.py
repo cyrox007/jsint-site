@@ -32,7 +32,7 @@ def apply_security_headers(response):
         ),
     )
 
-    if config.IS_PRODUCTION:
+    if config.IS_PRODUCTION and request.is_secure:
         response.headers.setdefault(
             "Strict-Transport-Security",
             "max-age=31536000",
