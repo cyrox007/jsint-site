@@ -8,8 +8,9 @@ Type=simple
 User=jsint-site
 Group=jsint-site
 WorkingDirectory=/opt/jsint-site/current
-EnvironmentFile=/etc/jsint-site.env
+Environment=CELERY_CONCURRENCY=1
 Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=/etc/jsint-site.env
 ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app worker --loglevel=INFO --concurrency=${CELERY_CONCURRENCY} --hostname=jsint-worker@%H
 Restart=on-failure
 RestartSec=3
