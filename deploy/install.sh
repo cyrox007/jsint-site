@@ -31,6 +31,7 @@ usage() {
     [--source-repo=/path/to/already-cloned-repository] \
     [--ref=master] \
     [--certbot-email=you@example.com] \
+    [--deploy-key=/root/jsint-site-deploy-key] \
     [--db-name=jsint] \
     [--db-user=jsint] \
     [--skip-packages] \
@@ -79,7 +80,7 @@ if (( SKIP_PACKAGES == 0 )); then
     log "Установка системных пакетов."
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y         ca-certificates         curl         git         nginx         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         sudo         tar         util-linux
+    apt-get install -y         ca-certificates         curl         git         nginx         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         openssh-client         sudo         tar         util-linux
 fi
 
 require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 sudo systemctl tar useradd
