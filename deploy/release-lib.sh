@@ -84,7 +84,7 @@ resolve_ref() {
     local ref="$1"
     local commit=""
 
-    git -C "${REPO_DIR}" fetch --prune --tags origin >&2
+    sudo -u "${APP_USER}" git -C "${REPO_DIR}" fetch --prune --tags origin >&2
 
     if commit="$(git -C "${REPO_DIR}" rev-parse --verify "origin/${ref}^{commit}" 2>/dev/null)"; then
         printf '%s\n' "${commit}"
