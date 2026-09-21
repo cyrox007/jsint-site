@@ -17,6 +17,7 @@ DB_NAME_ARG="jsint"
 DB_USER_ARG="jsint"
 SKIP_PACKAGES=0
 SKIP_ADMIN=0
+SKIP_NGINX=0
 
 usage() {
     cat <<'EOF'
@@ -35,7 +36,8 @@ usage() {
     [--db-name=jsint] \
     [--db-user=jsint] \
     [--skip-packages] \
-    [--skip-admin]
+    [--skip-admin] \
+    [--skip-nginx]
 
 Установщик предназначен только для ЧИСТОЙ установки.
 Если /opt/jsint-site/current или /etc/jsint-site.env уже существуют,
@@ -57,6 +59,7 @@ for arg in "$@"; do
         --db-user=*) DB_USER_ARG="${arg#*=}" ;;
         --skip-packages) SKIP_PACKAGES=1 ;;
         --skip-admin) SKIP_ADMIN=1 ;;
+        --skip-nginx) SKIP_NGINX=1 ;;
         -h|--help) usage; exit 0 ;;
         *) die "Неизвестный аргумент: ${arg}" ;;
     esac
@@ -70,6 +73,9 @@ validate_domain "${DOMAIN}"
 validate_identifier "${DB_NAME_ARG}" "DB name"
 validate_identifier "${DB_USER_ARG}" "DB user"
 [[ "${ADMIN_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die "Некорректный --admin-email."
+if (( SKIP_NGINX == 1 )) && [[ -n "${CERTBOT_EMAIL}" ]]; then
+    die "--certbot-email нельзя использовать вместе с --skip-nginx."
+fi
 
 if [[ -L "${CURRENT_LINK}" || -e "${CURRENT_LINK}" || -f "${ENV_FILE}" ]]; then
     die "Обнаружена существующая установка. Используйте deploy/update.sh."
@@ -217,8 +223,18 @@ service_start
 local_healthcheck
 background_healthcheck "${RELEASE_DIR}" 75
 
-log "Создание HTTP-конфигурации Nginx."
-cat > /etc/nginx/sites-available/jsint-site.conf <<EOF
+if (( SKIP_NGINX == 0 )); then
+    log "Создание HTTP-конфигурации Nginx."
+    NGINX_CONF="/etc/nginx/sites-available/jsint-site.conf"
+    NGINX_BACKUP=""
+
+    if [[ -f "${NGINX_CONF}" ]]; then
+        NGINX_BACKUP="${NGINX_CONF}.bak.$(date -u +'%Y%m%d%H%M%S')"
+        cp -a "${NGINX_CONF}" "${NGINX_BACKUP}"
+        log "Существующий jsint-site Nginx config сохранён: ${NGINX_BACKUP}"
+    fi
+
+    cat > "${NGINX_CONF}" <<EOF
 server {
     listen 80;
     listen [::]:80;
@@ -249,13 +265,26 @@ server {
 }
 EOF
 
-ln -sfn /etc/nginx/sites-available/jsint-site.conf /etc/nginx/sites-enabled/jsint-site.conf
-if [[ -e /etc/nginx/sites-enabled/default ]]; then
-    rm -f /etc/nginx/sites-enabled/default
+    ln -sfn "${NGINX_CONF}" /etc/nginx/sites-enabled/jsint-site.conf
+
+    if ! nginx -t; then
+        log "Новый Nginx config не прошёл проверку."
+        rm -f /etc/nginx/sites-enabled/jsint-site.conf
+        if [[ -n "${NGINX_BACKUP}" ]]; then
+            cp -a "${NGINX_BACKUP}" "${NGINX_CONF}"
+            ln -sfn "${NGINX_CONF}" /etc/nginx/sites-enabled/jsint-site.conf
+        else
+            rm -f "${NGINX_CONF}"
+        fi
+        nginx -t || true
+        die "Nginx config rollback выполнен. Проверьте существующие server_name на VPS."
+    fi
+
+    systemctl enable --now nginx
+    systemctl reload nginx
+else
+    log "Nginx пропущен (--skip-nginx). Настройте reverse proxy к 127.0.0.1:8080 вручную."
 fi
-nginx -t
-systemctl enable --now nginx
-systemctl reload nginx
 
 if (( SKIP_ADMIN == 0 )); then
     log "Создание первого администратора. Пароль будет запрошен интерактивно."
