@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 from uuid import (
     UUID as UUIDType,
     uuid4
@@ -36,13 +36,13 @@ class User(Database.Base):
         nullable=False
     )
 
-    firstname: Mapped[str] = mapped_column(
+    firstname: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
         default="John"
     )
 
-    lastname: Mapped[str] = mapped_column(
+    lastname: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
         default="Doe"
