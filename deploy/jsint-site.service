@@ -9,7 +9,8 @@ User=jsint-site
 Group=jsint-site
 WorkingDirectory=/opt/jsint-site/current
 EnvironmentFile=/etc/jsint-site.env
-ExecStart=/opt/jsint-site/current/.venv/bin/gunicorn --bind 127.0.0.1:8080 --workers 2 --threads 4 --timeout 30 --graceful-timeout 20 --access-logfile - --error-logfile - wsgi:app
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/jsint-site/current/.venv/bin/gunicorn --bind ${APP_BIND} --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout 30 --graceful-timeout 20 --access-logfile - --error-logfile - wsgi:app
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=30
