@@ -109,3 +109,25 @@ GitHub Actions проверяет:
 ## Отдельная следующая функция
 
 Управление release artifacts Workspace Organizer из CMS портфолио не смешивается с этим hardening PR. После стабилизации сайта можно добавить раздел «Workspace Organizer → Релизы» как frontend к отдельному Notes Update Service. Private update signing key остаётся вне сайта.
+
+
+## Дополнение: фоновые процессы
+
+Для production baseline добавлены:
+
+- Celery Worker;
+- Celery Beat scheduler;
+- отдельные Redis logical DB для cache/broker/results;
+- системная heartbeat-задача каждые 30 секунд;
+- проверка свежего heartbeat ожидаемой VERSION;
+- карточка фонового контура в административном «Обзоре»;
+- отдельные hardened systemd units;
+- включение Worker/Beat в install/update/rollback lifecycle.
+
+Beat scheduler state хранится вне immutable release:
+
+```text
+/var/lib/jsint-site/celery/
+```
+
+Эта инфраструктура подготовлена для будущих операторских задач, но бизнес-задачи из `vrn-history` не копировались, потому что модели проектов различаются.
