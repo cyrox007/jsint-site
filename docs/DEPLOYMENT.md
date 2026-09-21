@@ -42,7 +42,7 @@ Nginx
 /var/backups/jsint-site/
 ```
 
-PostgreSQL, Redis и Gunicorn не публикуются напрямую в Internet.
+PostgreSQL, Redis и Gunicorn не публикуются напрямую в Internet. Celery Worker и Celery Beat не имеют внешних HTTP-портов и работают через локальный Redis.
 
 ## Рекомендуемая первая установка
 
@@ -275,3 +275,24 @@ updates.jsinteractive.ru -> Notes Update Service
 - мониторинг.
 
 Но private signing key обновлений Workspace Organizer никогда не переносится в web-приложение.
+
+
+## Фоновые процессы
+
+Production runtime включает три application unit:
+
+```text
+jsint-site.service                 # Gunicorn / Flask
+jsint-site-celery-worker.service   # Celery Worker
+jsint-site-celery-beat.service     # Celery Beat scheduler
+```
+
+Beat хранит только scheduler state в:
+
+```text
+/var/lib/jsint-site/celery/
+```
+
+Код остаётся в immutable release tree. Worker не требует writable application directory.
+
+End-to-end состояние Beat → broker → Worker отображается в административном «Обзоре» и в `/healthz`.
