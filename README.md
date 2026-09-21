@@ -4,7 +4,7 @@
 
 Проект использует:
 
-- Python 3.11+;
+- Python 3.10+;
 - Flask 3;
 - PostgreSQL;
 - Redis;
@@ -68,7 +68,7 @@ python run_server.py
 По умолчанию он слушает только:
 
 ```text
-http://127.0.0.1:8080
+http://127.0.0.1:18080
 ```
 
 ## Production
@@ -171,7 +171,7 @@ python manage.py set-password --email=admin@example.com
 
 GitHub Actions поднимает PostgreSQL и Redis и проверяет:
 
-- Python 3.11/3.12;
+- Python 3.10/3.11/3.12;
 - compileall;
 - полный Alembic migration chain;
 - production healthcheck;
