@@ -6,10 +6,12 @@ import getpass
 import json
 import re
 import sys
+import time
 
 from sqlalchemy import text
 
 from cache.redis import redis_client
+from components.background.status import get_background_status
 from database import Database
 from models.users import User
 from settings import config
@@ -107,6 +109,25 @@ def cmd_health(_args) -> int:
     return 0 if ok else 3
 
 
+
+
+def cmd_background_health(args) -> int:
+    deadline = time.monotonic() + max(0, int(args.wait))
+    status = get_background_status()
+
+    while not status.get("ok") and time.monotonic() < deadline:
+        time.sleep(2)
+        status = get_background_status()
+
+    payload = {
+        "status": "ok" if status.get("ok") else "error",
+        "version": application_version(),
+        "background": status,
+    }
+    print(json.dumps(payload, ensure_ascii=False))
+    return 0 if status.get("ok") else 4
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Операторские команды jsint-site")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -123,6 +144,18 @@ def main() -> int:
 
     health = sub.add_parser("health", help="Проверить production-зависимости")
     health.set_defaults(handler=cmd_health)
+
+    background = sub.add_parser(
+        "background-health",
+        help="Проверить end-to-end Celery Beat -> Worker heartbeat",
+    )
+    background.add_argument(
+        "--wait",
+        type=int,
+        default=0,
+        help="Сколько секунд ждать первого heartbeat",
+    )
+    background.set_defaults(handler=cmd_background_health)
 
     args = parser.parse_args()
     try:
