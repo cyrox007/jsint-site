@@ -1,6 +1,55 @@
-{% extends "/dashboard/^core/base.html" %}
+{% extends '/dashboard/^core/base.html' %}
 
-{% block title %}Админка{% endblock %}
+{% block title %}Обзор | jsint cms{% endblock %}
 
 {% block content %}
+<div class="page-header">
+    <div>
+        <h1>Обзор</h1>
+        <p>Состояние сайта и быстрый доступ к управлению</p>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:24px;">
+    <div class="card">
+        <small style="color:var(--muted);">Версия сайта</small>
+        <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ application_version }}</div>
+    </div>
+    <div class="card">
+        <small style="color:var(--muted);">PostgreSQL</small>
+        <div style="font-size:1.15rem; font-weight:700; margin-top:8px;">{{ '● Работает' if database_ok else '● Ошибка' }}</div>
+    </div>
+    <div class="card">
+        <small style="color:var(--muted);">Redis</small>
+        <div style="font-size:1.15rem; font-weight:700; margin-top:8px;">{{ '● Работает' if redis_ok else '● Недоступен' }}</div>
+    </div>
+    <div class="card">
+        <small style="color:var(--muted);">Публикации</small>
+        <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ total_publications }}</div>
+        <small style="color:var(--muted);">{{ published_count }} опубликовано · {{ draft_count }} черновиков</small>
+    </div>
+    <div class="card">
+        <small style="color:var(--muted);">Категории</small>
+        <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ category_count }}</div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+    <div class="card">
+        <h3 style="margin-bottom:10px;">Контент</h3>
+        <p style="color:var(--muted); margin-bottom:16px;">Статьи, кейсы, changelog и другие материалы портфолио.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn primary" href="{{ url_for('admin.publication.create') }}">Новая публикация</a>
+            <a class="btn secondary" href="{{ url_for('admin.publication.index') }}">Все публикации</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:10px;">Операторские сервисы</h3>
+        <p style="color:var(--muted); margin-bottom:8px;">
+            Здесь позже появятся Workspace Organizer: релизы, лицензии, установки и мониторинг.
+        </p>
+        <small style="color:var(--muted);">Private signing keys в web-панель не переносятся.</small>
+    </div>
+</div>
 {% endblock %}
