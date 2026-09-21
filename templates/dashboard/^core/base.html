@@ -1,47 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ru">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>{% block title %}{% endblock %}</title>
-	<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
-	<style>
-		{% include 'dashboard/styles.css' %}
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>{% block title %}jsint cms{% endblock %}</title>
+    {% block extra_head %}{% endblock %}
+    <style>
+        {% include 'dashboard/styles.css' %}
+    </style>
 </head>
 
 <body>
-	{% with messages = get_flashed_messages(with_categories=true) %}
-		{% if messages %}
-			<div class="flashes">
-				{% for category, message in messages %}
-					<div class="flash flash-{{ category }} animate-in" data-timeout="5000">{{ message }}</div>
-				{% endfor %}
-			</div>
-		{% endif %}
-	{% endwith %}
-	{% include 'dashboard/^shared/header/index.html' %}
-	<main>
-		{% block content %}{% endblock %}
-	</main>
-	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
-	<script>
-		document.addEventListener('DOMContentLoaded', function () {
-			const flashes = document.querySelectorAll('.flashes .flash[data-timeout]');
-			flashes.forEach(flash => {
-				const timeout = parseInt(flash.dataset.timeout);
-				// Для ошибок можно не скрывать автоматически — раскомментируйте, если нужно:
-				// if (flash.classList.contains('flash-error') || flash.classList.contains('flash-danger')) return;
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flashes" role="status" aria-live="polite">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }} animate-in" data-timeout="5000">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-				setTimeout(() => {
-					flash.classList.add('animate-out');
-					flash.addEventListener('animationend', () => flash.remove());
-				}, timeout);
-			});
-		});
-	</script>
+    {% if session.get('user_id') %}
+        {% include 'dashboard/^shared/header/index.html' %}
+    {% endif %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.flashes .flash[data-timeout]').forEach(flash => {
+                const timeout = parseInt(flash.dataset.timeout, 10);
+                window.setTimeout(() => {
+                    flash.classList.add('animate-out');
+                    flash.addEventListener('animationend', () => flash.remove(), {once: true});
+                }, timeout);
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
-
 </html>
