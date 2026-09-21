@@ -1,67 +1,181 @@
-# Urn of Thought))
-## Системные требования (Requirement)
-* Python 3.8+
-* SQLite3
-## Подготовка виртуальной среды проекта (Prepare project virtual environment):
-### Настройка SSH-соединения для получения файлов проекта
-Для начала нужно сгенерировать специальный SSH ключ, чтобы сделать это, в консоли надо ввести следующую команду:
-``` console
-cd ~/.ssh && ssh-keygen -t rsa
-```
-Нас интересует файл id_rsa. 
-* Если вы работаете под OS MS Windows, то этот файл будет находиться по пути C:\Users\Имя пользователя\.ssh. Этот файл нужно открыть любым приложением для чтение и редактирования текста, и скопировать содержимое. Для этой цели подойдет программа "Блокнот" или "Notepat++". 
-* Если вы пользователь ОС Linux, то для получения ключа необходимо в терминале ввести след. команду.
-``` console
-cat ~/.ssh/id_rsa.pub
-```
-Затем возьмите SSH-ключ из id_rsa.pub и поместите в конфигурацию SSH в Git. Для большего понимания вы можете посмотреть видео - https://www.youtube.com/watch?v=KqzVaUTCPbQ&t=80s 
+# jsint-site — +УЛЬТРА
 
-``` bash
-python -c "import secrets; print(secrets.token_hex(32))"
-```
+Персональный сайт-портфолио и небольшая CMS на Flask.
 
-### Создание папки проекта
-Создайте и перейдите в общую папку проекта в удобном для вас месте.
-``` console
-mkdir ~/Project && cd ~/Project
-```
-Клонируйте содержимое репозитория в папку. Затем вы должны создать виртуальное окружение. 
-``` console
-python3 -m venv venv
-```
-Активируйте виртуальную среду и перейдите в папку с файлами.
-``` console
-source venv/bin/activate && cd ~/Project/project
-```
-Установите требуемые библиотеки.
-``` console
+Проект использует:
+
+- Python 3.11+;
+- Flask 3;
+- PostgreSQL;
+- Redis;
+- SQLAlchemy 2;
+- Alembic;
+- Gunicorn в production;
+- Nginx как reverse proxy.
+
+## Быстрый локальный запуск
+
+Создайте виртуальное окружение:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
-## Подключение базы данных SQLite3
-В этой версии приложения в качестве базы данных используеться SQLite3. 
-``` bash 
-python ./db_create.py
+
+Создайте локальный `.env` на основе `default.env`. Для development можно использовать:
+
+```env
+APP_ENV=development
+SECRET_KEY=local-development-secret-key-with-at-least-32-characters
+ADMIN_ROUTE_PREFIX=/x321/dashboard
+ADMIN_EMAILS=admin@example.com
+
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=jsint
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_SSLMODE=prefer
+
+REDIS_URL=redis://127.0.0.1:6379/0
+REDIS_REQUIRED=false
+
+ALLOWED_HOSTS=
+BEHIND_PROXY=false
+SESSION_COOKIE_SECURE=false
 ```
-## Запуск проекта 
-Находясь в папке с проектом, и активированным виртуальным окружением выполните следующую команду:
-``` console
-export FLASK_APP=app
-export FLASK_ENV=development
-flask run
-```
-Если ошибок не будет, в консоле будет выведен адрес и порт сервера. Его нужно ввести в адресную строку браузера для перехода на веб приложение.
-The launch methods known to me
-``` bash
-flask --app app --debug run
-```
-or from file
-``` bash
-python ./run_server.py
-```
-migration
-``` bash 
-alembic revision --message="Initial" --autogenerate
-```
-``` bash 
+
+Примените миграции:
+
+```bash
 alembic upgrade head
 ```
+
+Создайте администратора:
+
+```bash
+python manage.py create-admin --email=admin@example.com
+```
+
+Запустите development server:
+
+```bash
+python run_server.py
+```
+
+По умолчанию он слушает только:
+
+```text
+http://127.0.0.1:8080
+```
+
+## Production
+
+Flask development server для production не используется.
+
+Production entrypoint:
+
+```text
+Nginx -> Gunicorn -> Flask -> PostgreSQL / Redis
+```
+
+Полная русская инструкция:
+
+- `docs/DEPLOYMENT.md` — установка, systemd, Nginx, TLS, backup, rollback;
+- `docs/PRODUCTION_AUDIT.md` — что было найдено аудитом и что исправлено.
+
+Готовые примеры:
+
+- `deploy/jsint-site.service`;
+- `deploy/nginx.conf.example`;
+- `default.env`.
+
+Проверка production-зависимостей:
+
+```bash
+python manage.py health
+```
+
+HTTP healthcheck:
+
+```text
+GET /healthz
+```
+
+## CMS
+
+Путь CMS задаётся через:
+
+```env
+ADMIN_ROUTE_PREFIX=/x321/dashboard
+```
+
+Доступ разрешён только пользователям, чей email явно перечислен в:
+
+```env
+ADMIN_EMAILS=admin@example.com
+```
+
+Публичной регистрации нет. Создание администратора выполняется операторской командой:
+
+```bash
+python manage.py create-admin --email=admin@example.com
+```
+
+Смена пароля:
+
+```bash
+python manage.py set-password --email=admin@example.com
+```
+
+## Безопасность
+
+В production включены:
+
+- fail-closed проверка конфигурации;
+- secure/HttpOnly/SameSite session cookie;
+- CSRF для изменяющих запросов;
+- POST-only destructive actions;
+- Redis-backed rate limiting входа;
+- server-side slug validation;
+- sanitization rich-text;
+- Content-Security-Policy;
+- HSTS;
+- `X-Frame-Options: DENY`;
+- `X-Content-Type-Options: nosniff`;
+- trusted Host validation;
+- административный `Cache-Control: no-store`.
+
+## CI
+
+GitHub Actions поднимает PostgreSQL и Redis и проверяет:
+
+- Python 3.11/3.12;
+- compileall;
+- полный Alembic migration chain;
+- production healthcheck;
+- unit tests security primitives;
+- HTTP/security smoke tests.
+
+## Разработка миграций
+
+После изменения SQLAlchemy models:
+
+```bash
+alembic revision --autogenerate -m "описание изменения"
+alembic upgrade head
+```
+
+Перед commit просмотрите сгенерированную migration вручную.
+
+## Notes Update Service
+
+Этот репозиторий остаётся портфолио. Notes Update Service разворачивается как отдельный сервис, даже если использует тот же VPS:
+
+```text
+portfolio.example.com -> jsint-site
+updates.example.com   -> Notes Update Service
+```
+
+Позже CMS этого сайта может получить раздел управления релизами Notes как операторский frontend, но private signing key Notes на web-сервер не переносится.
