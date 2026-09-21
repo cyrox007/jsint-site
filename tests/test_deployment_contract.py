@@ -19,6 +19,15 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("/opt/jsint-site/current/.venv/bin/gunicorn", unit)
         self.assertNotIn("WorkingDirectory=/opt/jsint-site\n", unit)
 
+    def test_background_systemd_units_follow_current_release(self):
+        worker = self.read("deploy/jsint-site-celery-worker.service")
+        beat = self.read("deploy/jsint-site-celery-beat.service")
+        self.assertIn("WorkingDirectory=/opt/jsint-site/current", worker)
+        self.assertIn("celery_app:celery_app worker", worker)
+        self.assertIn("WorkingDirectory=/opt/jsint-site/current", beat)
+        self.assertIn("celery_app:celery_app beat", beat)
+        self.assertIn("/var/lib/jsint-site/celery/celerybeat-schedule", beat)
+
     def test_installer_is_clean_install_only(self):
         installer = self.read("deploy/install.sh")
         self.assertIn("Используйте deploy/update.sh", installer)
@@ -27,6 +36,9 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("run_migrations", installer)
         self.assertIn("run_release_tests", installer)
         self.assertIn("local_healthcheck", installer)
+        self.assertIn("background_healthcheck", installer)
+        self.assertIn("CELERY_BROKER_URL=", installer)
+        self.assertIn("CELERY_RESULT_BACKEND=", installer)
 
     def test_updater_requires_backup_migration_and_rollback(self):
         updater = self.read("deploy/update.sh")
@@ -37,6 +49,8 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("database_restore", updater)
         self.assertIn("switch_current_release", updater)
         self.assertIn("local_healthcheck", updater)
+        self.assertIn("background_healthcheck", updater)
+        self.assertIn("install_service_units", updater)
 
     def test_release_runtime_does_not_unzip_over_live_tree(self):
         runtime = self.read("deploy/release-lib.sh")
