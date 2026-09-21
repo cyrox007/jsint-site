@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 
 from flask import Flask, render_template
-from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from components.security.csrf import init_app as init_csrf
@@ -39,6 +38,7 @@ def create_app() -> Flask:
         MAX_CONTENT_LENGTH=config.MAX_CONTENT_LENGTH,
         PREFERRED_URL_SCHEME=config.PREFERRED_URL_SCHEME,
         TRUSTED_HOSTS=config.ALLOWED_HOSTS or None,
+        YANDEX_METRIKA_ID=config.YANDEX_METRIKA_ID,
     )
 
     if config.BEHIND_PROXY:
