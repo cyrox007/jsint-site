@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from cache.redis import redis_client
 from components.auth.decorator import login_required, with_db_session
+from components.background.status import get_background_status
 from models.categories import Category
 from models.publication import Publication
 from version import application_version
@@ -20,12 +21,14 @@ class DashboardMain(MethodView):
             .count()
         )
         category_count = db_session.query(Category).count()
+        background = get_background_status()
 
         return render_template(
             "dashboard/main/index.html",
             application_version=application_version(),
             database_ok=True,
             redis_ok=redis_client.ping(),
+            background=background,
             total_publications=total_publications,
             published_count=published_count,
             draft_count=total_publications - published_count,
