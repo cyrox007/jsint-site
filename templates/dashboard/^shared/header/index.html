@@ -1,29 +1,21 @@
 <header>
-
-    <div class="title">
-        jsint cms
-    </div>
+    <a class="title" href="{{ url_for('admin.publication.index') }}">jsint cms</a>
 
     <nav>
-        <a class="{{'active' if request.endpoint == 'admin.publication.index'}}" href="{{ url_for('admin.publication.index') }}">
+        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.publication.') }}"
+           href="{{ url_for('admin.publication.index') }}">
             Публикации
         </a>
-        <a class="{{'active' if request.endpoint == 'admin.catalog.index'}}" href="{{ url_for('admin.catalog.index') }}">
+        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.catalog.') }}"
+           href="{{ url_for('admin.catalog.index') }}">
             Каталог
         </a>
 
-        <!-- 
-        <a href="#">
-            Пользователи
-        </a>
+        <a href="{{ url_for('index') }}" target="_blank" rel="noopener">Сайт ↗</a>
 
-        <a href="#">
-            Настройки
-        </a> -->
+        <form method="post" action="{{ url_for('auth.logout') }}" class="header-logout-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="header-nav-button">Выйти</button>
+        </form>
     </nav>
-
-    <!-- <div class="user">
-        <div class="avatar">A</div>
-    </div> -->
-
 </header>
