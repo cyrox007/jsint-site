@@ -71,7 +71,7 @@ run_release() {
     shift
 
     [[ -d "${release_dir}" ]] || die "Release directory отсутствует: ${release_dir}"
-    sudo -u "${APP_USER}" env         JSINT_RUNTIME_ENV_FILE="${ENV_FILE}"         JSINT_RUNTIME_RELEASE_DIR="${release_dir}"         /bin/bash -c '
+    sudo -H -u "${APP_USER}" env         JSINT_RUNTIME_ENV_FILE="${ENV_FILE}"         JSINT_RUNTIME_RELEASE_DIR="${release_dir}"         /bin/bash -c '
             set -a
             source "$JSINT_RUNTIME_ENV_FILE"
             set +a
@@ -84,7 +84,7 @@ resolve_ref() {
     local ref="$1"
     local commit=""
 
-    sudo -u "${APP_USER}" git -C "${REPO_DIR}" fetch --prune --tags origin >&2
+    sudo -H -u "${APP_USER}" git -C "${REPO_DIR}" fetch --prune --tags origin >&2
 
     if commit="$(git -C "${REPO_DIR}" rev-parse --verify "origin/${ref}^{commit}" 2>/dev/null)"; then
         printf '%s\n' "${commit}"
@@ -137,10 +137,10 @@ prepare_release() {
     git -C "${REPO_DIR}" archive --format=tar "${commit}" | tar -xf - -C "${temp_dir}"
     chown -R "${APP_USER}:${APP_GROUP}" "${temp_dir}"
 
-    sudo -u "${APP_USER}" python3 -m venv "${temp_dir}/.venv"
-    sudo -u "${APP_USER}" "${temp_dir}/.venv/bin/python" -m pip install         --disable-pip-version-check         --requirement "${temp_dir}/requirements.txt"
+    sudo -H -u "${APP_USER}" python3 -m venv "${temp_dir}/.venv"
+    sudo -H -u "${APP_USER}" "${temp_dir}/.venv/bin/python" -m pip install         --disable-pip-version-check         --requirement "${temp_dir}/requirements.txt"
 
-    sudo -u "${APP_USER}" "${temp_dir}/.venv/bin/python" -m compileall -q "${temp_dir}"
+    sudo -H -u "${APP_USER}" "${temp_dir}/.venv/bin/python" -m compileall -q "${temp_dir}"
 
     printf '%s\n' "${commit}" > "${temp_dir}/.release-commit"
     printf '%s\n' "${version}" > "${temp_dir}/.release-version"
