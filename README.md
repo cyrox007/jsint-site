@@ -192,8 +192,8 @@ alembic upgrade head
 Этот репозиторий остаётся портфолио. Notes Update Service разворачивается как отдельный сервис, даже если использует тот же VPS:
 
 ```text
-jsinteractive.ru -> jsint-site
-updates.example.com   -> Notes Update Service
+jsinteractive.ru          -> jsint-site
+updates.jsinteractive.ru -> Notes Update Service
 ```
 
 Позже CMS этого сайта может получить раздел управления релизами Notes как операторский frontend, но private signing key Notes на web-сервер не переносится.
