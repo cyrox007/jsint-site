@@ -8,6 +8,7 @@
 - Flask 3;
 - PostgreSQL;
 - Redis;
+- Celery Worker + Celery Beat;
 - SQLAlchemy 2;
 - Alembic;
 - Gunicorn в production;
@@ -78,6 +79,7 @@ Production entrypoint:
 
 ```text
 Nginx -> Gunicorn -> Flask -> PostgreSQL / Redis
+                         └-> Celery Worker + Beat
 ```
 
 Полная русская инструкция:
