@@ -1,58 +1,40 @@
 {% macro Editor(fieldName, fieldId, labelText, value='') %}
-
 <div class="form-field" style="flex: 1">
-    <label for="{{ fieldId }}-editor">
-        {{ labelText }}
-    </label>
-    <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value|safe }}</textarea>
-    <div id="{{ fieldId }}-editor" class="quill-editor-container">
-    </div>
+    <label for="{{ fieldId }}-editor">{{ labelText }}</label>
+    <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value }}</textarea>
+    <div id="{{ fieldId }}-editor" class="quill-editor-container"></div>
 </div>
 
 <script>
-    document.addEventListener(
-        "DOMContentLoaded",
-        () => {
-            const editor =
-                document.getElementById(
-                    "{{ fieldId }}-editor"
-                );
+    document.addEventListener("DOMContentLoaded", () => {
+        const editor = document.getElementById("{{ fieldId }}-editor");
+        const input = document.getElementById("{{ fieldId }}-input");
 
-            const input =
-                document.getElementById(
-                    "{{ fieldId }}-input"
-                );
+        if (typeof Quill === "undefined") {
+            editor.textContent = "Редактор не загрузился. Обновите страницу.";
+            return;
+        }
 
-            const quill =
-                new Quill(
-                    editor,
-                    {
-                        theme: "snow",
-                        modules: {
-                            toolbar: [
-                                ['bold', 'italic', 'underline'],
-                                ['blockquote', 'code-block'],
-                                [{header: [2, 3, 4, 5, 6, false]}],
-                                [
-                                    {list: 'ordered'},
-                                    {list: 'bullet'}
-                                ],
-                                ['link', 'image']
-                            ]
-                        }
-                    }
-                );
-
-            if (input.value) {
-                quill.root.innerHTML = input.value;
+        const quill = new Quill(editor, {
+            theme: "snow",
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    ['blockquote', 'code-block'],
+                    [{header: [2, 3, 4, 5, 6, false]}],
+                    [{list: 'ordered'}, {list: 'bullet'}],
+                    ['link']
+                ]
             }
-
-            quill.on(
-                'text-change',
-                () => {
-                    input.value = quill.root.innerHTML;
-                }
-            );
         });
+
+        if (input.value) {
+            quill.clipboard.dangerouslyPasteHTML(input.value);
+        }
+
+        quill.on('text-change', () => {
+            input.value = quill.root.innerHTML;
+        });
+    });
 </script>
 {% endmacro %}
