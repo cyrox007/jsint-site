@@ -24,6 +24,26 @@
 
 Gunicorn и Nginx всегда используют `/opt/jsint-site/current`. Новый release готовится рядом и становится активным только атомарной заменой symlink.
 
+## Preflight сервера
+
+Перед первой установкой ничего не меняйте на VPS. Из checkout проекта выполните:
+
+```bash
+bash deploy/server-preflight.sh --domain=jsinteractive.ru
+```
+
+Скрипт только читает состояние и показывает:
+
+- ОС и ресурсы;
+- DNS resolution;
+- listening ports;
+- существующие Nginx `server_name jsinteractive.ru`;
+- PostgreSQL/Redis;
+- старые jsint-site systemd services;
+- существующие deployment paths.
+
+Если хостер уже создал Nginx virtual host для `jsinteractive.ru`, сначала сверяем его. При необходимости installer запускается с `--skip-nginx`, а существующий reverse proxy направляется на `127.0.0.1:8080`.
+
 ## Первая установка
 
 Установщик рассчитан на Ubuntu/Debian и запускается только для чистой установки.
