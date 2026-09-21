@@ -40,6 +40,8 @@ class Config:
 
     REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
     REDIS_REQUIRED = _env_bool("REDIS_REQUIRED", IS_PRODUCTION)
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
+    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
 
     ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS")
     BEHIND_PROXY = _env_bool("BEHIND_PROXY", IS_PRODUCTION)
@@ -105,6 +107,10 @@ class Config:
                 raise RuntimeError("SESSION_COOKIE_SECURE must be enabled in production")
             if not cls.DB_PASSWORD:
                 raise RuntimeError("DB_PASSWORD is required in production")
+            if not cls.CELERY_BROKER_URL:
+                raise RuntimeError("CELERY_BROKER_URL is required in production")
+            if not cls.CELERY_RESULT_BACKEND:
+                raise RuntimeError("CELERY_RESULT_BACKEND is required in production")
 
 
 config = Config()
