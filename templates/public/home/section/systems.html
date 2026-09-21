@@ -32,9 +32,11 @@
 						{{ article.created_at.strftime('%d.%m.%Y') }}
 					</div>
 				</div>
+				{% if article.category %}
 				<a href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) }}" class="project-link">
 					Читать далее <span>→</span>
 				</a>
+				{% endif %}
 			</div>
 			{% endfor %}
 			{% else %}
