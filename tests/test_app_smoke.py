@@ -2,6 +2,7 @@ import unittest
 from uuid import uuid4
 
 from app import create_app
+from settings import config
 
 
 class ApplicationSmokeTests(unittest.TestCase):
@@ -10,7 +11,8 @@ class ApplicationSmokeTests(unittest.TestCase):
         cls.app = create_app()
         cls.app.config.update(TESTING=True)
         cls.client = cls.app.test_client()
-        cls.base = "https://localhost"
+        host = config.ALLOWED_HOSTS[0] if config.ALLOWED_HOSTS else "localhost"
+        cls.base = f"https://{host}"
 
     def test_home_page(self):
         response = self.client.get("/", base_url=self.base)
