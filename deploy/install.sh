@@ -13,8 +13,13 @@ SOURCE_REPO=""
 TARGET_REF="master"
 CERTBOT_EMAIL=""
 DEPLOY_KEY=""
+DB_HOST_ARG="127.0.0.1"
+DB_PORT_ARG="5432"
 DB_NAME_ARG="jsint"
 DB_USER_ARG="jsint"
+DB_SSLMODE_ARG="prefer"
+DB_PASSWORD_FILE=""
+EXISTING_DB=0
 APP_PORT_ARG="18080"
 SKIP_PACKAGES=0
 SKIP_ADMIN=0
@@ -34,8 +39,13 @@ usage() {
     [--ref=master] \
     [--certbot-email=you@example.com] \
     [--deploy-key=/root/jsint-site-deploy-key] \
+    [--existing-db] \
+    [--db-host=127.0.0.1] \
+    [--db-port=5432] \
     [--db-name=jsint] \
     [--db-user=jsint] \
+    [--db-sslmode=prefer] \
+    [--db-password-file=/root/jsint-db-password] \
     [--app-port=18080] \
     [--skip-packages] \
     [--skip-admin] \
@@ -57,8 +67,13 @@ for arg in "$@"; do
         --ref=*) TARGET_REF="${arg#*=}" ;;
         --certbot-email=*) CERTBOT_EMAIL="${arg#*=}" ;;
         --deploy-key=*) DEPLOY_KEY="${arg#*=}" ;;
+        --existing-db) EXISTING_DB=1 ;;
+        --db-host=*) DB_HOST_ARG="${arg#*=}" ;;
+        --db-port=*) DB_PORT_ARG="${arg#*=}" ;;
         --db-name=*) DB_NAME_ARG="${arg#*=}" ;;
         --db-user=*) DB_USER_ARG="${arg#*=}" ;;
+        --db-sslmode=*) DB_SSLMODE_ARG="${arg#*=}" ;;
+        --db-password-file=*) DB_PASSWORD_FILE="${arg#*=}" ;;
         --app-port=*) APP_PORT_ARG="${arg#*=}" ;;
         --skip-packages) SKIP_PACKAGES=1 ;;
         --skip-admin) SKIP_ADMIN=1 ;;
@@ -75,6 +90,14 @@ validate_domain "${DOMAIN}"
 [[ -z "${WWW_DOMAIN}" ]] || validate_domain "${WWW_DOMAIN}"
 validate_identifier "${DB_NAME_ARG}" "DB name"
 validate_identifier "${DB_USER_ARG}" "DB user"
+[[ -n "${DB_HOST_ARG}" ]] || die "DB host не может быть пустым."
+[[ "${DB_PORT_ARG}" =~ ^[0-9]{1,5}$ ]] || die "Некорректный --db-port."
+(( DB_PORT_ARG >= 1 && DB_PORT_ARG <= 65535 )) || die "--db-port должен быть в диапазоне 1..65535."
+[[ "${DB_SSLMODE_ARG}" =~ ^(disable|allow|prefer|require|verify-ca|verify-full)$ ]] || die "Некорректный --db-sslmode."
+if (( EXISTING_DB == 1 )); then
+    [[ -n "${DB_PASSWORD_FILE}" ]] || die "Для --existing-db укажите --db-password-file."
+    [[ -f "${DB_PASSWORD_FILE}" ]] || die "Не найден --db-password-file: ${DB_PASSWORD_FILE}"
+fi
 [[ "${APP_PORT_ARG}" =~ ^[0-9]{2,5}$ ]] || die "Некорректный --app-port."
 (( APP_PORT_ARG >= 1024 && APP_PORT_ARG <= 65535 )) || die "--app-port должен быть в диапазоне 1024..65535."
 [[ "${ADMIN_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || die "Некорректный --admin-email."
@@ -91,7 +114,11 @@ if (( SKIP_PACKAGES == 0 )); then
     log "Установка системных пакетов."
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y         ca-certificates         curl         git         nginx         iproute2         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         openssh-client         sudo         tar         util-linux
+    PACKAGES=(ca-certificates curl git nginx iproute2 postgresql-client python3 python3-pip python3-venv redis-server openssh-client sudo tar util-linux)
+    if (( EXISTING_DB == 0 )); then
+        PACKAGES+=(postgresql)
+    fi
+    apt-get install -y "${PACKAGES[@]}"
 fi
 
 require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 ss sudo systemctl tar useradd
@@ -142,7 +169,9 @@ EOF
     chmod 0600 "${APP_ROOT}/.ssh/config"
 fi
 
-systemctl enable --now postgresql
+if (( EXISTING_DB == 0 )); then
+    systemctl enable --now postgresql
+fi
 systemctl enable --now redis-server
 
 if [[ ! -d "${REPO_DIR}/.git" ]]; then
@@ -165,20 +194,36 @@ fi
 
 chown -R "${APP_USER}:${APP_GROUP}" "${REPO_DIR}"
 
-ROLE_EXISTS="$(sudo -u postgres psql --dbname=postgres --tuples-only --no-align     --command="SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER_ARG}'" || true)"
-DB_EXISTS="$(sudo -u postgres psql --dbname=postgres --tuples-only --no-align     --command="SELECT 1 FROM pg_database WHERE datname = '${DB_NAME_ARG}'" || true)"
-
-[[ -z "${ROLE_EXISTS}" ]] || die "PostgreSQL role ${DB_USER_ARG} уже существует. Установщик не изменяет существующие credentials."
-[[ -z "${DB_EXISTS}" ]] || die "PostgreSQL database ${DB_NAME_ARG} уже существует. Установщик предназначен для чистой установки."
-
-DB_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(48))')"
 
-log "Создание PostgreSQL role/database."
-sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1     --set=db_user="${DB_USER_ARG}"     --set=db_password="${DB_PASSWORD}"     --set=db_name="${DB_NAME_ARG}" <<'SQL'
+if (( EXISTING_DB == 1 )); then
+    DB_PASSWORD="$(tr -d '\r\n' < "${DB_PASSWORD_FILE}")"
+    [[ -n "${DB_PASSWORD}" ]] || die "Файл пароля БД пуст: ${DB_PASSWORD_FILE}"
+    log "Проверка подключения к существующей PostgreSQL: ${DB_HOST_ARG}:${DB_PORT_ARG}/${DB_NAME_ARG}."
+    PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE_ARG}" \
+        psql \
+        --host="${DB_HOST_ARG}" \
+        --port="${DB_PORT_ARG}" \
+        --username="${DB_USER_ARG}" \
+        --dbname="${DB_NAME_ARG}" \
+        --set=ON_ERROR_STOP=1 \
+        --command='SELECT 1;' >/dev/null \
+        || die "Не удалось подключиться к существующей PostgreSQL."
+else
+    ROLE_EXISTS="$(sudo -u postgres psql --dbname=postgres --tuples-only --no-align --command="SELECT 1 FROM pg_roles WHERE rolname = '${DB_USER_ARG}'" || true)"
+    DB_EXISTS="$(sudo -u postgres psql --dbname=postgres --tuples-only --no-align --command="SELECT 1 FROM pg_database WHERE datname = '${DB_NAME_ARG}'" || true)"
+
+    [[ -z "${ROLE_EXISTS}" ]] || die "PostgreSQL role ${DB_USER_ARG} уже существует. Установщик не изменяет существующие credentials."
+    [[ -z "${DB_EXISTS}" ]] || die "PostgreSQL database ${DB_NAME_ARG} уже существует. Установщик предназначен для чистой установки."
+
+    DB_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+
+    log "Создание локальной PostgreSQL role/database."
+    sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1 --set=db_user="${DB_USER_ARG}" --set=db_password="${DB_PASSWORD}" --set=db_name="${DB_NAME_ARG}" <<'SQL'
 SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'db_user', :'db_password') \gexec
 SELECT format('CREATE DATABASE %I OWNER %I', :'db_name', :'db_user') \gexec
 SQL
+fi
 
 ALLOWED_HOSTS_VALUE="${DOMAIN}"
 SERVER_NAMES="${DOMAIN}"
@@ -207,12 +252,12 @@ GUNICORN_WORKERS=1
 GUNICORN_THREADS=4
 CELERY_CONCURRENCY=1
 
-DB_HOST=127.0.0.1
-DB_PORT=5432
+DB_HOST=${DB_HOST_ARG}
+DB_PORT=${DB_PORT_ARG}
 DB_NAME=${DB_NAME_ARG}
 DB_USER=${DB_USER_ARG}
 DB_PASSWORD=${DB_PASSWORD}
-DB_SSLMODE=prefer
+DB_SSLMODE=${DB_SSLMODE_ARG}
 
 REDIS_URL=redis://127.0.0.1:6379/0
 REDIS_REQUIRED=true
