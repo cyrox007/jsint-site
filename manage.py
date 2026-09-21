@@ -11,7 +11,7 @@ import time
 from sqlalchemy import text
 
 from cache.redis import redis_client
-from components.background.status import get_background_status
+from components.background.status import clear_background_heartbeat, get_background_status
 from database import Database
 from models.users import User
 from settings import config
@@ -112,20 +112,33 @@ def cmd_health(_args) -> int:
 
 
 def cmd_background_health(args) -> int:
-    deadline = time.monotonic() + max(0, int(args.wait))
-    status = get_background_status()
+    expected_version = (args.expect_version or "").strip() or None
+    if args.fresh:
+        clear_background_heartbeat()
 
-    while not status.get("ok") and time.monotonic() < deadline:
+    deadline = time.monotonic() + max(0, int(args.wait))
+
+    def matches(status: dict) -> bool:
+        if not status.get("ok"):
+            return False
+        if expected_version is None:
+            return True
+        return status.get("version") == expected_version
+
+    status = get_background_status()
+    while not matches(status) and time.monotonic() < deadline:
         time.sleep(2)
         status = get_background_status()
 
+    ok = matches(status)
     payload = {
-        "status": "ok" if status.get("ok") else "error",
+        "status": "ok" if ok else "error",
         "version": application_version(),
+        "expected_version": expected_version,
         "background": status,
     }
     print(json.dumps(payload, ensure_ascii=False))
-    return 0 if status.get("ok") else 4
+    return 0 if ok else 4
 
 
 def main() -> int:
@@ -154,6 +167,16 @@ def main() -> int:
         type=int,
         default=0,
         help="Сколько секунд ждать первого heartbeat",
+    )
+    background.add_argument(
+        "--expect-version",
+        default="",
+        help="Ожидаемая VERSION heartbeat",
+    )
+    background.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Сначала удалить старый heartbeat и дождаться нового",
     )
     background.set_defaults(handler=cmd_background_health)
 
