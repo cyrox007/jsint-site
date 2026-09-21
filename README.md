@@ -82,8 +82,26 @@ Nginx -> Gunicorn -> Flask -> PostgreSQL / Redis
 
 Полная русская инструкция:
 
-- `docs/DEPLOYMENT.md` — установка, systemd, Nginx, TLS, backup, rollback;
+- `docs/INSTALL_UPDATE.md` — штатный installer/updater и автоматический rollback;
+- `docs/DEPLOYMENT.md` — production layout, systemd, Nginx, TLS и backup;
 - `docs/PRODUCTION_AUDIT.md` — что было найдено аудитом и что исправлено.
+
+Первая установка:
+
+```bash
+sudo bash deploy/install.sh \
+  --domain=portfolio.example.com \
+  --admin-email=you@example.com \
+  --deploy-key=/root/jsint-site-deploy-key \
+  --source-repo="$PWD" \
+  --ref=v0.1.0
+```
+
+Обновление:
+
+```bash
+sudo bash /opt/jsint-site/current/deploy/update.sh --yes --ref=v0.1.1
+```
 
 Готовые примеры:
 
