@@ -18,7 +18,7 @@ server {
     client_max_body_size 2m;
 
     location /static/ {
-        alias /opt/jsint-site/static/;
+        alias /opt/jsint-site/current/static/;
         access_log off;
         expires 7d;
         add_header Cache-Control "public, max-age=604800";
