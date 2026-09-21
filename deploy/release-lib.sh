@@ -10,6 +10,9 @@ RELEASES_DIR="${JSINT_RELEASES_DIR:-${APP_ROOT}/releases}"
 CURRENT_LINK="${JSINT_CURRENT_LINK:-${APP_ROOT}/current}"
 ENV_FILE="${JSINT_ENV_FILE:-/etc/jsint-site.env}"
 SERVICE_NAME="${JSINT_SERVICE_NAME:-jsint-site.service}"
+WORKER_SERVICE_NAME="${JSINT_WORKER_SERVICE_NAME:-jsint-site-celery-worker.service}"
+BEAT_SERVICE_NAME="${JSINT_BEAT_SERVICE_NAME:-jsint-site-celery-beat.service}"
+CELERY_STATE_DIR="${JSINT_CELERY_STATE_DIR:-/var/lib/jsint-site/celery}"
 BACKUP_ROOT="${JSINT_BACKUP_ROOT:-/var/backups/jsint-site}"
 LOCK_FILE="${JSINT_LOCK_FILE:-/run/lock/jsint-site-update.lock}"
 
@@ -47,6 +50,7 @@ validate_domain() {
 
 ensure_layout() {
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0755 "${APP_ROOT}" "${RELEASES_DIR}"
+    install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${CELERY_STATE_DIR}"
     install -d -o root -g "${APP_GROUP}" -m 0750 "${BACKUP_ROOT}"
 }
 
@@ -218,17 +222,43 @@ database_restore() {
     sudo -u postgres pg_restore         --exit-on-error         --no-owner         --no-acl         --role="${DB_USER}"         --dbname="${DB_NAME}"         "${backup_file}"
 }
 
+install_service_units() {
+    local release_dir="$1"
+    install -o root -g root -m 0644         "${release_dir}/deploy/jsint-site.service"         "/etc/systemd/system/${SERVICE_NAME}"
+    install -o root -g root -m 0644         "${release_dir}/deploy/jsint-site-celery-worker.service"         "/etc/systemd/system/${WORKER_SERVICE_NAME}"
+    install -o root -g root -m 0644         "${release_dir}/deploy/jsint-site-celery-beat.service"         "/etc/systemd/system/${BEAT_SERVICE_NAME}"
+    systemctl daemon-reload
+}
+
+service_enable_all() {
+    systemctl enable "${SERVICE_NAME}" "${WORKER_SERVICE_NAME}" "${BEAT_SERVICE_NAME}"
+}
+
+services_are_active() {
+    systemctl is-active --quiet "${SERVICE_NAME}"         && systemctl is-active --quiet "${WORKER_SERVICE_NAME}"         && systemctl is-active --quiet "${BEAT_SERVICE_NAME}"
+}
+
 service_restart() {
-    systemctl restart "${SERVICE_NAME}"
+    service_stop || return 1
+    service_start
 }
 
 service_stop() {
-    systemctl stop "${SERVICE_NAME}" || return 1
-    ! systemctl is-active --quiet "${SERVICE_NAME}"
+    systemctl stop "${BEAT_SERVICE_NAME}" "${WORKER_SERVICE_NAME}" "${SERVICE_NAME}" || return 1
+    ! systemctl is-active --quiet "${BEAT_SERVICE_NAME}"         && ! systemctl is-active --quiet "${WORKER_SERVICE_NAME}"         && ! systemctl is-active --quiet "${SERVICE_NAME}"
 }
 
 service_start() {
-    systemctl start "${SERVICE_NAME}"
+    systemctl start "${SERVICE_NAME}" || return 1
+    systemctl start "${WORKER_SERVICE_NAME}" || return 1
+    systemctl start "${BEAT_SERVICE_NAME}" || return 1
+}
+
+background_healthcheck() {
+    local release_dir="$1"
+    local wait_seconds="${2:-75}"
+    log "Ожидание Celery Beat -> Worker heartbeat."
+    run_release "${release_dir}"         "${release_dir}/.venv/bin/python"         manage.py background-health         --wait="${wait_seconds}"
 }
 
 local_healthcheck() {
