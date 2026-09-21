@@ -1,18 +1,20 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from schemas.category import CategoryOut
+from schemas.technology import TechnologyOut
 from schemas.user import UserOut
+from utils.validation import validate_slug
 
 
 class PublicationCreate(BaseModel):
-    title: str
-    slug: str
-    content: str
-    source_type: str = "article"
+    title: str = Field(min_length=1, max_length=255)
+    slug: str = Field(min_length=1, max_length=255)
+    content: str = Field(min_length=1, max_length=500_000)
+    source_type: Literal["article", "task", "case", "changelog"] = "article"
     source_uid: Optional[UUID] = None
     extra_data: Optional[dict] = Field(default_factory=dict)
     category_id: Optional[UUID] = None
@@ -20,20 +22,21 @@ class PublicationCreate(BaseModel):
     is_published: bool = False
     technology_ids: Optional[List[UUID]] = None
 
-class PublicationUpdate(PublicationCreate):
-    @field_validator('category_id', mode='before')
+    @field_validator("slug")
     @classmethod
-    def empty_str_to_none(cls, v):
-        if v == '':
-            return None
-        return v
+    def valid_slug(cls, value: str) -> str:
+        return validate_slug(value)
 
-    @field_validator('source_uid', mode='before')
+    @field_validator("category_id", "source_uid", mode="before")
     @classmethod
-    def empty_source_uid_to_none(cls, v):
-        if v == '':
+    def empty_uuid_to_none(cls, value):
+        if value == "":
             return None
-        return v
+        return value
+
+
+class PublicationUpdate(PublicationCreate):
+    pass
 
 
 class PublicationOut(BaseModel):
@@ -41,17 +44,18 @@ class PublicationOut(BaseModel):
     title: str
     content: str
     slug: str
-    content: str
     source_type: str = "article"
     source_uid: Optional[UUID] = None
     extra_data: Optional[dict] = Field(default_factory=dict)
     category_id: Optional[UUID] = None
-    author_id: UUID
+    author_id: Optional[UUID] = None
     is_published: bool = False
     technology_ids: Optional[List[UUID]] = None
     created_at: datetime
-    author: UserOut
-
+    updated_at: datetime
+    published_at: Optional[datetime] = None
+    author: Optional[UserOut] = None
     category: Optional[CategoryOut] = None
+    technologies: List[TechnologyOut] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
