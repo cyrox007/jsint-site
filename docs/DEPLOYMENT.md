@@ -52,8 +52,7 @@ PostgreSQL, Redis и Gunicorn не публикуются напрямую в In
 
 ```bash
 sudo bash deploy/install.sh \
-  --domain=portfolio.example.com \
-  --www-domain=www.portfolio.example.com \
+  --domain=jsinteractive.ru \
   --admin-email=you@example.com \
   --deploy-key=/root/jsint-site-deploy-key \
   --source-repo="$PWD" \
@@ -95,7 +94,7 @@ SECRET_KEY=<случайное значение>
 ADMIN_ROUTE_PREFIX=/x321/dashboard
 ADMIN_EMAILS=you@example.com
 
-ALLOWED_HOSTS=portfolio.example.com,www.portfolio.example.com
+ALLOWED_HOSTS=jsinteractive.ru
 BEHIND_PROXY=true
 SESSION_COOKIE_SECURE=true
 
@@ -116,7 +115,7 @@ Production startup fail-closed, если обязательные secrets/hosts/
 HTTP:
 
 ```bash
-curl -fsS https://portfolio.example.com/healthz
+curl -fsS https://jsinteractive.ru/healthz
 ```
 
 Пример:
@@ -263,8 +262,8 @@ Redis содержит cache/rate-limit state и не является исто�
 Портфолио и Notes Update Service остаются разными приложениями даже на одном VPS:
 
 ```text
-portfolio.example.com -> jsint-site
-updates.example.com   -> Notes Update Service
+jsinteractive.ru          -> jsint-site
+updates.jsinteractive.ru -> Notes Update Service
 ```
 
 Админка портфолио будет расширяться как операторская панель:
