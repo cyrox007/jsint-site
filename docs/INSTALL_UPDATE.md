@@ -55,8 +55,7 @@ Private key не коммитится в репозиторий.
 
 ```bash
 sudo bash deploy/install.sh \
-  --domain=portfolio.example.com \
-  --www-domain=www.portfolio.example.com \
+  --domain=jsinteractive.ru \
   --admin-email=you@example.com \
   --deploy-key=/root/jsint-site-deploy-key \
   --source-repo="$PWD" \
@@ -91,7 +90,7 @@ Installer не перезаписывает существующую installatio
 После установки:
 
 ```bash
-curl -fsS https://portfolio.example.com/healthz
+curl -fsS https://jsinteractive.ru/healthz
 ```
 
 Ответ содержит текущую версию:
