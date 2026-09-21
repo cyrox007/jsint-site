@@ -25,9 +25,9 @@ usage() {
 
 Использование:
   sudo bash deploy/install.sh \
-    --domain=portfolio.example.com \
+    --domain=jsinteractive.ru \
     --admin-email=you@example.com \
-    [--www-domain=www.portfolio.example.com] \
+    [--www-domain=www.jsinteractive.ru] \
     [--repo-url=git@github.com:cyrox007/jsint-site.git] \
     [--source-repo=/path/to/already-cloned-repository] \
     [--ref=master] \
