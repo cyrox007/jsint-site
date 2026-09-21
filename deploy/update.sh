@@ -58,7 +58,7 @@ acquire_update_lock
 [[ -d "${REPO_DIR}/.git" ]] || die "Не найден deployment repository: ${REPO_DIR}"
 [[ -L "${CURRENT_LINK}" ]] || die "Не найден current release symlink: ${CURRENT_LINK}"
 [[ -f "${ENV_FILE}" ]] || die "Не найден environment-файл: ${ENV_FILE}"
-systemctl is-active --quiet "${SERVICE_NAME}" || die "Service ${SERVICE_NAME} не активен. Сначала восстановите штатное состояние."
+services_are_active || die "Web/Celery runtime не полностью активен. Сначала восстановите штатное состояние."
 
 OLD_RELEASE="$(current_release_path)"
 [[ -n "${OLD_RELEASE}" && -d "${OLD_RELEASE}" ]] || die "Текущий release повреждён."
@@ -95,9 +95,10 @@ rollback_update() {
     fi
     switch_current_release "${OLD_RELEASE}"
     database_restore "${BACKUP_FILE}"
+    install_service_units "${OLD_RELEASE}"
     service_start
 
-    if local_healthcheck; then
+    if local_healthcheck && background_healthcheck "${OLD_RELEASE}" 75; then
         log "Rollback подтверждён: восстановлен ${OLD_VERSION} (${OLD_COMMIT:0:12})."
         set -e
         return 0
@@ -132,6 +133,11 @@ if ! switch_current_release "${CANDIDATE_RELEASE}"; then
     exit 1
 fi
 
+if ! install_service_units "${CANDIDATE_RELEASE}"; then
+    rollback_update "systemd unit installation failed" || exit 2
+    exit 1
+fi
+
 if ! service_start; then
     rollback_update "systemd start failed" || exit 2
     exit 1
@@ -139,6 +145,11 @@ fi
 
 if ! local_healthcheck; then
     rollback_update "post-switch HTTP healthcheck failed" || exit 2
+    exit 1
+fi
+
+if ! background_healthcheck "${CANDIDATE_RELEASE}" 75; then
+    rollback_update "post-switch Celery heartbeat failed" || exit 2
     exit 1
 fi
 
