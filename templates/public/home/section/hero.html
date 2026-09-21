@@ -479,6 +479,15 @@
 		margin-top: 28px;
 	}
 
+	.hero-stack .tech {
+		padding: 6px 12px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: rgba(255, 255, 255, .04);
+		color: var(--muted);
+		font-size: .82rem;
+	}
+
 
 	@keyframes pulseGlow {
 
@@ -566,9 +575,30 @@
 		}
 	}
 
+	@media (max-width: 900px) {
+		.hero {
+			padding-top: 96px;
+		}
+
+		.hero-grid {
+			grid-template-columns: 1fr;
+			gap: 48px;
+		}
+
+		.hero h1 {
+			font-size: clamp(3.2rem, 14vw, 5.4rem);
+			letter-spacing: -0.06em;
+		}
+	}
+
 	@media (max-width: 640px) {
 		.hero-card {
-			padding: 24px;
+			padding: 22px;
+		}
+
+		.terminal-body {
+			padding: 18px;
+			font-size: .82rem;
 		}
 
 		.metrics-grid {
@@ -676,13 +706,13 @@
 				<div class="metrics-grid">
 
 					<div class="metric">
-						<small>Активные узлы</small>
-						<strong>12</strong>
+						<small>Основной фокус</small>
+						<strong>Backend</strong>
 					</div>
 
 					<div class="metric">
-						<small>Средняя задержка</small>
-						<strong>21ms</strong>
+						<small>Realtime</small>
+						<strong>WebSocket</strong>
 					</div>
 
 					<div class="metric">
@@ -691,8 +721,8 @@
 					</div>
 
 					<div class="metric">
-						<small>Статус</small>
-						<strong>ONLINE</strong>
+						<small>Подход</small>
+						<strong>Production-first</strong>
 					</div>
 
 				</div>
