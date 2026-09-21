@@ -27,6 +27,7 @@ class Config:
 
     SECRET_KEY = os.getenv("SECRET_KEY", "")
     ADMIN_ROUTE_PREFIX = os.getenv("ADMIN_ROUTE_PREFIX", "/x321/dashboard").rstrip("/") or "/x321/dashboard"
+    ADMIN_EMAILS = {item.lower() for item in _env_list("ADMIN_EMAILS")}
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -72,6 +73,12 @@ class Config:
         return f"{driver}://{user}:{password}@{host}:{port}/{name}{ssl}"
 
     @classmethod
+    def is_admin_email(cls, email: str) -> bool:
+        if not cls.ADMIN_EMAILS:
+            return not cls.IS_PRODUCTION
+        return email.strip().lower() in cls.ADMIN_EMAILS
+
+    @classmethod
     def validate(cls) -> None:
         if not cls.SECRET_KEY or len(cls.SECRET_KEY) < 32:
             raise RuntimeError("SECRET_KEY must contain at least 32 characters")
@@ -82,6 +89,8 @@ class Config:
         if cls.IS_PRODUCTION:
             if not cls.ALLOWED_HOSTS:
                 raise RuntimeError("ALLOWED_HOSTS is required in production")
+            if not cls.ADMIN_EMAILS:
+                raise RuntimeError("ADMIN_EMAILS is required in production")
             if not cls.SESSION_COOKIE_SECURE:
                 raise RuntimeError("SESSION_COOKIE_SECURE must be enabled in production")
             if not cls.DB_PASSWORD:
