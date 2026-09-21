@@ -69,6 +69,39 @@ Write access для deployment key не нужен.
 
 Private key не коммитится в репозиторий.
 
+### Внешний PostgreSQL
+
+Если production БД уже создана отдельно от application VPS, installer не должен создавать локальные PostgreSQL role/database. Используйте `--existing-db` и передайте параметры подключения. Пароль храните в отдельном root-only файле, а не в history shell:
+
+```bash
+install -m 0600 /dev/null /root/jsint-db-password
+read -s -p "DB password: " DB_PASSWORD; echo
+printf '%s' "$DB_PASSWORD" > /root/jsint-db-password
+unset DB_PASSWORD
+```
+
+Пример запуска:
+
+```bash
+sudo bash deploy/install.sh \
+  --domain=jsinteractive.ru \
+  --www-domain=www.jsinteractive.ru \
+  --admin-email=you@example.com \
+  --deploy-key=/root/jsint-site-deploy-key \
+  --source-repo="$PWD" \
+  --ref=release/production-readiness \
+  --existing-db \
+  --db-host=5.129.197.37 \
+  --db-port=5432 \
+  --db-name=jsint_db \
+  --db-user=gen_user \
+  --db-sslmode=prefer \
+  --db-password-file=/root/jsint-db-password \
+  --skip-nginx
+```
+
+Перед миграциями installer выполняет `SELECT 1` к указанной БД. Updater умеет делать `pg_dump` и rollback через тот же внешний PostgreSQL connection.
+
 ### Запуск
 
 Из доверенного checkout нужной версии:
