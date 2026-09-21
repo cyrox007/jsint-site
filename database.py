@@ -1,26 +1,38 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from settings import config
+
 
 class Database:
     engine = None
     Base = declarative_base()
+    _session_factory = None
 
     @classmethod
     def get_engine(cls):
         if cls.engine is None:
             cls.engine = create_engine(
                 config.database_url(),
-                pool_pre_ping=True,      # Проверка соединения перед использованием
-                pool_recycle=180,        # Пересоздавать каждые 3 минуты
-                pool_size=5,             # Размер пула
-                max_overflow=10,         # Дополнительные соединения при нагрузке
-                pool_timeout=30,         # Таймаут ожидания соединения
-                echo=False               # Удобно для отладки (можно включить True)
+                pool_pre_ping=True,
+                pool_recycle=300,
+                pool_size=3,
+                max_overflow=2,
+                pool_timeout=15,
+                echo=False,
             )
         return cls.engine
 
     @classmethod
+    def session_factory(cls):
+        if cls._session_factory is None:
+            cls._session_factory = sessionmaker(
+                bind=cls.get_engine(),
+                expire_on_commit=False,
+            )
+        return cls._session_factory
+
+    @classmethod
     def connect_database(cls):
-        """Создаёт новую сессию."""
-        return sessionmaker(bind=cls.get_engine())()
+        """Создаёт независимую SQLAlchemy-сессию для одного request/operation."""
+        return cls.session_factory()()
