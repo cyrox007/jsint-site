@@ -91,7 +91,7 @@ if (( SKIP_PACKAGES == 0 )); then
     log "Установка системных пакетов."
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y         ca-certificates         curl         git         nginx         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         openssh-client         sudo         tar         util-linux
+    apt-get install -y         ca-certificates         curl         git         nginx         iproute2         postgresql         postgresql-client         python3         python3-pip         python3-venv         redis-server         openssh-client         sudo         tar         util-linux
 fi
 
 require_commands     curl flock getent git groupadd nginx pg_dump pg_restore psql python3 ss sudo systemctl tar useradd
@@ -101,7 +101,7 @@ import sys
 raise SystemExit(0 if sys.version_info >= (3, 10) else 1)
 PY
 
-if ss -ltnH | awk '{print $4}' | grep -Eq "[:.]\${APP_PORT_ARG}$"; then
+if ss -ltnH | awk '{print $4}' | grep -Eq "[:.]${APP_PORT_ARG}$"; then
     die "Порт ${APP_PORT_ARG} уже занят. Выберите другой --app-port."
 fi
 
