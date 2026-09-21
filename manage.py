@@ -39,6 +39,8 @@ def _email(value: str) -> str:
 
 def cmd_create_admin(args) -> int:
     email = _email(args.email)
+    if not config.is_admin_email(email):
+        raise RuntimeError("Email отсутствует в ADMIN_EMAILS")
     password = _read_password()
 
     db = Database.connect_database()
