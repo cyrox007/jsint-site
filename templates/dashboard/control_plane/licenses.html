@@ -1,103 +1,87 @@
 {% extends '/dashboard/^core/base.html' %}
-
 {% block title %}Лицензии Workspace Organizer{% endblock %}
-
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Лицензии</h1>
-        <p>Установки Workspace Organizer, права на обновления и активация клиентов.</p>
-    </div>
-</div>
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;">
-    <div class="card"><small style="color:var(--muted);">Control plane</small><div style="font-weight:700;margin-top:6px;">{{ control_plane.status }}</div></div>
-    <div class="card"><small style="color:var(--muted);">License trust</small><div style="font-weight:700;margin-top:6px;">{{ 'OK' if control_plane.license_trust else 'Ошибка' }}</div></div>
-    <div class="card"><small style="color:var(--muted);">Update trust</small><div style="font-weight:700;margin-top:6px;">{{ 'OK' if control_plane.update_trust else 'Ошибка' }}</div></div>
-    <div class="card"><small style="color:var(--muted);">Release storage</small><div style="font-weight:700;margin-top:6px;">{{ 'OK' if control_plane.release_storage else 'Недоступно' }}</div></div>
-</div>
-
-{% if activation_code %}
-<div class="card" style="margin-bottom:20px;border:1px solid #d8a900;">
-    <h3>Одноразовый activation code</h3>
-    <p style="color:var(--muted);">Установка: <code>{{ activation_installation }}</code></p>
-    <p>Скопируйте код сейчас. В базе хранится только SHA-256, повторно показать его нельзя.</p>
-    <pre style="white-space:pre-wrap;word-break:break-all;padding:12px;background:var(--surface-2,#f3f4f6);border-radius:8px;">{{ activation_code }}</pre>
-</div>
-{% endif %}
-
-<div class="card" style="margin-bottom:20px;">
-    <h3>Зарегистрировать подписанную лицензию</h3>
-    <p style="color:var(--muted);">Токен должен быть заранее подписан офлайн private license key. Web-сервер только проверяет public key.</p>
-    <form method="post" style="display:grid;gap:12px;">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <label>
-            Signed wo1 token
-            <textarea name="signed_license" rows="5" required spellcheck="false"></textarea>
-        </label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-            <label>
-                Доступ к обновлениям до, UTC
-                <input type="datetime-local" name="updates_until">
-            </label>
-            <label>
-                Максимальный version_code
-                <input type="number" name="max_version" min="1" step="1" placeholder="без ограничения">
-            </label>
+<div class="admin-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Workspace Organizer</span>
+            <h1 class="admin-page__title">Лицензии</h1>
+            <p class="admin-page__description">Установки, права на обновления и одноразовая активация клиентов.</p>
         </div>
-        <div><button class="btn primary" type="submit">Проверить и зарегистрировать</button></div>
-    </form>
-</div>
+    </header>
 
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Installation</th>
-                <th>Лицензия</th>
-                <th>Edition</th>
-                <th>Обновления</th>
-                <th>Статус</th>
-                <th>Активация</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for item in licenses %}
-            <tr>
-                <td><code>{{ item.installation_id }}</code><br><small style="color:var(--muted);">{{ item.customer or '—' }}</small></td>
-                <td>{{ item.license_id }}<br><small style="color:var(--muted);">{{ item.key_id }}</small></td>
-                <td>{{ item.edition }}{% if item.max_users %}<br><small style="color:var(--muted);">до {{ item.max_users }} пользователей</small>{% endif %}</td>
-                <td>
-                    {% if item.updates_until %}до {{ item.updates_until.strftime('%d.%m.%Y %H:%M') }} UTC{% else %}без срока{% endif %}
-                    <br><small style="color:var(--muted);">max version: {{ item.max_version or '∞' }}</small>
-                </td>
-                <td><span class="badge {{ 'published' if item.status == 'active' else 'draft' }}">{{ item.status }}</span></td>
-                <td>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        {% if item.status == 'active' %}
-                        <form method="post" action="{{ url_for('admin.licenses.activation', license_row_id=item.id) }}">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <button class="btn btn-small secondary" type="submit">Новый код</button>
-                        </form>
-                        <form method="post" action="{{ url_for('admin.licenses.status', license_row_id=item.id) }}">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="status" value="revoked">
-                            <button class="btn btn-small danger" type="submit">Отозвать</button>
-                        </form>
-                        {% else %}
-                        <form method="post" action="{{ url_for('admin.licenses.status', license_row_id=item.id) }}">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="status" value="active">
-                            <button class="btn btn-small secondary" type="submit">Вернуть active</button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-        {% else %}
-            <tr><td colspan="6" style="text-align:center;padding:36px;color:var(--muted);">Лицензии ещё не зарегистрированы.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <section class="admin-grid admin-grid--metrics">
+        <div class="admin-card metric-card"><div class="metric-card__label">Control plane</div><div class="metric-card__value metric-status {{ 'is-ok' if control_plane.status == 'ok' else 'is-error' }}">{{ control_plane.status }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">License trust</div><div class="metric-card__value metric-status {{ 'is-ok' if control_plane.license_trust else 'is-error' }}">{{ 'OK' if control_plane.license_trust else 'Ошибка' }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Update trust</div><div class="metric-card__value metric-status {{ 'is-ok' if control_plane.update_trust else 'is-error' }}">{{ 'OK' if control_plane.update_trust else 'Ошибка' }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Release storage</div><div class="metric-card__value metric-status {{ 'is-ok' if control_plane.release_storage else 'is-error' }}">{{ 'OK' if control_plane.release_storage else 'Недоступно' }}</div></div>
+    </section>
+
+    {% if activation_code %}
+    <section class="admin-callout admin-callout--warning" style="margin-bottom:18px;">
+        <strong>Одноразовый activation code</strong>
+        <p style="margin:5px 0 0;">Установка: <code>{{ activation_installation }}</code>. Скопируйте код сейчас: повторно показать его нельзя.</p>
+        <pre class="activation-code">{{ activation_code }}</pre>
+    </section>
+    {% endif %}
+
+    <section class="admin-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Зарегистрировать подписанную лицензию</h2>
+                <p class="admin-card__description">Токен заранее подписывается офлайн. Сервер хранит и использует только public trust root.</p>
+            </div>
+        </div>
+        <form method="post">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="admin-card__body admin-form">
+                <label>Signed wo1 token<textarea name="signed_license" rows="5" required spellcheck="false"></textarea></label>
+                <div class="admin-form-grid">
+                    <label>Доступ к обновлениям до, UTC<input type="datetime-local" name="updates_until"></label>
+                    <label>Максимальный version_code<input type="number" name="max_version" min="1" step="1" placeholder="Без ограничения"></label>
+                </div>
+            </div>
+            <div class="admin-card__footer"><button class="btn primary" type="submit">Проверить и зарегистрировать</button></div>
+        </form>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Зарегистрированные установки</h2>
+                <p class="admin-card__description">Активация и отзыв доступа применяются немедленно.</p>
+            </div>
+        </div>
+        <div class="admin-card__body" style="padding:18px 0 0;">
+            <div class="admin-table-wrap" style="border-left:0;border-right:0;border-bottom:0;border-radius:0 0 var(--admin-radius-lg) var(--admin-radius-lg);">
+                <table>
+                    <thead><tr><th>Installation</th><th>Лицензия</th><th>Edition</th><th>Обновления</th><th>Статус</th><th>Действия</th></tr></thead>
+                    <tbody>
+                    {% for item in licenses %}
+                        <tr>
+                            <td><code>{{ item.installation_id }}</code><span class="admin-table__secondary">{{ item.customer or 'Без customer' }}</span></td>
+                            <td><span class="admin-table__primary">{{ item.license_id }}</span><span class="admin-table__secondary">{{ item.key_id }}</span></td>
+                            <td>{{ item.edition }}{% if item.max_users %}<span class="admin-table__secondary">до {{ item.max_users }} пользователей</span>{% endif %}</td>
+                            <td>{% if item.updates_until %}до {{ item.updates_until.strftime('%d.%m.%Y %H:%M') }} UTC{% else %}без срока{% endif %}<span class="admin-table__secondary">max version: {{ item.max_version or '∞' }}</span></td>
+                            <td><span class="status-badge {{ 'status-badge--success' if item.status == 'active' else 'status-badge--danger' }}">{{ item.status }}</span></td>
+                            <td>
+                                <div class="admin-table__actions">
+                                    {% if item.status == 'active' %}
+                                    <form method="post" action="{{ url_for('admin.licenses.activation', license_row_id=item.id) }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn secondary btn-small" type="submit">Новый код</button></form>
+                                    <form method="post" action="{{ url_for('admin.licenses.status', license_row_id=item.id) }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="revoked"><button class="btn danger btn-small" type="submit">Отозвать</button></form>
+                                    {% else %}
+                                    <form method="post" action="{{ url_for('admin.licenses.status', license_row_id=item.id) }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="active"><button class="btn secondary btn-small" type="submit">Вернуть active</button></form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6"><div class="admin-empty"><strong>Лицензии ещё не зарегистрированы</strong><span>Импортируйте первый подписанный wo1 token выше.</span></div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}

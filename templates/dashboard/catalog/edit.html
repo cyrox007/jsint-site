@@ -1,45 +1,8 @@
 {% extends "/dashboard/^core/base.html" %}
-
-{% block title %}Редактирование категории{% endblock %}
-
+{% block title %}Редактирование категории | JSInteractive{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Редактирование категории</h1>
-        <p>Измените данные категории</p>
-    </div>
-</div>
-
-<div class="card" style="max-width:600px;">
-    <form method="post">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-
-        <div class="form-field">
-            <label for="title">Название</label>
-            <input type="text" name="title" id="title" maxlength="50" value="{{ category.title }}" required>
-        </div>
-        <div class="form-field">
-            <label for="slug">URL</label>
-            <input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ category.slug }}" required>
-            <small>Латиница и цифры, слова разделяются дефисом</small>
-        </div>
-        <div class="form-field">
-            <label for="description">Описание</label>
-            <textarea name="description" id="description" rows="3">{{ category.description or '' }}</textarea>
-        </div>
-        <div class="form-field">
-            <label for="parent_id">Родительская категория</label>
-            <select name="parent_id" id="parent_id">
-                <option value="">Корневая</option>
-                {% for cat in all_categories %}
-                <option value="{{ cat.id }}" {% if category.parent_id == cat.id %}selected{% endif %}>{{ cat.title }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div style="display:flex; gap:12px; margin-top:16px;">
-            <button type="submit" class="btn primary">Сохранить</button>
-            <a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">Отмена</a>
-        </div>
-    </form>
+<div class="admin-page admin-page--narrow">
+    <header class="admin-page__header"><div class="admin-page__heading"><span class="admin-page__eyebrow">Каталог</span><h1 class="admin-page__title">Редактирование категории</h1><p class="admin-page__description">Измените название, адрес, описание или родительскую категорию.</p></div><div class="admin-page__actions"><a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">← К каталогу</a></div></header>
+    <form method="post" class="admin-card"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><div class="admin-card__header"><div><h2 class="admin-card__title">Основные данные</h2><p class="admin-card__description">Slug должен оставаться уникальным.</p></div></div><div class="admin-card__body admin-form-grid"><div class="form-field"><label for="title">Название</label><input type="text" name="title" id="title" maxlength="50" value="{{ category.title }}" required></div><div class="form-field"><label for="slug">Slug (URL)</label><input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ category.slug }}" required><small>Латиница и цифры, слова разделяются дефисом.</small></div><div class="form-field admin-form-grid__wide"><label for="description">Описание</label><textarea name="description" id="description" rows="4">{{ category.description or '' }}</textarea></div><div class="form-field admin-form-grid__wide"><label for="parent_id">Родительская категория</label><select name="parent_id" id="parent_id"><option value="">Корневая</option>{% for cat in all_categories %}<option value="{{ cat.id }}" {% if category.parent_id == cat.id %}selected{% endif %}>{{ cat.title }}</option>{% endfor %}</select></div></div><div class="admin-card__footer"><a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">Отмена</a><button type="submit" class="btn primary">Сохранить</button></div></form>
 </div>
 {% endblock %}

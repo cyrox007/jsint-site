@@ -4,36 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
-    <title>{% block title %}jsint cms{% endblock %}</title>
+    <title>{% block title %}Панель управления{% endblock %}</title>
     {% block extra_head %}{% endblock %}
-    <style>
-        {% include 'dashboard/styles.css' %}
-    </style>
+    <style>{% include 'dashboard/styles.css' %}</style>
 </head>
-
-<body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flashes" role="status" aria-live="polite">
-                {% for category, message in messages %}
-                    <div class="flash flash-{{ category }} animate-in" data-timeout="5000">{{ message }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+<body class="{{ 'admin-layout' if session.get('user_id') else 'auth-layout' }}">
+    <a class="skip-link" href="#admin-main">Перейти к содержимому</a>
 
     {% if session.get('user_id') %}
         {% include 'dashboard/^shared/header/index.html' %}
+        <div class="admin-container">
+            {% include 'dashboard/^shared/sidebar/index.html' %}
+            <main class="admin-content" id="admin-main" tabindex="-1">
+    {% else %}
+            <main class="auth-content" id="admin-main" tabindex="-1">
     {% endif %}
-
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flashes" role="status" aria-live="polite">
+                            {% for category, message in messages %}
+                                <div class="flash flash-{{ category }} animate-in" data-timeout="5000">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </main>
+    {% if session.get('user_id') %}
+        </div>
+    {% endif %}
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.flashes .flash[data-timeout]').forEach(flash => {
-                const timeout = parseInt(flash.dataset.timeout, 10);
+                const timeout = Number.parseInt(flash.dataset.timeout, 10) || 5000;
                 window.setTimeout(() => {
                     flash.classList.add('animate-out');
                     flash.addEventListener('animationend', () => flash.remove(), {once: true});

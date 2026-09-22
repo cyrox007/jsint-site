@@ -6,6 +6,7 @@ from cache.redis import redis_client
 from components.auth.decorator import login_required, with_db_session
 from components.background.status import get_background_status
 from models.categories import Category
+from models.control_plane import LicenseRecord, ReleaseRecord
 from models.publication import Publication
 from version import application_version
 
