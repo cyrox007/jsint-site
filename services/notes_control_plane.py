@@ -12,7 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from nacl.exceptions import BadSignatureError
-from nacl.signing import VerifyKey
+from nacl.signing import SigningKey, VerifyKey
 from sqlalchemy.orm import Session
 
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
@@ -33,6 +33,10 @@ _SIGNATURE_DOMAIN = b"WorkspaceOrganizerUpdateManifest/v1\n"
 _CLOCK_SKEW_SECONDS = 300
 _MAX_MANIFEST_BYTES = 131072
 _MAX_PACKAGE_BYTES = 536870912
+_LICENSE_SECRET_PREFIX = "wo-ed25519-secret-v1:"
+_UPDATE_SECRET_PREFIX = "wo-update-ed25519-secret-v1:"
+_PRESENCE_ONLINE_SECONDS = 15 * 60
+_PRESENCE_RECENT_SECONDS = 24 * 60 * 60
 
 
 class ControlPlaneError(RuntimeError):
@@ -40,6 +44,10 @@ class ControlPlaneError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.code = code
+
+
+def _b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
 
 def _b64url_decode(value: str) -> bytes:
@@ -223,6 +231,232 @@ def verify_update_manifest(
 
     manifest["_key_id"] = key_id
     return manifest
+
+
+def _datetime_from_timestamp(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    return datetime.fromtimestamp(int(value), tz=timezone.utc)
+
+
+def _local_signing_key(
+    path_value: str,
+    *,
+    key_id: str,
+    secret_prefix: str,
+    trusted_keys: dict[str, str],
+    key_pattern: re.Pattern[str],
+) -> SigningKey:
+    if not config.NOTES_LOCAL_SIGNING_ENABLED:
+        raise ControlPlaneError(
+            "Локальная подпись отключена. Используйте офлайн-подпись или явно включите NOTES_LOCAL_SIGNING_ENABLED.",
+            status=403,
+            code="local_signing_disabled",
+        )
+    if key_pattern.fullmatch(key_id) is None or key_id not in trusted_keys:
+        raise ControlPlaneError("Неизвестный key_id для подписи", status=403, code="unknown_key")
+
+    root_value = config.NOTES_SIGNING_KEY_ROOT.strip()
+    if not root_value:
+        raise ControlPlaneError("NOTES_SIGNING_KEY_ROOT не настроен", status=503, code="signing_misconfigured")
+
+    root = Path(root_value).expanduser()
+    source = Path(path_value.strip()).expanduser()
+    if not root.is_absolute() or not source.is_absolute() or source.is_symlink():
+        raise ControlPlaneError("Private key должен быть абсолютным regular file без symlink")
+
+    try:
+        root_resolved = root.resolve(strict=True)
+        resolved = source.resolve(strict=True)
+        resolved.relative_to(root_resolved)
+    except (OSError, ValueError) as exc:
+        raise ControlPlaneError(
+            "Private key должен находиться внутри NOTES_SIGNING_KEY_ROOT",
+            status=403,
+            code="signing_path_denied",
+        ) from exc
+
+    if not resolved.is_file():
+        raise ControlPlaneError("Private key file не найден")
+    size = resolved.stat().st_size
+    if size <= 0 or size > 4096:
+        raise ControlPlaneError("Некорректный размер private key file")
+    if resolved.stat().st_mode & 0o077:
+        raise ControlPlaneError("Private key file должен иметь права 0600")
+
+    try:
+        content = resolved.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ControlPlaneError("Private key file недоступен", status=503, code="signing_key_unavailable") from exc
+
+    if not content.startswith(secret_prefix):
+        raise ControlPlaneError("Private key имеет неподдерживаемый формат")
+    raw = bytearray(_b64url_decode(content[len(secret_prefix):]))
+    if len(raw) != 64:
+        raise ControlPlaneError("Private key должен содержать 64-byte Ed25519 secret")
+
+    try:
+        signing_key = SigningKey(bytes(raw[:32]))
+        derived_public = bytes(signing_key.verify_key)
+        if not hmac.compare_digest(derived_public, bytes(raw[32:])):
+            raise ControlPlaneError("Private key содержит несогласованную Ed25519 keypair")
+        configured_public = _public_key(trusted_keys, key_id, key_pattern)
+        if not hmac.compare_digest(derived_public, configured_public):
+            raise ControlPlaneError(
+                "Private key не соответствует выбранному public trust root",
+                status=403,
+                code="wrong_signing_key",
+            )
+        return signing_key
+    finally:
+        for index in range(len(raw)):
+            raw[index] = 0
+
+
+def _build_license_token(
+    *,
+    private_key_path: str,
+    key_id: str,
+    installation_id: str,
+    license_id: str,
+    edition: str,
+    expires_at: datetime | None,
+    not_before: datetime | None,
+    customer: str | None,
+    features: list[str],
+    max_users: int | None,
+) -> str:
+    try:
+        installation = str(UUID(installation_id)).lower()
+    except ValueError as exc:
+        raise ControlPlaneError("Некорректный installation_id") from exc
+    if _LICENSE_ID_RE.fullmatch(license_id) is None:
+        raise ControlPlaneError("Некорректный license_id")
+    edition = edition.strip().lower()
+    if _EDITION_RE.fullmatch(edition) is None:
+        raise ControlPlaneError("Некорректный edition")
+    if any(_FEATURE_RE.fullmatch(item) is None for item in features) or len(features) != len(set(features)):
+        raise ControlPlaneError("Некорректный список features")
+    if max_users is not None and (max_users < 1 or max_users > 1_000_000):
+        raise ControlPlaneError("max_users должен быть от 1 до 1000000")
+
+    now = datetime.now(timezone.utc)
+    if expires_at is not None and expires_at <= now:
+        raise ControlPlaneError("Срок действия лицензии должен быть в будущем")
+    if not_before is not None and expires_at is not None and not_before >= expires_at:
+        raise ControlPlaneError("Дата начала должна быть раньше даты окончания")
+
+    payload: dict[str, Any] = {
+        "v": 1,
+        "license_id": license_id,
+        "installation_id": installation,
+        "issued_at": int(now.timestamp()),
+        "expires_at": int(expires_at.timestamp()) if expires_at else None,
+        "edition": edition,
+    }
+    if not_before is not None:
+        payload["not_before"] = int(not_before.timestamp())
+    if customer:
+        customer = customer.strip()
+        if len(customer) > 160:
+            raise ControlPlaneError("Название клиента не должно превышать 160 символов")
+        payload["customer"] = customer
+    if features:
+        payload["features"] = features
+    if max_users is not None:
+        payload["max_users"] = max_users
+
+    payload_encoded = _b64url_encode(
+        json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    )
+    signed = f"wo1.{key_id}.{payload_encoded}"
+    signing_key = _local_signing_key(
+        private_key_path,
+        key_id=key_id,
+        secret_prefix=_LICENSE_SECRET_PREFIX,
+        trusted_keys=LICENSE_TRUSTED_KEYS,
+        key_pattern=_LICENSE_KEY_RE,
+    )
+    try:
+        signature = signing_key.sign(signed.encode("ascii")).signature
+    finally:
+        del signing_key
+    token = f"{signed}.{_b64url_encode(signature)}"
+    verify_license_token(token, installation)
+    return token
+
+
+def _build_release_manifest(
+    *,
+    package_path: str,
+    version: str,
+    version_code: int,
+    channel: str,
+    source_commit: str,
+    min_source_version_code: int,
+    requires_php: str,
+) -> tuple[str, Path]:
+    version = version.strip()
+    channel = channel.strip().lower()
+    source_commit = source_commit.strip().lower()
+    requires_php = requires_php.strip()
+
+    if _VERSION_RE.fullmatch(version) is None:
+        raise ControlPlaneError("Некорректная версия релиза")
+    if version_code <= 0:
+        raise ControlPlaneError("version_code должен быть положительным")
+    if channel not in {"alpha", "beta", "stable"}:
+        raise ControlPlaneError("Канал должен быть alpha, beta или stable")
+    if _SHA_RE.fullmatch(source_commit) is None:
+        raise ControlPlaneError("source_commit должен быть полным 40-символьным Git SHA")
+    if min_source_version_code <= 0:
+        raise ControlPlaneError("min_source_version_code должен быть положительным")
+    if re.fullmatch(r"\d+\.\d+(?:\.\d+)?", requires_php) is None:
+        raise ControlPlaneError("requires_php должен иметь вид 8.1 или 8.1.0")
+
+    resolved = _resolve_package(package_path)
+    size, sha256 = _hash_file(resolved)
+    manifest = {
+        "schema": 1,
+        "product": "workspace-organizer",
+        "version": version,
+        "version_code": version_code,
+        "channel": channel,
+        "issued_at": int(datetime.now(timezone.utc).timestamp()),
+        "source_commit": source_commit,
+        "min_source_version_code": min_source_version_code,
+        "requires_php": requires_php,
+        "package": {
+            "filename": resolved.name,
+            "sha256": sha256,
+            "size": size,
+            "format": "zip",
+        },
+    }
+    manifest_bytes = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        indent=2,
+        separators=(",", ": "),
+    ) + "\n"
+    return manifest_bytes, resolved
+
+
+def _sign_update_manifest(manifest_bytes: str, *, private_key_path: str, key_id: str) -> str:
+    signing_key = _local_signing_key(
+        private_key_path,
+        key_id=key_id,
+        secret_prefix=_UPDATE_SECRET_PREFIX,
+        trusted_keys=UPDATE_TRUSTED_KEYS,
+        key_pattern=_UPDATE_KEY_RE,
+    )
+    try:
+        signature = signing_key.sign(_SIGNATURE_DOMAIN + manifest_bytes.encode("utf-8")).signature
+    finally:
+        del signing_key
+    token = f"wou1.{key_id}.{_b64url_encode(signature)}"
+    verify_update_manifest(manifest_bytes, token)
+    return token
 
 
 def _release_storage_root() -> Path:
