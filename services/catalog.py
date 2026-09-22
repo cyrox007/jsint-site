@@ -142,3 +142,7 @@ class CatalogService:
         cache.delete_pattern(f"{cache.PREFIX}:category:breadcrumbs:*")
         if category_id is None:
             cache.invalidate("category")
+
+        # Публикации содержат вложенную рубрику в cached schema, поэтому после
+        # переименования или перемещения рубрики список должен обновиться сразу.
+        cache.invalidate("publications")
