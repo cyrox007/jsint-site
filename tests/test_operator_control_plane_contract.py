@@ -80,6 +80,7 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('type="file" id="release-package-file"', template)
         self.assertIn("Выбрать ZIP…", template)
         self.assertIn("uploadReleasePackage", template)
+        self.assertIn("xhr.send(formData)", template)
         self.assertIn("/api/operator/v1/release-upload", router)
         self.assertIn("def store_release_upload(", service)
         self.assertIn("location = /api/operator/v1/release-upload", nginx)
