@@ -46,8 +46,13 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-log "Проверка конфигурации и PostgreSQL/Redis/control plane."
+log "Применение Alembic migrations."
 "${APP_DIR}/.venv/bin/alembic" upgrade head
+
+log "Запуск unit/HTTP smoke tests."
+"${APP_DIR}/.venv/bin/python" -m unittest discover -s tests -v
+
+log "Проверка конфигурации и PostgreSQL/Redis/control plane."
 "${APP_DIR}/.venv/bin/python" manage.py health
 
 log "Установка checkout-mode systemd units."
