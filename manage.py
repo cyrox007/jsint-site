@@ -91,7 +91,7 @@ def cmd_set_password(args) -> int:
 
 
 def cmd_health(_args) -> int:
-    checks = {"config": False, "database": False, "redis": False}
+    checks = {"config": False, "database": False, "redis": False, "control_plane": False}
 
     config.validate()
     checks["config"] = True
@@ -104,7 +104,23 @@ def cmd_health(_args) -> int:
         db.close()
 
     checks["redis"] = redis_client.ping()
-    ok = checks["config"] and checks["database"] and (checks["redis"] or not config.REDIS_REQUIRED)
+
+    control_db = Database.connect_database()
+    try:
+        control_state = NotesControlPlane.health(control_db)
+    finally:
+        control_db.close()
+    checks["control_plane"] = (
+        not config.NOTES_CONTROL_PLANE_ENABLED
+        or control_state["status"] == "ok"
+    )
+
+    ok = (
+        checks["config"]
+        and checks["database"]
+        and (checks["redis"] or not config.REDIS_REQUIRED)
+        and checks["control_plane"]
+    )
     print(json.dumps({"status": "ok" if ok else "error", "version": application_version(), "checks": checks}, ensure_ascii=False))
     return 0 if ok else 3
 
