@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from flask.views import MethodView
 from sqlalchemy.orm import Session
 
@@ -279,6 +279,37 @@ class ReleaseListView(MethodView):
                 "dashboard/control_plane/releases.html",
                 **_release_context(db_session, tab="import"),
             ), exc.status
+
+
+class ReleaseUploadView(MethodView):
+    @login_required
+    def post(self):
+        # Flask 3.1 позволяет поднять лимит только для этого конкретного request.
+        # Остальные формы приложения по-прежнему ограничены общим MAX_CONTENT_LENGTH.
+        request.max_content_length = config.NOTES_RELEASE_UPLOAD_MAX_BYTES + (1024 * 1024)
+
+        upload = request.files.get("package")
+        if upload is None:
+            return jsonify(
+                {
+                    "status": "error",
+                    "code": "package_required",
+                    "message": "Выберите ZIP-архив релиза.",
+                }
+            ), 400
+
+        try:
+            stored = NotesControlPlane.store_release_upload(upload)
+        except ControlPlaneError as exc:
+            return jsonify(
+                {
+                    "status": "error",
+                    "code": exc.code,
+                    "message": str(exc),
+                }
+            ), exc.status
+
+        return jsonify({"status": "ok", "package": stored})
 
 
 class ReleasePublishView(MethodView):
