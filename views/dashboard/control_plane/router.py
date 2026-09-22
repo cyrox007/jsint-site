@@ -32,6 +32,11 @@ def install(app: Flask) -> None:
         methods=["GET", "POST"],
     )
     app.add_url_rule(
+        "/api/operator/v1/release-upload",
+        view_func=views.ReleaseUploadView.as_view("admin.releases.upload"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
         f"{prefix}/releases/publish",
         view_func=views.ReleasePublishView.as_view("admin.releases.publish"),
         methods=["POST"],
