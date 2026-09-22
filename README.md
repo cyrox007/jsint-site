@@ -189,13 +189,22 @@ alembic upgrade head
 
 Перед commit просмотрите сгенерированную migration вручную.
 
-## Notes Update Service
+## Единая CMS и Workspace control plane
 
-Этот репозиторий остаётся портфолио. Notes Update Service разворачивается как отдельный сервис, даже если использует тот же VPS:
+Этот repository теперь является одной системой для:
+
+- публичных публикаций и портфолио;
+- административного управления контентом;
+- реестра лицензий Workspace Organizer;
+- реестра подписанных релизов;
+- выдачи update artifacts клиентам Notes по существующему authenticated protocol.
+
+Machine API доступен из того же Flask-приложения:
 
 ```text
-jsinteractive.ru          -> jsint-site
-updates.jsinteractive.ru -> Notes Update Service
+https://jsinteractive.ru/api/notes/v1/
 ```
 
-Позже CMS этого сайта может получить раздел управления релизами Notes как операторский frontend, но private signing key Notes на web-сервер не переносится.
+Private signing keys лицензий и обновлений на web-сервер не переносятся. В repository находятся только публичные Ed25519 trust roots; подписанные лицензии и manifest импортируются в CMS после офлайн signing ceremony.
+
+Подробный контракт: `docs/CONTROL_PLANE.md`.
