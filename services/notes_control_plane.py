@@ -76,6 +76,8 @@ def verify_license_token(
     token: str,
     expected_installation: str | None = None,
     trusted_keys: dict[str, str] | None = None,
+    *,
+    allow_not_yet_valid: bool = False,
 ) -> dict[str, Any]:
     token = token.strip()
     if not token or len(token) > 16384:
@@ -144,7 +146,9 @@ def verify_license_token(
         raise ControlPlaneError("Некорректный max_users")
 
     now = int(datetime.now(timezone.utc).timestamp())
-    if payload["issued_at"] > now + _CLOCK_SKEW_SECONDS or not_before > now + _CLOCK_SKEW_SECONDS:
+    if payload["issued_at"] > now + _CLOCK_SKEW_SECONDS:
+        raise ControlPlaneError("Лицензия выпущена в будущем", status=403, code="not_yet_valid")
+    if not allow_not_yet_valid and not_before > now + _CLOCK_SKEW_SECONDS:
         raise ControlPlaneError("Лицензия ещё не вступила в силу", status=403, code="not_yet_valid")
     if payload["expires_at"] is not None and now > payload["expires_at"] + _CLOCK_SKEW_SECONDS:
         raise ControlPlaneError("Срок действия лицензии истёк", status=403, code="expired")
@@ -382,7 +386,7 @@ def _build_license_token(
     finally:
         del signing_key
     token = f"{signed}.{_b64url_encode(signature)}"
-    verify_license_token(token, installation)
+    verify_license_token(token, installation, allow_not_yet_valid=True)
     return token
 
 
@@ -517,7 +521,7 @@ class NotesControlPlane:
         updates_until: datetime | None,
         max_version: int | None,
     ) -> tuple[LicenseRecord, str]:
-        payload = verify_license_token(signed_license)
+        payload = verify_license_token(signed_license, allow_not_yet_valid=True)
         if max_version is not None and max_version <= 0:
             raise ControlPlaneError("max_version должен быть положительным")
         if updates_until is not None and updates_until <= datetime.now(timezone.utc):
@@ -930,6 +934,12 @@ class NotesControlPlane:
         except ControlPlaneError:
             storage_ok = False
         trust_ok = bool(LICENSE_TRUSTED_KEYS) and bool(UPDATE_TRUSTED_KEYS)
+        signing_root_ready = False
+        if config.NOTES_LOCAL_SIGNING_ENABLED:
+            try:
+                signing_root_ready = Path(config.NOTES_SIGNING_KEY_ROOT).resolve(strict=True).is_dir()
+            except OSError:
+                signing_root_ready = False
         enabled = bool(config.NOTES_CONTROL_PLANE_ENABLED)
         return {
             "status": "ok" if enabled and database_ok and storage_ok and trust_ok else "degraded",
@@ -938,4 +948,6 @@ class NotesControlPlane:
             "release_storage": storage_ok,
             "license_trust": bool(LICENSE_TRUSTED_KEYS),
             "update_trust": bool(UPDATE_TRUSTED_KEYS),
+            "local_signing_enabled": bool(config.NOTES_LOCAL_SIGNING_ENABLED),
+            "signing_root_ready": signing_root_ready,
         }
