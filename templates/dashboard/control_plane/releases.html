@@ -1,63 +1,9 @@
 {% extends '/dashboard/^core/base.html' %}
-
 {% block title %}Релизы Workspace Organizer{% endblock %}
-
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Релизы</h1>
-        <p>Публикация immutable update artifacts для Workspace Organizer.</p>
-    </div>
-</div>
-
-<div class="card" style="margin-bottom:20px;">
-    <h3>Зарегистрировать подписанный релиз</h3>
-    <p style="color:var(--muted);">
-        Сначала поместите уже принятый ZIP в внешний каталог <code>NOTES_RELEASE_STORAGE_PATH</code>.
-        Manifest и detached signature должны быть созданы и подписаны офлайн. После регистрации файлы не перепаковываются.
-    </p>
-    <form method="post" style="display:grid;gap:12px;">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <label>
-            Update manifest JSON
-            <textarea name="manifest_bytes" rows="12" required spellcheck="false"></textarea>
-        </label>
-        <label>
-            Detached signature (wou1...)
-            <textarea name="signature" rows="3" required spellcheck="false"></textarea>
-        </label>
-        <label>
-            Абсолютный путь к ZIP во внешнем release storage
-            <input type="text" name="package_path" required placeholder="/var/lib/jsint-site/notes-releases/workspace-organizer-v1.0.2.zip">
-        </label>
-        <div><button class="btn primary" type="submit">Проверить подпись, SHA-256 и зарегистрировать</button></div>
-    </form>
-</div>
-
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Версия</th>
-                <th>Канал</th>
-                <th>Source SHA</th>
-                <th>Package</th>
-                <th>Опубликован</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for item in releases %}
-            <tr>
-                <td><strong>{{ item.version }}</strong><br><small style="color:var(--muted);">code {{ item.version_code }}</small></td>
-                <td><span class="badge published">{{ item.channel }}</span></td>
-                <td><code>{{ item.source_commit }}</code></td>
-                <td>{{ item.package_name }}<br><small style="color:var(--muted);">{{ item.package_size }} bytes · {{ item.package_sha256[:12] }}…</small></td>
-                <td>{{ item.published_at.strftime('%d.%m.%Y %H:%M') if item.published_at else '—' }}</td>
-            </tr>
-        {% else %}
-            <tr><td colspan="5" style="text-align:center;padding:36px;color:var(--muted);">Релизы ещё не зарегистрированы.</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<div class="admin-page">
+    <header class="admin-page__header"><div class="admin-page__heading"><span class="admin-page__eyebrow">Workspace Organizer</span><h1 class="admin-page__title">Релизы</h1><p class="admin-page__description">Immutable update artifacts и подписанные manifest для клиентского updater.</p></div></header>
+    <section class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">Зарегистрировать подписанный релиз</h2><p class="admin-card__description">ZIP предварительно помещается во внешний release storage. Manifest и signature создаются офлайн.</p></div></div><form method="post"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><div class="admin-card__body admin-form"><label>Update manifest JSON<textarea name="manifest_bytes" rows="12" required spellcheck="false"></textarea></label><label>Detached signature (wou1...)<textarea name="signature" rows="3" required spellcheck="false"></textarea></label><label>Абсолютный путь к ZIP<input type="text" name="package_path" required placeholder="/var/lib/jsint-site/notes-releases/workspace-organizer-v1.0.2.zip"></label><p class="admin-form-note">Файл не перепаковывается: перед регистрацией проверяются подпись manifest, имя, размер и SHA-256 ZIP.</p></div><div class="admin-card__footer"><button class="btn primary" type="submit">Проверить и зарегистрировать</button></div></form></section>
+    <section class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">Опубликованные релизы</h2><p class="admin-card__description">Клиент получает только подходящие активные artifacts в своём канале.</p></div></div><div class="admin-card__body" style="padding:18px 0 0;"><div class="admin-table-wrap" style="border-left:0;border-right:0;border-bottom:0;border-radius:0 0 var(--admin-radius-lg) var(--admin-radius-lg);"><table><thead><tr><th>Версия</th><th>Канал</th><th>Source SHA</th><th>Package</th><th>Опубликован</th></tr></thead><tbody>{% for item in releases %}<tr><td><span class="admin-table__primary">{{ item.version }}</span><span class="admin-table__secondary">code {{ item.version_code }}</span></td><td><span class="status-badge status-badge--info">{{ item.channel }}</span></td><td><code>{{ item.source_commit }}</code></td><td>{{ item.package_name }}<span class="admin-table__secondary">{{ item.package_size }} bytes · {{ item.package_sha256[:12] }}…</span></td><td>{{ item.published_at.strftime('%d.%m.%Y %H:%M') if item.published_at else '—' }}</td></tr>{% else %}<tr><td colspan="5"><div class="admin-empty"><strong>Релизы ещё не зарегистрированы</strong><span>Добавьте первый подписанный release artifact выше.</span></div></td></tr>{% endfor %}</tbody></table></div></div></section>
 </div>
 {% endblock %}

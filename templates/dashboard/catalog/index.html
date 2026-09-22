@@ -1,72 +1,14 @@
 {% extends '/dashboard/^core/base.html' %}
-
-{% block title %}Категории{% endblock %}
-
+{% block title %}Каталог | JSInteractive{% endblock %}
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Категории</h1>
-        <p>Управление рубриками публикаций</p>
+<div class="admin-page">
+    <header class="admin-page__header"><div class="admin-page__heading"><span class="admin-page__eyebrow">Контент</span><h1 class="admin-page__title">Каталог</h1><p class="admin-page__description">Категории и рубрики, которые организуют публикации публичного сайта.</p></div></header>
+    <div class="admin-grid admin-grid--2">
+        <section class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">Категории</h2><p class="admin-card__description">Текущая структура рубрик.</p></div></div><div class="admin-card__body">
+            {% if categories %}<div class="admin-list">{% for cat in categories %}<div class="admin-list__row"><div class="admin-list__meta"><strong>{{ cat.title }}</strong><small>{{ cat.slug }}</small></div><div class="admin-list__actions"><a href="{{ url_for('admin.catalog.edit', cat_id=cat.id) }}" class="btn secondary btn-small">Изменить</a><form method="post" action="{{ url_for('admin.catalog.delete', cat_id=cat.id) }}" onsubmit="return confirm('Удалить категорию «{{ cat.title|e }}»?')"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn danger btn-small">Удалить</button></form></div></div>{% endfor %}</div>{% else %}<div class="admin-empty"><strong>Категорий пока нет</strong><span>Создайте первую рубрику справа.</span></div>{% endif %}
+        </div></section>
+        <section class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">Новая категория</h2><p class="admin-card__description">Название видно на сайте, slug используется в URL.</p></div></div><form method="post" action="{{ url_for('admin.catalog.index') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><div class="admin-card__body admin-form"><div class="form-field"><label for="title">Название</label><input type="text" name="title" id="title" maxlength="50" required></div><div class="form-field"><label for="slug">Slug (URL)</label><input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required><small>Латиница и цифры, слова разделяются дефисом.</small></div><div class="form-field"><label for="description">Описание</label><textarea name="description" id="description" rows="4"></textarea></div></div><div class="admin-card__footer"><button type="submit" class="btn primary">Создать категорию</button></div></form></section>
     </div>
-</div>
-
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px;">
-    <div class="card">
-        <h3 style="margin-bottom:16px; font-size:1rem;">Список категорий</h3>
-        {% if categories %}
-        <ul style="list-style:none; padding:0; margin:0;">
-            {% for cat in categories %}
-            <li style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 4px; border-bottom:1px solid var(--border);">
-                <span>
-                    <strong>{{ cat.title }}</strong><br>
-                    <small style="color:var(--muted);">{{ cat.slug }}</small>
-                </span>
-                <div style="display:flex; gap:6px;">
-                    <a href="{{ url_for('admin.catalog.edit', cat_id=cat.id) }}" class="btn btn-small" aria-label="Редактировать">✎</a>
-                    <form method="post"
-                          action="{{ url_for('admin.catalog.delete', cat_id=cat.id) }}"
-                          onsubmit="return confirm('Удалить категорию «{{ cat.title|e }}»?')"
-                          style="display:inline;">
-                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-small danger" aria-label="Удалить">✕</button>
-                    </form>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p style="color:var(--muted);">Категорий пока нет.</p>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <h3 style="margin-bottom:16px; font-size:1rem;">Создать категорию</h3>
-        <form method="post" action="{{ url_for('admin.catalog.index') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <div class="form-field">
-                <label for="title">Название</label>
-                <input type="text" name="title" id="title" maxlength="50" required>
-            </div>
-            <div class="form-field">
-                <label for="slug">URL</label>
-                <input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required>
-                <small>Латиница и цифры, слова разделяются дефисом</small>
-            </div>
-            <div class="form-field">
-                <label for="description">Описание</label>
-                <textarea name="description" id="description" rows="2"></textarea>
-            </div>
-            <button type="submit" class="btn primary">Сохранить</button>
-        </form>
-    </div>
-</div>
-
-<div class="card" style="margin-top:20px;">
-    <h3 style="margin-bottom:12px; font-size:0.9rem; color:var(--muted);">Статистика</h3>
-    <div style="display:flex; gap:20px; flex-wrap:wrap;">
-        <div><strong>Всего публикаций:</strong> {{ total_publications }}</div>
-        <div><strong>Опубликовано:</strong> {{ published_count }}</div>
-        <div><strong>Черновиков:</strong> {{ draft_count }}</div>
-    </div>
+    <section class="admin-card" style="margin-top:18px;"><div class="admin-card__body"><div class="admin-grid admin-grid--metrics" style="margin-bottom:0;"><div><span class="metric-card__label">Всего публикаций</span><div class="metric-card__value">{{ total_publications }}</div></div><div><span class="metric-card__label">Опубликовано</span><div class="metric-card__value">{{ published_count }}</div></div><div><span class="metric-card__label">Черновики</span><div class="metric-card__value">{{ draft_count }}</div></div></div></div></section>
 </div>
 {% endblock %}
