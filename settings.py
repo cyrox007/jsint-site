@@ -45,6 +45,7 @@ class Config:
     CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
 
     ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS")
+    SITE_CANONICAL_URL = os.getenv("SITE_CANONICAL_URL", "https://jsinteractive.ru").strip().rstrip("/")
     BEHIND_PROXY = _env_bool("BEHIND_PROXY", IS_PRODUCTION)
 
     SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", IS_PRODUCTION)
@@ -105,6 +106,20 @@ class Config:
 
         if not cls.ADMIN_ROUTE_PREFIX.startswith("/") or cls.ADMIN_ROUTE_PREFIX == "/":
             raise RuntimeError("ADMIN_ROUTE_PREFIX must be a non-root absolute URL path")
+
+        canonical = urlparse(cls.SITE_CANONICAL_URL)
+        if (
+            canonical.scheme not in {"http", "https"}
+            or not canonical.hostname
+            or canonical.username is not None
+            or canonical.password is not None
+            or canonical.query
+            or canonical.fragment
+            or canonical.path not in {"", "/"}
+        ):
+            raise RuntimeError("SITE_CANONICAL_URL must be an absolute site root URL")
+        if cls.IS_PRODUCTION and canonical.scheme != "https":
+            raise RuntimeError("SITE_CANONICAL_URL must use HTTPS in production")
 
         if cls.IS_PRODUCTION:
             if not cls.ALLOWED_HOSTS:
