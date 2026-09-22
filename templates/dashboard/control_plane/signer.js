@@ -119,10 +119,27 @@
         return payload;
     }
 
+    async function selectDirectory() {
+        await ping();
+        setStatus('Открываю системный диалог выбора папки…', 'working');
+        const payload = await request('/select-directory', {method: 'POST'});
+        if (payload.cancelled || !payload.directory) {
+            setStatus('Выбор папки отменён.', 'idle');
+            return '';
+        }
+        const input = document.getElementById('operator-signer-directory');
+        if (input) {
+            input.value = payload.directory;
+        }
+        remember();
+        setStatus('Папка выбрана: ' + payload.directory, 'ok');
+        return payload.directory;
+    }
+
     async function scan() {
         const localDirectory = directory();
         if (!localDirectory) {
-            throw new Error('Укажите папку с ключами на этом компьютере или флешке.');
+            throw new Error('Сначала выберите папку с ключами через системный диалог.');
         }
         remember();
         await ping();
@@ -238,6 +255,7 @@
 
     window.OperatorSigner = {
         ping,
+        selectDirectory,
         scanAndMatch,
         signLicense,
         signManifest,
