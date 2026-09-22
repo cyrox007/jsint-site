@@ -257,24 +257,28 @@ Redis содержит cache/rate-limit state и не является исто�
 11. dashboard «Обзор» показывает версию/PostgreSQL/Redis;
 12. в Nginx/Gunicorn logs нет traceback.
 
-## Notes Update Service
+## Workspace Organizer control plane
 
-Портфолио и Notes Update Service остаются разными приложениями даже на одном VPS:
+Лицензии, релизы и machine update API работают в том же `jsint-site`, а не в отдельном приложении.
 
 ```text
-jsinteractive.ru          -> jsint-site
-updates.jsinteractive.ru -> Notes Update Service
+jsinteractive.ru/
+├── публичный сайт
+├── <ADMIN_ROUTE_PREFIX>/        -> CMS + лицензии + релизы
+└── api/notes/v1/                -> authenticated Notes client API
 ```
 
-Админка портфолио будет расширяться как операторская панель:
+Release ZIP хранится вне application tree:
 
-- публикации;
-- релизы Workspace Organizer;
-- лицензии;
-- установки;
-- мониторинг.
+```text
+/var/lib/jsint-site/notes-releases/
+```
 
-Но private signing key обновлений Workspace Organizer никогда не переносится в web-приложение.
+Installer создаёт этот каталог как `root:jsint-site 0750`. Уже подписанный ZIP оператор помещает туда с mode `0640`, после чего регистрирует manifest/signature/path в админке.
+
+Публичные trust roots находятся в `config/notes_trust.py`. Private signing keys остаются офлайн и никогда не размещаются на application VPS.
+
+Подробности: `docs/CONTROL_PLANE.md`.
 
 
 ## Фоновые процессы
