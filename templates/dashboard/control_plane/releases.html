@@ -281,6 +281,8 @@ function uploadReleasePackage(file) {
         };
         xhr.onerror = () => reject(new Error('Соединение оборвалось во время загрузки ZIP.'));
         xhr.onabort = () => reject(new Error('Загрузка ZIP отменена.'));
+
+        xhr.send(formData);
     });
 }
 
