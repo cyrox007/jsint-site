@@ -78,11 +78,11 @@ class DeploymentContractTests(unittest.TestCase):
     def test_checkout_updater_selects_compatible_postgresql_client(self):
         updater = self.read("update.sh")
         self.assertIn("SHOW server_version_num", updater)
-        self.assertIn("postgresql-client-\${server_major}", updater)
-        self.assertIn('PG_DUMP_BIN="\${path_dump}"', updater)
-        self.assertIn('PG_RESTORE_BIN="\${path_restore}"', updater)
-        self.assertIn('"\${PG_DUMP_BIN}"', updater)
-        self.assertIn('"\${PG_RESTORE_BIN}"', updater)
+        self.assertIn("postgresql-client-${server_major}", updater)
+        self.assertIn('PG_DUMP_BIN="${path_dump}"', updater)
+        self.assertIn('PG_RESTORE_BIN="${path_restore}"', updater)
+        self.assertIn('"${PG_DUMP_BIN}"', updater)
+        self.assertIn('"${PG_RESTORE_BIN}"', updater)
 
     def test_release_runtime_does_not_unzip_over_live_tree(self):
         runtime = self.read("deploy/release-lib.sh")
