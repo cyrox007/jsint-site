@@ -7,6 +7,7 @@ from cache.redis import redis_client
 from components.background.status import get_background_status
 from database import Database
 from settings import config
+from services.notes_control_plane import NotesControlPlane
 from version import application_version
 
 

@@ -15,6 +15,7 @@ from components.background.status import clear_background_heartbeat, get_backgro
 from database import Database
 from models.users import User
 from settings import config
+from services.notes_control_plane import NotesControlPlane
 from utils.hash_password import hash_password
 from version import application_version
 
