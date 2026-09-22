@@ -15,27 +15,51 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("Выпустить", template)
         self.assertIn("Импорт готовой", template)
         self.assertIn("Новый activation code", template)
+        self.assertIn("Папка с ключами на этом ПК", template)
+        self.assertIn("Проверить ключи", template)
         self.assertIn("last_seen", self.read("models/control_plane.py"))
 
-    def test_release_ui_has_operator_publish_flow(self):
+    def test_release_ui_uses_two_stage_local_signing_flow(self):
         template = self.read("templates/dashboard/control_plane/releases.html")
         self.assertIn("Опубликовать", template)
         self.assertIn("version_code", template)
         self.assertIn("min_source_version_code", template)
-        self.assertIn("Подготовить manifest для офлайн-подписи", template)
-        self.assertIn("Собрать, подписать и опубликовать", template)
+        self.assertIn("Проверить ZIP и подготовить manifest", template)
+        self.assertIn("Подписать на этом ПК и опубликовать", template)
 
-    def test_local_signing_is_opt_in_and_path_is_not_persisted(self):
+    def test_web_server_never_reads_private_signing_keys(self):
         settings = self.read("settings.py")
         env = self.read("default.env")
-        model = self.read("models/control_plane.py")
         service = self.read("services/notes_control_plane.py")
-        self.assertIn('NOTES_LOCAL_SIGNING_ENABLED = _env_bool("NOTES_LOCAL_SIGNING_ENABLED", False)', settings)
-        self.assertIn("NOTES_LOCAL_SIGNING_ENABLED=false", env)
-        self.assertIn("NOTES_SIGNING_KEY_ROOT", settings)
-        self.assertNotIn("private_key_path:", model)
-        self.assertIn('resolved.stat().st_mode & 0o077', service)
-        self.assertIn("Private key не соответствует выбранному public trust root", service)
+        views = self.read("views/dashboard/control_plane/views.py")
+
+        self.assertIn("NOTES_OPERATOR_SIGNER_URL", settings)
+        self.assertIn("http://127.0.0.1:17843/v1", env)
+        self.assertNotIn("NOTES_LOCAL_SIGNING_ENABLED", settings)
+        self.assertNotIn("NOTES_SIGNING_KEY_ROOT", settings)
+        self.assertNotIn("def _local_signing_key(", service)
+        self.assertNotIn("private_key_path", service)
+        self.assertNotIn("private_key_path", views)
+
+    def test_local_signer_is_loopback_paired_and_restricted(self):
+        router = self.read("tools/operator-signer/router.php")
+        self.assertIn("['127.0.0.1', '::1']", router)
+        self.assertIn("OPERATOR_SIGNER_TOKEN", router)
+        self.assertIn("OPERATOR_SIGNER_ORIGIN", router)
+        self.assertIn("/v1/scan", router)
+        self.assertIn("/v1/sign-license", router)
+        self.assertIn("/v1/sign-manifest", router)
+        self.assertNotIn("/v1/sign-raw", router)
+        self.assertIn("Private key не соответствует trust root", router)
+
+    def test_browser_sends_local_path_only_to_loopback_signer(self):
+        template = self.read("templates/dashboard/control_plane/licenses.html")
+        bridge = self.read("templates/dashboard/control_plane/signer.js")
+        self.assertIn('id="operator-signer-directory"', template)
+        self.assertNotIn('name="operator-signer-directory"', template)
+        self.assertIn("credentials: 'omit'", bridge)
+        self.assertIn("directory: directory()", bridge)
+        self.assertIn("submitHidden", bridge)
 
     def test_machine_api_records_presence_and_has_heartbeat(self):
         api = self.read("views/notes_api.py")
@@ -45,12 +69,14 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("def touch_seen(", service)
         self.assertIn("update-feed", api)
 
-    def test_release_manifest_is_built_from_operator_fields(self):
+    def test_release_manifest_is_built_server_side_then_signed_locally(self):
         service = self.read("services/notes_control_plane.py")
+        template = self.read("templates/dashboard/control_plane/releases.html")
         self.assertIn("def _build_release_manifest(", service)
         self.assertIn('"sha256": sha256', service)
         self.assertIn('"size": size', service)
-        self.assertIn("def publish_release_local(", service)
+        self.assertIn("prepared_manifest", template)
+        self.assertNotIn("def publish_release_local(", service)
 
 
 if __name__ == "__main__":
