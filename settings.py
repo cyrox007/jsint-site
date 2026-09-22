@@ -74,6 +74,8 @@ class Config:
     NOTES_RELEASE_STORAGE_PATH = os.getenv(
         "NOTES_RELEASE_STORAGE_PATH", "/var/lib/jsint-site/notes-releases"
     ).strip()
+    NOTES_LOCAL_SIGNING_ENABLED = _env_bool("NOTES_LOCAL_SIGNING_ENABLED", False)
+    NOTES_SIGNING_KEY_ROOT = os.getenv("NOTES_SIGNING_KEY_ROOT", "").strip()
 
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
@@ -156,6 +158,23 @@ class Config:
                 raise RuntimeError("NOTES_UPDATE_BASE_URL must be a canonical HTTPS directory URL")
             if not os.path.isabs(cls.NOTES_RELEASE_STORAGE_PATH):
                 raise RuntimeError("NOTES_RELEASE_STORAGE_PATH must be an absolute external path")
+            if cls.NOTES_LOCAL_SIGNING_ENABLED:
+                if not cls.NOTES_SIGNING_KEY_ROOT or not os.path.isabs(cls.NOTES_SIGNING_KEY_ROOT):
+                    raise RuntimeError(
+                        "NOTES_SIGNING_KEY_ROOT must be an absolute path when local signing is enabled"
+                    )
+                signing_root = os.path.realpath(cls.NOTES_SIGNING_KEY_ROOT)
+                base_dir = os.path.realpath(cls.BASE_DIR)
+                release_root = os.path.realpath(cls.NOTES_RELEASE_STORAGE_PATH)
+                if (
+                    signing_root == base_dir
+                    or signing_root.startswith(base_dir + os.sep)
+                    or signing_root == release_root
+                    or signing_root.startswith(release_root + os.sep)
+                ):
+                    raise RuntimeError(
+                        "NOTES_SIGNING_KEY_ROOT must be outside application and release-storage trees"
+                    )
 
 
 config = Config()

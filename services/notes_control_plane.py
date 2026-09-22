@@ -12,7 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from nacl.exceptions import BadSignatureError
-from nacl.signing import VerifyKey
+from nacl.signing import SigningKey, VerifyKey
 from sqlalchemy.orm import Session
 
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
@@ -33,6 +33,10 @@ _SIGNATURE_DOMAIN = b"WorkspaceOrganizerUpdateManifest/v1\n"
 _CLOCK_SKEW_SECONDS = 300
 _MAX_MANIFEST_BYTES = 131072
 _MAX_PACKAGE_BYTES = 536870912
+_LICENSE_SECRET_PREFIX = "wo-ed25519-secret-v1:"
+_UPDATE_SECRET_PREFIX = "wo-update-ed25519-secret-v1:"
+_PRESENCE_ONLINE_SECONDS = 15 * 60
+_PRESENCE_RECENT_SECONDS = 24 * 60 * 60
 
 
 class ControlPlaneError(RuntimeError):
@@ -40,6 +44,10 @@ class ControlPlaneError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.code = code
+
+
+def _b64url_encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
 
 def _b64url_decode(value: str) -> bytes:
@@ -68,6 +76,8 @@ def verify_license_token(
     token: str,
     expected_installation: str | None = None,
     trusted_keys: dict[str, str] | None = None,
+    *,
+    allow_not_yet_valid: bool = False,
 ) -> dict[str, Any]:
     token = token.strip()
     if not token or len(token) > 16384:
@@ -136,7 +146,9 @@ def verify_license_token(
         raise ControlPlaneError("Некорректный max_users")
 
     now = int(datetime.now(timezone.utc).timestamp())
-    if payload["issued_at"] > now + _CLOCK_SKEW_SECONDS or not_before > now + _CLOCK_SKEW_SECONDS:
+    if payload["issued_at"] > now + _CLOCK_SKEW_SECONDS:
+        raise ControlPlaneError("Лицензия выпущена в будущем", status=403, code="not_yet_valid")
+    if not allow_not_yet_valid and not_before > now + _CLOCK_SKEW_SECONDS:
         raise ControlPlaneError("Лицензия ещё не вступила в силу", status=403, code="not_yet_valid")
     if payload["expires_at"] is not None and now > payload["expires_at"] + _CLOCK_SKEW_SECONDS:
         raise ControlPlaneError("Срок действия лицензии истёк", status=403, code="expired")
@@ -225,6 +237,232 @@ def verify_update_manifest(
     return manifest
 
 
+def _datetime_from_timestamp(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    return datetime.fromtimestamp(int(value), tz=timezone.utc)
+
+
+def _local_signing_key(
+    path_value: str,
+    *,
+    key_id: str,
+    secret_prefix: str,
+    trusted_keys: dict[str, str],
+    key_pattern: re.Pattern[str],
+) -> SigningKey:
+    if not config.NOTES_LOCAL_SIGNING_ENABLED:
+        raise ControlPlaneError(
+            "Локальная подпись отключена. Используйте офлайн-подпись или явно включите NOTES_LOCAL_SIGNING_ENABLED.",
+            status=403,
+            code="local_signing_disabled",
+        )
+    if key_pattern.fullmatch(key_id) is None or key_id not in trusted_keys:
+        raise ControlPlaneError("Неизвестный key_id для подписи", status=403, code="unknown_key")
+
+    root_value = config.NOTES_SIGNING_KEY_ROOT.strip()
+    if not root_value:
+        raise ControlPlaneError("NOTES_SIGNING_KEY_ROOT не настроен", status=503, code="signing_misconfigured")
+
+    root = Path(root_value).expanduser()
+    source = Path(path_value.strip()).expanduser()
+    if not root.is_absolute() or not source.is_absolute() or source.is_symlink():
+        raise ControlPlaneError("Private key должен быть абсолютным regular file без symlink")
+
+    try:
+        root_resolved = root.resolve(strict=True)
+        resolved = source.resolve(strict=True)
+        resolved.relative_to(root_resolved)
+    except (OSError, ValueError) as exc:
+        raise ControlPlaneError(
+            "Private key должен находиться внутри NOTES_SIGNING_KEY_ROOT",
+            status=403,
+            code="signing_path_denied",
+        ) from exc
+
+    if not resolved.is_file():
+        raise ControlPlaneError("Private key file не найден")
+    size = resolved.stat().st_size
+    if size <= 0 or size > 4096:
+        raise ControlPlaneError("Некорректный размер private key file")
+    if resolved.stat().st_mode & 0o077:
+        raise ControlPlaneError("Private key file должен иметь права 0600")
+
+    try:
+        content = resolved.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ControlPlaneError("Private key file недоступен", status=503, code="signing_key_unavailable") from exc
+
+    if not content.startswith(secret_prefix):
+        raise ControlPlaneError("Private key имеет неподдерживаемый формат")
+    raw = bytearray(_b64url_decode(content[len(secret_prefix):]))
+    if len(raw) != 64:
+        raise ControlPlaneError("Private key должен содержать 64-byte Ed25519 secret")
+
+    try:
+        signing_key = SigningKey(bytes(raw[:32]))
+        derived_public = bytes(signing_key.verify_key)
+        if not hmac.compare_digest(derived_public, bytes(raw[32:])):
+            raise ControlPlaneError("Private key содержит несогласованную Ed25519 keypair")
+        configured_public = _public_key(trusted_keys, key_id, key_pattern)
+        if not hmac.compare_digest(derived_public, configured_public):
+            raise ControlPlaneError(
+                "Private key не соответствует выбранному public trust root",
+                status=403,
+                code="wrong_signing_key",
+            )
+        return signing_key
+    finally:
+        for index in range(len(raw)):
+            raw[index] = 0
+
+
+def _build_license_token(
+    *,
+    private_key_path: str,
+    key_id: str,
+    installation_id: str,
+    license_id: str,
+    edition: str,
+    expires_at: datetime | None,
+    not_before: datetime | None,
+    customer: str | None,
+    features: list[str],
+    max_users: int | None,
+) -> str:
+    try:
+        installation = str(UUID(installation_id)).lower()
+    except ValueError as exc:
+        raise ControlPlaneError("Некорректный installation_id") from exc
+    if _LICENSE_ID_RE.fullmatch(license_id) is None:
+        raise ControlPlaneError("Некорректный license_id")
+    edition = edition.strip().lower()
+    if _EDITION_RE.fullmatch(edition) is None:
+        raise ControlPlaneError("Некорректный edition")
+    if any(_FEATURE_RE.fullmatch(item) is None for item in features) or len(features) != len(set(features)):
+        raise ControlPlaneError("Некорректный список features")
+    if max_users is not None and (max_users < 1 or max_users > 1_000_000):
+        raise ControlPlaneError("max_users должен быть от 1 до 1000000")
+
+    now = datetime.now(timezone.utc)
+    if expires_at is not None and expires_at <= now:
+        raise ControlPlaneError("Срок действия лицензии должен быть в будущем")
+    if not_before is not None and expires_at is not None and not_before >= expires_at:
+        raise ControlPlaneError("Дата начала должна быть раньше даты окончания")
+
+    payload: dict[str, Any] = {
+        "v": 1,
+        "license_id": license_id,
+        "installation_id": installation,
+        "issued_at": int(now.timestamp()),
+        "expires_at": int(expires_at.timestamp()) if expires_at else None,
+        "edition": edition,
+    }
+    if not_before is not None:
+        payload["not_before"] = int(not_before.timestamp())
+    if customer:
+        customer = customer.strip()
+        if len(customer) > 160:
+            raise ControlPlaneError("Название клиента не должно превышать 160 символов")
+        payload["customer"] = customer
+    if features:
+        payload["features"] = features
+    if max_users is not None:
+        payload["max_users"] = max_users
+
+    payload_encoded = _b64url_encode(
+        json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    )
+    signed = f"wo1.{key_id}.{payload_encoded}"
+    signing_key = _local_signing_key(
+        private_key_path,
+        key_id=key_id,
+        secret_prefix=_LICENSE_SECRET_PREFIX,
+        trusted_keys=LICENSE_TRUSTED_KEYS,
+        key_pattern=_LICENSE_KEY_RE,
+    )
+    try:
+        signature = signing_key.sign(signed.encode("ascii")).signature
+    finally:
+        del signing_key
+    token = f"{signed}.{_b64url_encode(signature)}"
+    verify_license_token(token, installation, allow_not_yet_valid=True)
+    return token
+
+
+def _build_release_manifest(
+    *,
+    package_path: str,
+    version: str,
+    version_code: int,
+    channel: str,
+    source_commit: str,
+    min_source_version_code: int,
+    requires_php: str,
+) -> tuple[str, Path]:
+    version = version.strip()
+    channel = channel.strip().lower()
+    source_commit = source_commit.strip().lower()
+    requires_php = requires_php.strip()
+
+    if _VERSION_RE.fullmatch(version) is None:
+        raise ControlPlaneError("Некорректная версия релиза")
+    if version_code <= 0:
+        raise ControlPlaneError("version_code должен быть положительным")
+    if channel not in {"alpha", "beta", "stable"}:
+        raise ControlPlaneError("Канал должен быть alpha, beta или stable")
+    if _SHA_RE.fullmatch(source_commit) is None:
+        raise ControlPlaneError("source_commit должен быть полным 40-символьным Git SHA")
+    if min_source_version_code <= 0:
+        raise ControlPlaneError("min_source_version_code должен быть положительным")
+    if re.fullmatch(r"\d+\.\d+(?:\.\d+)?", requires_php) is None:
+        raise ControlPlaneError("requires_php должен иметь вид 8.1 или 8.1.0")
+
+    resolved = _resolve_package(package_path)
+    size, sha256 = _hash_file(resolved)
+    manifest = {
+        "schema": 1,
+        "product": "workspace-organizer",
+        "version": version,
+        "version_code": version_code,
+        "channel": channel,
+        "issued_at": int(datetime.now(timezone.utc).timestamp()),
+        "source_commit": source_commit,
+        "min_source_version_code": min_source_version_code,
+        "requires_php": requires_php,
+        "package": {
+            "filename": resolved.name,
+            "sha256": sha256,
+            "size": size,
+            "format": "zip",
+        },
+    }
+    manifest_bytes = json.dumps(
+        manifest,
+        ensure_ascii=False,
+        indent=2,
+        separators=(",", ": "),
+    ) + "\n"
+    return manifest_bytes, resolved
+
+
+def _sign_update_manifest(manifest_bytes: str, *, private_key_path: str, key_id: str) -> str:
+    signing_key = _local_signing_key(
+        private_key_path,
+        key_id=key_id,
+        secret_prefix=_UPDATE_SECRET_PREFIX,
+        trusted_keys=UPDATE_TRUSTED_KEYS,
+        key_pattern=_UPDATE_KEY_RE,
+    )
+    try:
+        signature = signing_key.sign(_SIGNATURE_DOMAIN + manifest_bytes.encode("utf-8")).signature
+    finally:
+        del signing_key
+    token = f"wou1.{key_id}.{_b64url_encode(signature)}"
+    verify_update_manifest(manifest_bytes, token)
+    return token
+
+
 def _release_storage_root() -> Path:
     root = Path(config.NOTES_RELEASE_STORAGE_PATH).expanduser()
     if not root.is_absolute():
@@ -283,7 +521,7 @@ class NotesControlPlane:
         updates_until: datetime | None,
         max_version: int | None,
     ) -> tuple[LicenseRecord, str]:
-        payload = verify_license_token(signed_license)
+        payload = verify_license_token(signed_license, allow_not_yet_valid=True)
         if max_version is not None and max_version <= 0:
             raise ControlPlaneError("max_version должен быть положительным")
         if updates_until is not None and updates_until <= datetime.now(timezone.utc):
@@ -310,6 +548,8 @@ class NotesControlPlane:
         record.edition = payload["edition"]
         record.max_users = payload.get("max_users")
         record.features = list(payload.get("features", []))
+        record.license_not_before = _datetime_from_timestamp(payload.get("not_before", payload["issued_at"]))
+        record.license_expires_at = _datetime_from_timestamp(payload.get("expires_at"))
         record.activation_hash = hashlib.sha256(activation_code.encode("ascii")).hexdigest()
         record.credential_hash = None
         record.activated_at = None
@@ -318,6 +558,107 @@ class NotesControlPlane:
         session.commit()
         session.refresh(record)
         return record, activation_code
+
+    @classmethod
+    def issue_license_local(
+        cls,
+        session: Session,
+        *,
+        private_key_path: str,
+        key_id: str,
+        installation_id: str,
+        license_id: str,
+        edition: str,
+        expires_at: datetime | None,
+        not_before: datetime | None,
+        customer: str | None,
+        features: list[str],
+        max_users: int | None,
+        updates_until: datetime | None,
+        max_version: int | None,
+    ) -> tuple[LicenseRecord, str, str]:
+        token = _build_license_token(
+            private_key_path=private_key_path,
+            key_id=key_id,
+            installation_id=installation_id,
+            license_id=license_id,
+            edition=edition,
+            expires_at=expires_at,
+            not_before=not_before,
+            customer=customer,
+            features=features,
+            max_users=max_users,
+        )
+        record, activation_code = cls.register_license(
+            session,
+            token,
+            updates_until=updates_until,
+            max_version=max_version,
+        )
+        return record, activation_code, token
+
+    @staticmethod
+    def presence(record: LicenseRecord, *, now: datetime | None = None) -> dict[str, Any]:
+        now = now or datetime.now(timezone.utc)
+        if record.last_seen_at is None:
+            return {
+                "code": "unknown",
+                "label": "Нет данных",
+                "detail": "Клиент ещё не обращался к control plane.",
+                "age_seconds": None,
+            }
+
+        last_seen = record.last_seen_at
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+        age = max(0, int((now - last_seen).total_seconds()))
+        if age <= _PRESENCE_ONLINE_SECONDS:
+            code, label = "online", "На связи"
+        elif age <= _PRESENCE_RECENT_SECONDS:
+            code, label = "recent", "Недавно"
+        else:
+            code, label = "offline", "Нет связи"
+        return {
+            "code": code,
+            "label": label,
+            "detail": "Статус основан на последнем исходящем запросе клиента к серверу.",
+            "age_seconds": age,
+        }
+
+    @staticmethod
+    def touch_seen(
+        session: Session,
+        record: LicenseRecord,
+        *,
+        action: str,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> None:
+        if len(action) > 64:
+            action = action[:64]
+        if remote_addr:
+            remote_addr = remote_addr.strip()[:64] or None
+        if client_version:
+            client_version = client_version.strip()[:64] or None
+        if channel and channel not in {"alpha", "beta", "stable"}:
+            channel = None
+        if client_version_code is not None and client_version_code <= 0:
+            client_version_code = None
+
+        record.last_seen_at = datetime.now(timezone.utc)
+        record.last_seen_action = action
+        if remote_addr:
+            record.last_seen_ip = remote_addr
+        if client_version:
+            record.last_client_version = client_version
+        if client_version_code is not None:
+            record.last_client_version_code = client_version_code
+        if channel:
+            record.last_client_channel = channel
+        session.add(record)
+        session.commit()
 
     @staticmethod
     def reissue_activation(session: Session, record: LicenseRecord) -> str:
@@ -350,7 +691,17 @@ class NotesControlPlane:
         verify_license_token(record.signed_license, str(record.installation_id))
 
     @classmethod
-    def activate(cls, session: Session, installation_id: str, activation_code: str) -> dict[str, Any]:
+    def activate(
+        cls,
+        session: Session,
+        installation_id: str,
+        activation_code: str,
+        *,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> dict[str, Any]:
         try:
             installation_uuid = UUID(installation_id)
         except ValueError as exc:
@@ -374,6 +725,15 @@ class NotesControlPlane:
         record.activation_hash = None
         record.credential_hash = hashlib.sha256(credential.encode("ascii")).hexdigest()
         record.activated_at = datetime.now(timezone.utc)
+        record.last_seen_at = record.activated_at
+        record.last_seen_action = "activation"
+        record.last_seen_ip = remote_addr.strip()[:64] if remote_addr else record.last_seen_ip
+        if client_version:
+            record.last_client_version = client_version.strip()[:64]
+        if client_version_code is not None and client_version_code > 0:
+            record.last_client_version_code = client_version_code
+        if channel in {"alpha", "beta", "stable"}:
+            record.last_client_channel = channel
         session.add(record)
         session.commit()
 
@@ -402,6 +762,64 @@ class NotesControlPlane:
             raise ControlPlaneError("Authentication required", status=401, code="authentication_required")
         cls._assert_entitled(record)
         return record
+
+    @staticmethod
+    def prepare_release_manifest(
+        *,
+        package_path: str,
+        version: str,
+        version_code: int,
+        channel: str,
+        source_commit: str,
+        min_source_version_code: int,
+        requires_php: str,
+    ) -> tuple[str, str]:
+        manifest_bytes, resolved = _build_release_manifest(
+            package_path=package_path,
+            version=version,
+            version_code=version_code,
+            channel=channel,
+            source_commit=source_commit,
+            min_source_version_code=min_source_version_code,
+            requires_php=requires_php,
+        )
+        return manifest_bytes, str(resolved)
+
+    @classmethod
+    def publish_release_local(
+        cls,
+        session: Session,
+        *,
+        package_path: str,
+        version: str,
+        version_code: int,
+        channel: str,
+        source_commit: str,
+        min_source_version_code: int,
+        requires_php: str,
+        private_key_path: str,
+        key_id: str,
+    ) -> ReleaseRecord:
+        manifest_bytes, resolved = _build_release_manifest(
+            package_path=package_path,
+            version=version,
+            version_code=version_code,
+            channel=channel,
+            source_commit=source_commit,
+            min_source_version_code=min_source_version_code,
+            requires_php=requires_php,
+        )
+        signature = _sign_update_manifest(
+            manifest_bytes,
+            private_key_path=private_key_path,
+            key_id=key_id,
+        )
+        return cls.publish_release(
+            session,
+            manifest_bytes=manifest_bytes,
+            signature=signature,
+            package_path=str(resolved),
+        )
 
     @staticmethod
     def publish_release(
@@ -516,6 +934,12 @@ class NotesControlPlane:
         except ControlPlaneError:
             storage_ok = False
         trust_ok = bool(LICENSE_TRUSTED_KEYS) and bool(UPDATE_TRUSTED_KEYS)
+        signing_root_ready = False
+        if config.NOTES_LOCAL_SIGNING_ENABLED:
+            try:
+                signing_root_ready = Path(config.NOTES_SIGNING_KEY_ROOT).resolve(strict=True).is_dir()
+            except OSError:
+                signing_root_ready = False
         enabled = bool(config.NOTES_CONTROL_PLANE_ENABLED)
         return {
             "status": "ok" if enabled and database_ok and storage_ok and trust_ok else "degraded",
@@ -524,4 +948,6 @@ class NotesControlPlane:
             "release_storage": storage_ok,
             "license_trust": bool(LICENSE_TRUSTED_KEYS),
             "update_trust": bool(UPDATE_TRUSTED_KEYS),
+            "local_signing_enabled": bool(config.NOTES_LOCAL_SIGNING_ENABLED),
+            "signing_root_ready": signing_root_ready,
         }
