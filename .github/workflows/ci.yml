@@ -81,7 +81,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Validate deployment shell scripts
-        run: bash -n deploy/server-preflight.sh deploy/release-lib.sh deploy/install.sh deploy/update.sh update.sh deploy/checkout/setup.sh
+        run: bash -n deploy/server-preflight.sh deploy/release-lib.sh deploy/install.sh deploy/update.sh update.sh deploy/checkout/setup.sh deploy/checkout/install-nginx.sh
 
       - name: Compile Python sources
         run: python -m compileall -q .
