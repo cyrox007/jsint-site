@@ -16,6 +16,7 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("Импорт готовой", template)
         self.assertIn("Новый activation code", template)
         self.assertIn("Папка с ключами на этом ПК", template)
+        self.assertIn("Выбрать папку…", template)
         self.assertIn("Проверить ключи", template)
         self.assertIn("last_seen", self.read("models/control_plane.py"))
 
@@ -46,6 +47,8 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("['127.0.0.1', '::1']", router)
         self.assertIn("OPERATOR_SIGNER_TOKEN", router)
         self.assertIn("OPERATOR_SIGNER_ORIGIN", router)
+        self.assertIn("/v1/select-directory", router)
+        self.assertIn("FolderBrowserDialog", router)
         self.assertIn("/v1/scan", router)
         self.assertIn("/v1/sign-license", router)
         self.assertIn("/v1/sign-manifest", router)
@@ -68,6 +71,19 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('action="heartbeat"', api)
         self.assertIn("def touch_seen(", service)
         self.assertIn("update-feed", api)
+
+    def test_release_zip_is_selected_and_uploaded_from_browser(self):
+        template = self.read("templates/dashboard/control_plane/releases.html")
+        router = self.read("views/dashboard/control_plane/router.py")
+        service = self.read("services/notes_control_plane.py")
+        nginx = self.read("deploy/checkout/nginx.conf.example")
+        self.assertIn('type="file" id="release-package-file"', template)
+        self.assertIn("Выбрать ZIP…", template)
+        self.assertIn("uploadReleasePackage", template)
+        self.assertIn("/api/operator/v1/release-upload", router)
+        self.assertIn("def store_release_upload(", service)
+        self.assertIn("location = /api/operator/v1/release-upload", nginx)
+        self.assertIn("client_max_body_size 520m", nginx)
 
     def test_release_manifest_is_built_server_side_then_signed_locally(self):
         service = self.read("services/notes_control_plane.py")
