@@ -49,6 +49,20 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(response.get_json()["status"], {"ok", "degraded"})
 
+    def test_loopback_signer_is_allowed_only_in_admin_csp(self):
+        public_response = self.client.get("/", base_url=self.base)
+        admin_response = self.client.get(
+            f"{config.ADMIN_ROUTE_PREFIX}/login",
+            base_url=self.base,
+        )
+        signer_origin = config.NOTES_OPERATOR_SIGNER_URL.rsplit("/v1", 1)[0]
+
+        public_csp = public_response.headers.get("Content-Security-Policy", "")
+        admin_csp = admin_response.headers.get("Content-Security-Policy", "")
+
+        self.assertNotIn(signer_origin, public_csp)
+        self.assertIn(signer_origin, admin_csp)
+
     def test_admin_login_page(self):
         response = self.client.get("/x321/dashboard/login", base_url=self.base)
         self.assertEqual(response.status_code, 200)
