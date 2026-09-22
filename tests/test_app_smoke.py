@@ -19,6 +19,31 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("+УЛЬТРА", response.get_data(as_text=True))
 
+    def test_public_seo_headers_and_canonical(self):
+        response = self.client.get("/", base_url=self.base)
+        html = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<link rel="canonical" href=', html)
+        self.assertIn('property="og:title"', html)
+        self.assertIn('name="twitter:card"', html)
+
+    def test_robots_txt(self):
+        response = self.client.get("/robots.txt", base_url=self.base)
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("User-agent: *", body)
+        self.assertIn(f"Disallow: {config.ADMIN_ROUTE_PREFIX}/", body)
+        self.assertIn(f"Sitemap: {config.SITE_BASE_URL}/sitemap.xml", body)
+
+    def test_sitemap_xml(self):
+        response = self.client.get("/sitemap.xml", base_url=self.base)
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("<urlset", body)
+        self.assertIn(f"<loc>{config.SITE_BASE_URL}/</loc>", body)
+        self.assertNotIn(config.ADMIN_ROUTE_PREFIX, body)
+        self.assertNotIn(config.NOTES_UPDATE_API_PREFIX, body)
+
     def test_health_endpoint(self):
         response = self.client.get("/healthz", base_url=self.base)
         self.assertEqual(response.status_code, 200)

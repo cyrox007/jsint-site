@@ -1,10 +1,12 @@
 from flask import abort, render_template
+import re
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
 from models.categories import Category
 from models.publication import Publication
 from schemas.publication import PublicationOut
+from settings import config
 
 
 class ArticleDetailView(MethodView):
@@ -26,7 +28,22 @@ class ArticleDetailView(MethodView):
         if publication is None:
             abort(404)
 
+        publication_out = PublicationOut.model_validate(publication)
+        extra = publication_out.extra_data or {}
+        plain_text = re.sub(r"<[^>]+>", " ", publication_out.content or "")
+        plain_text = re.sub(r"\s+", " ", plain_text).strip()
+        seo_title = (extra.get("seo_title") or publication_out.title).strip()
+        seo_description = (extra.get("seo_description") or plain_text[:180]).strip()
+        canonical_url = (
+            f"{config.SITE_BASE_URL}/category/{category.slug}"
+            f"/article/{publication_out.slug}"
+        )
+
         return render_template(
             "public/articles/detail.html",
-            publication=PublicationOut.model_validate(publication),
+            publication=publication_out,
+            seo_title=seo_title,
+            seo_description=seo_description,
+            canonical_url=canonical_url,
+            og_type="article",
         )

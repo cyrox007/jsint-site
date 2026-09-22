@@ -22,6 +22,7 @@ def create_app() -> Flask:
 
     from views.public.home import routers as home_router
     from views.public.articles import routers as article_router
+    from views.public import seo as public_seo
     from views.auth import router as auth_router
     from views.dashboard.main import router as d_main_router
     from views.dashboard.blog import routers as d_blog_router
@@ -41,6 +42,7 @@ def create_app() -> Flask:
         PREFERRED_URL_SCHEME=config.PREFERRED_URL_SCHEME,
         TRUSTED_HOSTS=config.ALLOWED_HOSTS or None,
         YANDEX_METRIKA_ID=config.YANDEX_METRIKA_ID,
+        SITE_BASE_URL=config.SITE_BASE_URL,
     )
 
     if config.BEHIND_PROXY:
@@ -66,6 +68,8 @@ def create_app() -> Flask:
     d_control_plane_router.install(app)
     notes_api.install(app)
 
+    app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
+    app.add_url_rule("/sitemap.xml", endpoint="sitemap", view_func=public_seo.sitemap_xml, methods=["GET"])
     app.add_url_rule("/healthz", endpoint="healthz", view_func=healthcheck, methods=["GET"])
 
     @app.errorhandler(404)

@@ -7,8 +7,20 @@
     <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#060816">
-    <title>{% block title %}JSInteractive | +УЛЬТРА{% endblock %}</title>
-    <meta name="description" content="{% block description %}+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, аудит и архитектура web-систем.{% endblock %}">
+    {% set page_title = seo_title or "JSInteractive | +УЛЬТРА" %}
+    {% set page_description = seo_description or "+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, аудит и архитектура web-систем." %}
+    {% set page_canonical = canonical_url or (config.SITE_BASE_URL ~ request.path) %}
+    <title>{{ page_title }}</title>
+    <meta name="description" content="{{ page_description }}">
+    <link rel="canonical" href="{{ page_canonical }}">
+    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:description" content="{{ page_description }}">
+    <meta property="og:url" content="{{ page_canonical }}">
+    <meta property="og:type" content="{{ og_type or 'website' }}">
+    <meta property="og:site_name" content="JSInteractive">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ page_title }}">
+    <meta name="twitter:description" content="{{ page_description }}">
     <meta name="yandex-verification" content="725d05a47d08b13d">
     <style>
         {% include 'public/styles.css' %}
