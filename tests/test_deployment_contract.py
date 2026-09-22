@@ -88,10 +88,12 @@ class DeploymentContractTests(unittest.TestCase):
         setup = self.read("deploy/checkout/setup.sh")
         updater = self.read("update.sh")
         nginx = self.read("deploy/checkout/nginx.conf.example")
+        web_unit = self.read("deploy/checkout/jsint-site.service")
         self.assertIn("-m 0770 /var/lib/jsint-site/notes-releases", setup)
         self.assertIn('install -d -o root -g jsint-site -m 0770 "${NOTES_RELEASE_STORAGE_PATH}"', updater)
         self.assertIn("location = /api/operator/v1/release-upload", nginx)
         self.assertIn("client_max_body_size 520m", nginx)
+        self.assertIn("ReadWritePaths=/var/lib/jsint-site/notes-releases", web_unit)
 
     def test_release_runtime_does_not_unzip_over_live_tree(self):
         runtime = self.read("deploy/release-lib.sh")
