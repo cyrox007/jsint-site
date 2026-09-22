@@ -74,8 +74,9 @@ class Config:
     NOTES_RELEASE_STORAGE_PATH = os.getenv(
         "NOTES_RELEASE_STORAGE_PATH", "/var/lib/jsint-site/notes-releases"
     ).strip()
-    NOTES_LOCAL_SIGNING_ENABLED = _env_bool("NOTES_LOCAL_SIGNING_ENABLED", False)
-    NOTES_SIGNING_KEY_ROOT = os.getenv("NOTES_SIGNING_KEY_ROOT", "").strip()
+    NOTES_OPERATOR_SIGNER_URL = os.getenv(
+        "NOTES_OPERATOR_SIGNER_URL", "http://127.0.0.1:17843/v1"
+    ).strip().rstrip("/")
 
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
@@ -158,23 +159,19 @@ class Config:
                 raise RuntimeError("NOTES_UPDATE_BASE_URL must be a canonical HTTPS directory URL")
             if not os.path.isabs(cls.NOTES_RELEASE_STORAGE_PATH):
                 raise RuntimeError("NOTES_RELEASE_STORAGE_PATH must be an absolute external path")
-            if cls.NOTES_LOCAL_SIGNING_ENABLED:
-                if not cls.NOTES_SIGNING_KEY_ROOT or not os.path.isabs(cls.NOTES_SIGNING_KEY_ROOT):
-                    raise RuntimeError(
-                        "NOTES_SIGNING_KEY_ROOT must be an absolute path when local signing is enabled"
-                    )
-                signing_root = os.path.realpath(cls.NOTES_SIGNING_KEY_ROOT)
-                base_dir = os.path.realpath(cls.BASE_DIR)
-                release_root = os.path.realpath(cls.NOTES_RELEASE_STORAGE_PATH)
-                if (
-                    signing_root == base_dir
-                    or signing_root.startswith(base_dir + os.sep)
-                    or signing_root == release_root
-                    or signing_root.startswith(release_root + os.sep)
-                ):
-                    raise RuntimeError(
-                        "NOTES_SIGNING_KEY_ROOT must be outside application and release-storage trees"
-                    )
+            signer = urlparse(cls.NOTES_OPERATOR_SIGNER_URL)
+            signer_host = (signer.hostname or "").lower()
+            if (
+                signer.scheme != "http"
+                or signer_host not in {"127.0.0.1", "localhost", "::1"}
+                or signer.username is not None
+                or signer.password is not None
+                or signer.query
+                or signer.fragment
+            ):
+                raise RuntimeError(
+                    "NOTES_OPERATOR_SIGNER_URL must point to a loopback HTTP origin"
+                )
 
 
 config = Config()
