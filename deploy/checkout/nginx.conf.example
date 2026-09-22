@@ -22,6 +22,27 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
+    # Загрузка release ZIP из админки. Маршрут требует обычную admin session
+    # и CSRF, но принимает большие multipart uploads потоково.
+    location = /api/operator/v1/release-upload {
+        client_max_body_size 520m;
+
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+        proxy_buffering off;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_redirect off;
+    }
+
     # Machine API Workspace Organizer. ZIP может быть большим, поэтому
     # отдаём ответ потоково и сохраняем заголовки клиентской авторизации.
     location /api/notes/v1/ {
