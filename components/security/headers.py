@@ -1,8 +1,19 @@
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from flask import request
 
 from settings import config
+
+
+def _admin_connect_sources() -> str:
+    sources = ["'self'", "https://mc.yandex.ru"]
+    if request.path.startswith(config.ADMIN_ROUTE_PREFIX):
+        parsed = urlsplit(config.NOTES_OPERATOR_SIGNER_URL)
+        signer_origin = f"{parsed.scheme}://{parsed.netloc}"
+        sources.append(signer_origin)
+    return "connect-src " + " ".join(sources)
 
 
 def apply_security_headers(response):
@@ -26,7 +37,7 @@ def apply_security_headers(response):
                 "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com https://mc.yandex.ru",
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
                 "img-src 'self' data: https://mc.yandex.ru",
-                "connect-src 'self' https://mc.yandex.ru",
+                _admin_connect_sources(),
                 "font-src 'self' data:",
             ]
         ),

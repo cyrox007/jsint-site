@@ -52,21 +52,6 @@ def _license_id(value: str) -> str:
     return f"lic-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{secrets.token_hex(4)}"
 
 
-def _features() -> list[str]:
-    result: list[str] = []
-    for item in request.form.getlist("features"):
-        item = item.strip().lower()
-        if item and item not in result:
-            result.append(item)
-    extra = request.form.get("features_extra", "").strip()
-    if extra:
-        for item in extra.split(","):
-            item = item.strip().lower()
-            if item and item not in result:
-                result.append(item)
-    return result
-
-
 def _license_context(db_session: Session, *, tab: str = "registry", **extra):
     records = db_session.query(LicenseRecord).order_by(LicenseRecord.created_at.desc()).all()
     license_rows = [
@@ -86,8 +71,9 @@ def _license_context(db_session: Session, *, tab: str = "registry", **extra):
         "activation_installation": None,
         "issued_license_token": None,
         "license_key_ids": list(LICENSE_TRUSTED_KEYS.keys()),
-        "local_signing_enabled": bool(config.NOTES_LOCAL_SIGNING_ENABLED),
-        "signing_key_root": config.NOTES_SIGNING_KEY_ROOT,
+        "license_trusted_keys": LICENSE_TRUSTED_KEYS,
+        "operator_signer_url": config.NOTES_OPERATOR_SIGNER_URL,
+        "suggested_license_id": _license_id(""),
         "stats": {
             "total": len(records),
             "active": sum(1 for row in records if row.status == "active"),
@@ -124,8 +110,8 @@ def _release_context(db_session: Session, *, tab: str = "registry", **extra):
         "releases": releases,
         "release_rows": rows,
         "update_key_ids": list(UPDATE_TRUSTED_KEYS.keys()),
-        "local_signing_enabled": bool(config.NOTES_LOCAL_SIGNING_ENABLED),
-        "signing_key_root": config.NOTES_SIGNING_KEY_ROOT,
+        "update_trusted_keys": UPDATE_TRUSTED_KEYS,
+        "operator_signer_url": config.NOTES_OPERATOR_SIGNER_URL,
         "release_storage_path": config.NOTES_RELEASE_STORAGE_PATH,
         "prepared_manifest": None,
         "prepared_package_path": None,
@@ -186,28 +172,12 @@ class LicenseIssueView(MethodView):
     @login_required
     @with_db_session
     def post(self, db_session: Session):
+        """Регистрирует токен, который был подписан локальным signer на ПК оператора."""
+        signed_license = request.form.get("signed_license", "").strip()
         try:
-            record, activation_code, token = NotesControlPlane.issue_license_local(
+            record, activation_code = NotesControlPlane.register_license(
                 db_session,
-                private_key_path=request.form.get("private_key_path", "").strip(),
-                key_id=request.form.get("key_id", "").strip(),
-                installation_id=request.form.get("installation_id", "").strip(),
-                license_id=_license_id(request.form.get("license_id", "")),
-                edition=request.form.get("edition", "team").strip(),
-                expires_at=_parse_optional_datetime(
-                    request.form.get("expires_at", ""),
-                    "Срок лицензии",
-                ),
-                not_before=_parse_optional_datetime(
-                    request.form.get("not_before", ""),
-                    "Начало действия",
-                ),
-                customer=request.form.get("customer", "").strip() or None,
-                features=_features(),
-                max_users=_parse_optional_positive_int(
-                    request.form.get("max_users", ""),
-                    "max_users",
-                ),
+                signed_license,
                 updates_until=_parse_optional_datetime(
                     request.form.get("updates_until", ""),
                     "Доступ к обновлениям до",
@@ -224,7 +194,7 @@ class LicenseIssueView(MethodView):
                 **_license_context(db_session, tab="issue"),
             ), exc.status
 
-        flash("Лицензия подписана, проверена и добавлена в реестр.", "success")
+        flash("Лицензия подписана на ПК оператора, проверена сервером и добавлена в реестр.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
             **_license_context(
@@ -232,7 +202,7 @@ class LicenseIssueView(MethodView):
                 tab="registry",
                 activation_code=activation_code,
                 activation_installation=str(record.installation_id),
-                issued_license_token=token,
+                issued_license_token=signed_license,
             ),
         )
 
@@ -315,63 +285,37 @@ class ReleasePublishView(MethodView):
     @login_required
     @with_db_session
     def post(self, db_session: Session):
+        """Проверяет ZIP и готовит exact manifest для подписи на ПК оператора."""
         try:
             package_path = request.form.get("package_path", "").strip()
-            version = request.form.get("version", "").strip()
-            version_code = _parse_required_positive_int(
-                request.form.get("version_code", ""),
-                "version_code",
-            )
-            channel = request.form.get("channel", "stable").strip()
-            source_commit = request.form.get("source_commit", "").strip()
-            min_source_version_code = _parse_required_positive_int(
-                request.form.get("min_source_version_code", ""),
-                "min_source_version_code",
-            )
-            requires_php = request.form.get("requires_php", "").strip()
-            mode = request.form.get("mode", "local").strip()
-
-            if mode == "prepare_offline":
-                manifest, resolved_path = NotesControlPlane.prepare_release_manifest(
-                    package_path=package_path,
-                    version=version,
-                    version_code=version_code,
-                    channel=channel,
-                    source_commit=source_commit,
-                    min_source_version_code=min_source_version_code,
-                    requires_php=requires_php,
-                )
-                flash("Manifest собран и ZIP проверен. Подпишите exact bytes офлайн.", "success")
-                return render_template(
-                    "dashboard/control_plane/releases.html",
-                    **_release_context(
-                        db_session,
-                        tab="publish",
-                        prepared_manifest=manifest,
-                        prepared_package_path=resolved_path,
-                    ),
-                )
-
-            if mode != "local":
-                raise ControlPlaneError("Некорректный режим публикации")
-
-            record = NotesControlPlane.publish_release_local(
-                db_session,
+            manifest, resolved_path = NotesControlPlane.prepare_release_manifest(
                 package_path=package_path,
-                version=version,
-                version_code=version_code,
-                channel=channel,
-                source_commit=source_commit,
-                min_source_version_code=min_source_version_code,
-                requires_php=requires_php,
-                private_key_path=request.form.get("private_key_path", "").strip(),
-                key_id=request.form.get("key_id", "").strip(),
+                version=request.form.get("version", "").strip(),
+                version_code=_parse_required_positive_int(
+                    request.form.get("version_code", ""),
+                    "version_code",
+                ),
+                channel=request.form.get("channel", "stable").strip(),
+                source_commit=request.form.get("source_commit", "").strip(),
+                min_source_version_code=_parse_required_positive_int(
+                    request.form.get("min_source_version_code", ""),
+                    "min_source_version_code",
+                ),
+                requires_php=request.form.get("requires_php", "").strip(),
             )
             flash(
-                f"Релиз {record.version} ({record.channel}) собран, подписан и опубликован",
+                "ZIP проверен, SHA-256 рассчитан, manifest готов. Теперь подпишите его локальным signer.",
                 "success",
             )
-            return redirect(url_for("admin.releases.index", tab="registry"))
+            return render_template(
+                "dashboard/control_plane/releases.html",
+                **_release_context(
+                    db_session,
+                    tab="publish",
+                    prepared_manifest=manifest,
+                    prepared_package_path=resolved_path,
+                ),
+            )
         except ControlPlaneError as exc:
             flash(str(exc), "error")
             return render_template(
