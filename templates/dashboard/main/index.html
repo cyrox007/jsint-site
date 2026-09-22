@@ -45,6 +45,15 @@
         <small style="color:var(--muted);">Категории</small>
         <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ category_count }}</div>
     </div>
+    <div class="card">
+        <small style="color:var(--muted);">Лицензии</small>
+        <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ active_license_count }} / {{ license_count }}</div>
+        <small style="color:var(--muted);">active / всего</small>
+    </div>
+    <div class="card">
+        <small style="color:var(--muted);">Релизы Workspace</small>
+        <div style="font-size:1.6rem; font-weight:700; margin-top:8px;">{{ release_count }}</div>
+    </div>
 </div>
 
 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
@@ -58,11 +67,15 @@
     </div>
 
     <div class="card">
-        <h3 style="margin-bottom:10px;">Операторские сервисы</h3>
-        <p style="color:var(--muted); margin-bottom:8px;">
-            Здесь позже появятся Workspace Organizer: релизы, лицензии, установки и мониторинг.
+        <h3 style="margin-bottom:10px;">Workspace Organizer</h3>
+        <p style="color:var(--muted); margin-bottom:16px;">
+            Лицензии установок, права на обновления и immutable release artifacts.
         </p>
-        <small style="color:var(--muted);">Private signing keys в web-панель не переносятся.</small>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn primary" href="{{ url_for('admin.licenses.index') }}">Лицензии</a>
+            <a class="btn secondary" href="{{ url_for('admin.releases.index') }}">Релизы</a>
+        </div>
+        <small style="display:block;color:var(--muted);margin-top:12px;">Private signing keys остаются офлайн.</small>
     </div>
 </div>
 {% endblock %}
