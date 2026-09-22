@@ -28,7 +28,7 @@ fi
 
 log "Подготовка runtime directories."
 install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 /var/lib/jsint-site/celery
-install -d -o root -g "${APP_GROUP}" -m 0750 /var/lib/jsint-site/notes-releases
+install -d -o root -g "${APP_GROUP}" -m 0770 /var/lib/jsint-site/notes-releases
 install -d -o root -g "${APP_GROUP}" -m 0750 /var/backups/jsint-site
 
 chown root:"${APP_GROUP}" "${ENV_FILE}"
