@@ -6,6 +6,28 @@ server {
     server_tokens off;
     client_max_body_size 2m;
 
+    # Machine API Workspace Organizer. ZIP может быть большим, поэтому не
+    # буферизуем весь ответ Nginx во временный файл и увеличиваем read timeout.
+    location /api/notes/v1/ {
+        proxy_pass http://127.0.0.1:18080;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_request_buffering off;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header X-Notes-Installation $http_x_notes_installation;
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 300s;
+        proxy_redirect off;
+    }
+
+    # Публичный сайт и административная панель.
     location / {
         proxy_pass http://127.0.0.1:18080;
         proxy_http_version 1.1;
