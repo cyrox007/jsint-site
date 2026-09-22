@@ -59,16 +59,50 @@
 
     {% elif tab == 'publish' %}
     {% if prepared_manifest %}
-    <section class="operator-result operator-result--important">
+    <section class="operator-result operator-result--important release-sign-stage">
         <div>
-            <span class="operator-result__eyebrow">Офлайн-подпись</span>
-            <h2>Manifest подготовлен и ZIP проверен</h2>
-            <p>Сохраните эти exact bytes в файл и подпишите штатным <code>tools/vendor-update/sign-manifest.php</code>. Затем откройте «Расширенный импорт» и вставьте manifest + полученный <code>wou1...</code>.</p>
+            <span class="operator-result__eyebrow">Manifest готов</span>
+            <h2>ZIP проверен — осталось подписать на вашем компьютере</h2>
+            <p>Размер и SHA-256 уже рассчитаны сервером. Exact manifest ниже будет отправлен только в local signer на <code>127.0.0.1</code>; private update key на сервер не передаётся.</p>
         </div>
         <div class="copy-value">
-            <textarea id="prepared-manifest" readonly rows="16">{{ prepared_manifest }}</textarea>
+            <textarea id="prepared-manifest" readonly rows="12">{{ prepared_manifest }}</textarea>
             <button class="btn secondary btn-small" type="button" data-copy-target="prepared-manifest">Копировать manifest</button>
-            <small>ZIP: <code>{{ prepared_package_path }}</code></small>
+            <small>ZIP на сервере: <code id="prepared-package-path">{{ prepared_package_path }}</code></small>
+        </div>
+    </section>
+
+    <section class="admin-card local-signer-stage">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Подписать update manifest локальным ключом</h2>
+                <p class="admin-card__description">Вставьте флешку или укажите папку с update key на компьютере, где открыт браузер.</p>
+            </div>
+        </div>
+        <div class="admin-card__body admin-form">
+            <input id="release-sign-csrf" type="hidden" value="{{ csrf_token() }}">
+            <div class="admin-form-grid">
+                <label>Код подключения local signer
+                    <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
+                </label>
+                <label>Папка с ключами на этом ПК
+                    <input id="operator-signer-directory" type="text" autocomplete="off" placeholder="E:\workspace-keys">
+                </label>
+                <label>Update signing key
+                    <select id="operator-signer-key-id">
+                        {% for key_id in update_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}
+                    </select>
+                </label>
+                <div class="local-signer-panel__action">
+                    <button class="btn secondary" id="operator-signer-scan" type="button">Проверить ключи</button>
+                </div>
+            </div>
+            <div class="local-signer-status" id="operator-signer-status" data-state="idle">
+                Local signer должен быть запущен на этом компьютере. Путь к ключам не отправляется на web-сервер.
+            </div>
+        </div>
+        <div class="admin-card__footer">
+            <button class="btn primary" id="release-sign-publish" type="button">Подписать на этом ПК и опубликовать</button>
         </div>
     </section>
     {% endif %}
@@ -78,61 +112,50 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="admin-card__header">
                 <div>
-                    <h2 class="admin-card__title">Новый релиз</h2>
-                    <p class="admin-card__description">Укажите смысловые параметры — package metadata и manifest control plane соберёт сам.</p>
+                    <h2 class="admin-card__title">Подготовить новый релиз</h2>
+                    <p class="admin-card__description">Сначала сервер проверит ZIP и построит manifest. Подпись выполняется отдельным следующим шагом на вашем ПК.</p>
                 </div>
             </div>
             <div class="admin-card__body admin-form">
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>1</span><div><strong>ZIP-пакет</strong><small>Файл должен уже находиться во внешнем release storage.</small></div></div>
-                    <label>Путь к ZIP<input name="package_path" required placeholder="{{ release_storage_path }}/workspace-organizer-v1.0.2.zip"><small>Панель проверит ZIP magic, размер и автоматически рассчитает SHA-256.</small></label>
+                    <div class="operator-section__heading"><span>1</span><div><strong>ZIP-пакет на сервере</strong><small>Именно этот файл будет скачивать Workspace Organizer.</small></div></div>
+                    <label>Путь к ZIP в release storage<input name="package_path" required placeholder="{{ release_storage_path }}/workspace-organizer-v1.0.2.zip"><small>Разрешены только файлы внутри <code>{{ release_storage_path }}</code>. Размер и SHA-256 вычисляются автоматически.</small></label>
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>2</span><div><strong>Версия и канал</strong><small>Эти значения увидит updater и использует для выбора обновления.</small></div></div>
+                    <div class="operator-section__heading"><span>2</span><div><strong>Версия и канал</strong><small>Updater использует version_code для сравнения релизов, а channel — для выбора ленты.</small></div></div>
                     <div class="admin-form-grid">
-                        <label>Версия<input name="version" required placeholder="1.0.2"><small>Человекочитаемая версия.</small></label>
-                        <label>version_code<input type="number" name="version_code" min="1" required placeholder="10002"><small>Монотонно растущее число для сравнения версий.</small></label>
-                        <label>Канал<select name="channel"><option value="stable">stable</option><option value="beta">beta</option><option value="alpha">alpha</option></select><small>Feed разделён по каналам.</small></label>
-                        <label>Минимальный source version_code<input type="number" name="min_source_version_code" min="1" required placeholder="10001"><small>С какой установленной версии разрешён прямой переход.</small></label>
+                        <label>Версия<input name="version" required placeholder="1.0.2"><small>Человекочитаемое значение.</small></label>
+                        <label>version_code<input type="number" name="version_code" min="1" required placeholder="10002"><small>Всегда увеличивающееся целое число.</small></label>
+                        <label>Канал<select name="channel"><option value="stable">stable</option><option value="beta">beta</option><option value="alpha">alpha</option></select></label>
+                        <label>Минимальный source version_code<input type="number" name="min_source_version_code" min="1" required placeholder="10001"><small>Минимальная установленная версия для прямого обновления.</small></label>
                     </div>
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>3</span><div><strong>Совместимость и источник</strong><small>Позволяет клиенту проверить, подходит ли ему пакет.</small></div></div>
+                    <div class="operator-section__heading"><span>3</span><div><strong>Источник и совместимость</strong><small>Эти поля входят в подписанный manifest.</small></div></div>
                     <div class="admin-form-grid">
                         <label>Source commit<input name="source_commit" minlength="40" maxlength="40" required placeholder="полный 40-символьный Git SHA"></label>
                         <label>Минимальная версия PHP<input name="requires_php" required value="8.1.0" placeholder="8.1.0"></label>
                     </div>
                 </div>
-
-                <div class="operator-section operator-section--security">
-                    <div class="operator-section__heading"><span>4</span><div><strong>Как подписываем</strong><small>Можно подписать здесь или подготовить manifest для офлайн-signing.</small></div></div>
-                    {% if local_signing_enabled %}
-                    <div class="admin-form-grid">
-                        <label>Update key ID<select name="key_id">{% for key_id in update_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}</select></label>
-                        <label>Путь к private update key<input name="private_key_path" placeholder="{{ signing_key_root }}/update-prod-2026-01.update-secret"></label>
-                    </div>
-                    <p class="admin-form-note">Путь не сохраняется. Ключ обязан лежать внутри <code>{{ signing_key_root }}</code>, иметь права 0600 и соответствовать выбранному public trust root.</p>
-                    {% endif %}
-                </div>
             </div>
-            <div class="admin-card__footer operator-publish-actions">
-                <button class="btn secondary" type="submit" name="mode" value="prepare_offline">Подготовить manifest для офлайн-подписи</button>
-                <button class="btn primary" type="submit" name="mode" value="local" {% if not local_signing_enabled %}disabled{% endif %}>Собрать, подписать и опубликовать</button>
+            <div class="admin-card__footer">
+                <button class="btn primary" type="submit">Проверить ZIP и подготовить manifest</button>
             </div>
         </form>
 
         <aside class="operator-help admin-card">
             <div class="admin-card__body">
-                <h3>Что панель делает автоматически</h3>
+                <h3>Процесс публикации</h3>
                 <ol class="operator-steps">
-                    <li><strong>Проверяет ZIP</strong><span>Файл, размер, ZIP magic и лимит размера.</span></li>
-                    <li><strong>Считает SHA-256</strong><span>Его больше не нужно копировать вручную.</span></li>
-                    <li><strong>Строит manifest</strong><span>В точном формате, который проверяет Notes updater.</span></li>
-                    <li><strong>Проверяет подпись</strong><span>Даже после local signing manifest проходит штатную verify-функцию.</span></li>
-                    <li><strong>Публикует в feed</strong><span>После регистрации релиз сразу доступен подходящим лицензиям.</span></li>
+                    <li><strong>ZIP на сервере</strong><span>Control plane проверяет файл и считает SHA-256.</span></li>
+                    <li><strong>Manifest</strong><span>Строится автоматически из полей этой формы.</span></li>
+                    <li><strong>Локальная подпись</strong><span>Update private key читается только helper на вашем ПК/флешке.</span></li>
+                    <li><strong>Серверная проверка</strong><span>Готовая wou1 signature повторно проверяется public trust root.</span></li>
+                    <li><strong>Feed</strong><span>После проверки релиз появляется в выбранном канале.</span></li>
                 </ol>
+                <p class="admin-form-note">Если local signer недоступен, exact manifest можно подписать полностью офлайн и импортировать через «Расширенный импорт».</p>
             </div>
         </aside>
     </section>
@@ -161,19 +184,66 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+window.operatorSignerConfig = {
+    url: {{ operator_signer_url|tojson }},
+    licenseTrustedKeys: {},
+    updateTrustedKeys: {{ update_trusted_keys|tojson }}
+};
+{% include 'dashboard/control_plane/signer.js' %}
+
 document.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-copy-target]');
-    if (!button) return;
-    const target = document.getElementById(button.dataset.copyTarget);
-    if (!target) return;
-    const value = target.value || target.textContent || '';
+    const copyButton = event.target.closest('[data-copy-target]');
+    if (copyButton) {
+        const target = document.getElementById(copyButton.dataset.copyTarget);
+        if (!target) return;
+        const value = target.value || target.textContent || '';
+        try {
+            await navigator.clipboard.writeText(value);
+            const original = copyButton.textContent;
+            copyButton.textContent = 'Скопировано';
+            window.setTimeout(() => { copyButton.textContent = original; }, 1400);
+        } catch (_) {
+            target.select?.();
+        }
+        return;
+    }
+
+    if (event.target.closest('#operator-signer-scan')) {
+        const keyId = document.getElementById('operator-signer-key-id').value;
+        try {
+            await OperatorSigner.scanAndMatch('update', keyId);
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
+        }
+        return;
+    }
+
+    const publishButton = event.target.closest('#release-sign-publish');
+    if (!publishButton) return;
+
+    publishButton.disabled = true;
     try {
-        await navigator.clipboard.writeText(value);
-        const original = button.textContent;
-        button.textContent = 'Скопировано';
-        window.setTimeout(() => { button.textContent = original; }, 1400);
-    } catch (_) {
-        target.select?.();
+        const manifestNode = document.getElementById('prepared-manifest');
+        const packageNode = document.getElementById('prepared-package-path');
+        const csrfNode = document.getElementById('release-sign-csrf');
+        if (!manifestNode || !packageNode || !csrfNode) {
+            throw new Error('Подготовленный manifest не найден. Повторите проверку ZIP.');
+        }
+
+        const signature = await OperatorSigner.signManifest({
+            keyId: document.getElementById('operator-signer-key-id').value,
+            manifest: manifestNode.value,
+        });
+
+        OperatorSigner.submitHidden({{ url_for('admin.releases.index')|tojson }}, {
+            _csrf_token: csrfNode.value,
+            manifest_bytes: manifestNode.value,
+            signature,
+            package_path: packageNode.textContent.trim(),
+        });
+    } catch (error) {
+        OperatorSigner.setStatus(error.message, 'error');
+        publishButton.disabled = false;
     }
 });
 </script>
