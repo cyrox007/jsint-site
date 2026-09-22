@@ -221,8 +221,8 @@ log "Применение Alembic migrations."
 "${APP_DIR}/.venv/bin/alembic" upgrade head
 
 if (( SKIP_TESTS == 0 )); then
-    log "Запуск pytest."
-    "${APP_DIR}/.venv/bin/python" -m pytest -q
+    log "Запуск unit/HTTP smoke tests."
+    "${APP_DIR}/.venv/bin/python" -m unittest discover -s tests -v
 else
     log "Тесты пропущены оператором (--skip-tests)."
 fi
