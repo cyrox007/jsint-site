@@ -12,6 +12,11 @@ def install(app: Flask) -> None:
         methods=["GET", "POST"],
     )
     app.add_url_rule(
+        f"{prefix}/licenses/issue",
+        view_func=views.LicenseIssueView.as_view("admin.licenses.issue"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
         f"{prefix}/licenses/<uuid:license_row_id>/status",
         view_func=views.LicenseStatusView.as_view("admin.licenses.status"),
         methods=["POST"],
@@ -25,4 +30,14 @@ def install(app: Flask) -> None:
         f"{prefix}/releases",
         view_func=views.ReleaseListView.as_view("admin.releases.index"),
         methods=["GET", "POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/releases/publish",
+        view_func=views.ReleasePublishView.as_view("admin.releases.publish"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/releases/<uuid:release_row_id>/status",
+        view_func=views.ReleaseStatusView.as_view("admin.releases.status"),
+        methods=["POST"],
     )
