@@ -2,7 +2,7 @@ import unittest
 
 from flask import Flask
 
-from components.security.csrf import csrf_token, init_app
+from components.security.csrf import csrf_exempt, csrf_token, init_app
 from components.security.html import sanitize_rich_text
 from utils.validation import validate_slug
 
@@ -46,6 +46,11 @@ class CsrfTests(unittest.TestCase):
         def write():
             return "ok"
 
+        @app.post("/machine")
+        @csrf_exempt
+        def machine():
+            return "ok"
+
         self.client = app.test_client()
 
     def test_missing_token_is_rejected(self):
@@ -55,6 +60,10 @@ class CsrfTests(unittest.TestCase):
     def test_session_token_is_accepted(self):
         token = self.client.get("/token").get_data(as_text=True)
         response = self.client.post("/write", data={"_csrf_token": token})
+        self.assertEqual(response.status_code, 200)
+
+    def test_explicit_machine_endpoint_is_csrf_exempt(self):
+        response = self.client.post("/machine")
         self.assertEqual(response.status_code, 200)
 
 
