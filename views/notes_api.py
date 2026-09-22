@@ -55,7 +55,73 @@ def activate():
         activation_code = data.get("activation_code")
         if not isinstance(installation_id, str) or not isinstance(activation_code, str):
             raise ControlPlaneError("Invalid request")
-        return jsonify(NotesControlPlane.activate(db, installation_id.lower(), activation_code.lower()))
+        return jsonify(
+            NotesControlPlane.activate(
+                db,
+                installation_id.lower(),
+                activation_code.lower(),
+                remote_addr=request.remote_addr,
+            )
+        )
+    except ControlPlaneError as exc:
+        return _error(exc)
+    finally:
+        db.close()
+
+
+
+@csrf_exempt
+def heartbeat():
+    db = _session()
+    try:
+        _require_enabled()
+        if request.content_length is not None and request.content_length > 4096:
+            raise ControlPlaneError("Request too large", status=413)
+
+        match = _BEARER_RE.fullmatch(request.headers.get("Authorization", "").strip())
+        if match is None:
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+        installation_id = request.headers.get("X-Notes-Installation", "").strip().lower()
+        record = NotesControlPlane.authorize(db, installation_id, match.group(1))
+
+        data = request.get_json(silent=True)
+        if data is None:
+            data = {}
+        if not isinstance(data, dict):
+            raise ControlPlaneError("Invalid request")
+
+        version = data.get("version")
+        version_code = data.get("version_code")
+        channel = data.get("channel")
+        if version is not None and not isinstance(version, str):
+            raise ControlPlaneError("Invalid version")
+        if version_code is not None and (not isinstance(version_code, int) or isinstance(version_code, bool)):
+            raise ControlPlaneError("Invalid version_code")
+        if channel is not None and not isinstance(channel, str):
+            raise ControlPlaneError("Invalid channel")
+
+        NotesControlPlane.touch_seen(
+            db,
+            record,
+            action="heartbeat",
+            remote_addr=request.remote_addr,
+            client_version=version,
+            client_version_code=version_code,
+            channel=channel,
+        )
+        presence = NotesControlPlane.presence(record)
+        return jsonify(
+            {
+                "status": "ok",
+                "server_time": int(__import__("time").time()),
+                "installation_id": str(record.installation_id),
+                "presence": presence["code"],
+            }
+        )
     except ControlPlaneError as exc:
         return _error(exc)
     finally:
@@ -77,6 +143,21 @@ def artifact(channel: str, name: str):
             )
         installation_id = request.headers.get("X-Notes-Installation", "").strip().lower()
         license_record = NotesControlPlane.authorize(db, installation_id, match.group(1))
+        if name == "feed.json":
+            seen_action = "update-feed"
+        elif name.endswith(".json"):
+            seen_action = "update-manifest"
+        elif name.endswith(".sig"):
+            seen_action = "update-signature"
+        else:
+            seen_action = "update-package"
+        NotesControlPlane.touch_seen(
+            db,
+            license_record,
+            action=seen_action,
+            remote_addr=request.remote_addr,
+            channel=channel,
+        )
         release = NotesControlPlane.release_for_artifact(db, license_record, channel, name)
 
         headers = {
@@ -158,6 +239,12 @@ def install(app: Flask) -> None:
         f"{prefix}/activate",
         endpoint="notes_api.activate",
         view_func=activate,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/heartbeat",
+        endpoint="notes_api.heartbeat",
+        view_func=heartbeat,
         methods=["POST"],
     )
     app.add_url_rule(
