@@ -88,7 +88,7 @@
             response = await fetch(apiBase + path, init);
         } catch (_) {
             throw new Error(
-                'Локальный signer недоступен. Запустите tools/operator-signer/start.ps1 на этом ПК и проверьте, что окно signer не закрыто.'
+                'Локальный signer недоступен. Запустите tools/operator-signer/start.ps1 на этом ПК, не закрывайте его окно и разрешите браузеру доступ к loopback/локальной сети, если он запросит разрешение.'
             );
         }
 
