@@ -115,6 +115,129 @@ function signerApplyCors(): void
     }
 }
 
+/**
+ * @param list<string> $command
+ * @return array{code:int,stdout:string,stderr:string}
+ */
+function signerRunProcess(array $command): array
+{
+    $descriptors = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = @proc_open(
+        $command,
+        $descriptors,
+        $pipes,
+        null,
+        null,
+        ['bypass_shell' => true]
+    );
+    if (!is_resource($process)) {
+        signerFail(
+            'Не удалось открыть системный диалог выбора папки.',
+            'directory_picker_unavailable',
+            503
+        );
+    }
+
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $code = proc_close($process);
+
+    return [
+        'code' => $code,
+        'stdout' => is_string($stdout) ? trim($stdout) : '',
+        'stderr' => is_string($stderr) ? trim($stderr) : '',
+    ];
+}
+
+function signerFindExecutable(string $name): ?string
+{
+    $path = (string) getenv('PATH');
+    foreach (explode(PATH_SEPARATOR, $path) as $directory) {
+        $directory = trim($directory);
+        if ($directory === '') {
+            continue;
+        }
+        $candidate = rtrim($directory, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . $name;
+        if (is_file($candidate) && is_executable($candidate)) {
+            return $candidate;
+        }
+    }
+    return null;
+}
+
+function signerSelectDirectory(): ?string
+{
+    if (PHP_OS_FAMILY === 'Windows') {
+        $script = <<<'POWERSHELL'
+Add-Type -AssemblyName System.Windows.Forms
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+$dialog.Description = 'Выберите папку с ключами Workspace Organizer'
+$dialog.ShowNewFolderButton = $false
+if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    Write-Output $dialog.SelectedPath
+    exit 0
+}
+exit 2
+POWERSHELL;
+        $result = signerRunProcess([
+            'powershell.exe',
+            '-NoProfile',
+            '-STA',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            $script,
+        ]);
+    } elseif (PHP_OS_FAMILY === 'Darwin') {
+        $result = signerRunProcess([
+            '/usr/bin/osascript',
+            '-e',
+            'POSIX path of (choose folder with prompt "Выберите папку с ключами Workspace Organizer")',
+        ]);
+    } else {
+        $zenity = signerFindExecutable('zenity');
+        $kdialog = signerFindExecutable('kdialog');
+        if ($zenity !== null) {
+            $result = signerRunProcess([
+                $zenity,
+                '--file-selection',
+                '--directory',
+                '--title=Выберите папку с ключами Workspace Organizer',
+            ]);
+        } elseif ($kdialog !== null) {
+            $result = signerRunProcess([
+                $kdialog,
+                '--getexistingdirectory',
+                '.',
+                '--title',
+                'Выберите папку с ключами Workspace Organizer',
+            ]);
+        } else {
+            signerFail(
+                'Для системного диалога на Linux нужен zenity или kdialog.',
+                'directory_picker_unavailable',
+                503
+            );
+        }
+    }
+
+    if ($result['code'] !== 0 || $result['stdout'] === '') {
+        return null;
+    }
+
+    return signerResolveDirectory($result['stdout']);
+}
+
+
 function signerRequireToken(): void
 {
     $expected = trim((string) getenv('OPERATOR_SIGNER_TOKEN'));
@@ -544,6 +667,15 @@ if ($method === 'GET' && $path === '/v1/status') {
         'php_version' => PHP_VERSION,
         'os_family' => PHP_OS_FAMILY,
         'sodium' => true,
+    ]);
+}
+
+if ($method === 'POST' && $path === '/v1/select-directory') {
+    $directory = signerSelectDirectory();
+    signerRespond([
+        'status' => 'ok',
+        'cancelled' => $directory === null,
+        'directory' => $directory,
     ]);
 }
 
