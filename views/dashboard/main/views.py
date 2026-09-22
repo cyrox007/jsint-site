@@ -21,6 +21,9 @@ class DashboardMain(MethodView):
             .count()
         )
         category_count = db_session.query(Category).count()
+        license_count = db_session.query(LicenseRecord).count()
+        active_license_count = db_session.query(LicenseRecord).filter(LicenseRecord.status == "active").count()
+        release_count = db_session.query(ReleaseRecord).count()
         background = get_background_status()
 
         return render_template(
@@ -33,4 +36,7 @@ class DashboardMain(MethodView):
             published_count=published_count,
             draft_count=total_publications - published_count,
             category_count=category_count,
+            license_count=license_count,
+            active_license_count=active_license_count,
+            release_count=release_count,
         )
