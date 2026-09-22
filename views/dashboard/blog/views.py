@@ -111,6 +111,7 @@ class PublicationListPage(MethodView):
         publications = PublicationService.get_publications(db_session, **filters)
         categories = db_session.query(Category).order_by(Category.title).all()
 
+        total_publications = db_session.query(Publication).count()
         count_rows = (
             db_session.query(Publication.category_id, func.count(Publication.id))
             .filter(Publication.category_id.is_not(None))
@@ -140,6 +141,7 @@ class PublicationListPage(MethodView):
             selected_category_id=selected_category_id,
             category_parent_ids=category_parent_ids,
             edit_category_id=edit_category_id,
+            total_publications=total_publications,
         )
 
     @login_required
@@ -272,11 +274,6 @@ class CreatePost(MethodView):
 
         flash("Публикация сохранена", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
-
-    @login_required
-    @with_db_session
-    def head(self, db_session: Session):
-        return "", 204
 
 
 class CheckSlug(MethodView):
