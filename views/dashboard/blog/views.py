@@ -5,6 +5,7 @@ from uuid import UUID
 from flask import abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask.views import MethodView
 from pydantic import ValidationError
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
@@ -15,6 +16,31 @@ from schemas.publication import PublicationCreate, PublicationUpdate
 from services.publication import PublicationService
 from utils.validation import validate_slug
 
+
+
+def _category_tree_with_counts(db_session: Session) -> list[dict]:
+    direct_counts = {
+        category_id: int(count)
+        for category_id, count in (
+            db_session.query(Publication.category_id, func.count(Publication.id))
+            .filter(Publication.category_id.is_not(None))
+            .group_by(Publication.category_id)
+            .all()
+        )
+    }
+    tree = Category.get_tree(db_session)
+
+    def attach_counts(nodes: list[dict]) -> int:
+        total = 0
+        for node in nodes:
+            children_total = attach_counts(node["children"])
+            own_count = direct_counts.get(node["id"], 0)
+            node["publication_count"] = own_count + children_total
+            total += node["publication_count"]
+        return total
+
+    attach_counts(tree)
+    return tree
 
 def _publication_payload(schema_cls):
     content = sanitize_rich_text(request.form.get("content", "").strip())
@@ -48,7 +74,11 @@ class PublicationListPage(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
-        filters: dict = {"is_published": None}
+        filters: dict = {
+            "is_published": None,
+            "order_by": "updated_at",
+            "order_direction": "desc",
+        }
 
         search = request.args.get("search", "").strip()
         if search:
@@ -60,19 +90,37 @@ class PublicationListPage(MethodView):
         elif status == "draft":
             filters["is_published"] = False
 
+        source_type = request.args.get("source_type", "").strip()
+        if source_type in {"article", "task", "case", "changelog"}:
+            filters["source_type"] = source_type
+
+        current_category = None
         category_raw = request.args.get("category_id", "").strip()
         if category_raw:
             try:
-                filters["category_id"] = UUID(category_raw)
+                category_id = UUID(category_raw)
             except ValueError:
                 flash("Некорректный фильтр категории", "error")
+            else:
+                current_category = Category.get_by_id(db_session, category_id)
+                if current_category is None:
+                    flash("Категория не найдена", "warning")
+                else:
+                    branch_ids = [current_category.id]
+                    branch_ids.extend(
+                        item.id for item in Category.get_all_descendants(db_session, current_category.id)
+                    )
+                    filters["category_ids"] = sorted(branch_ids, key=str)
 
         publications = PublicationService.get_publications(db_session, **filters)
-        categories = db_session.query(Category).order_by(Category.title).all()
+        total_publications = db_session.query(Publication).count()
         return render_template(
             "dashboard/publication/index.html",
             publications=publications,
-            categories=categories,
+            category_tree=_category_tree_with_counts(db_session),
+            current_category=current_category,
+            current_category_id=current_category.id if current_category else None,
+            total_publications=total_publications,
         )
 
 
@@ -81,7 +129,21 @@ class CreatePost(MethodView):
     @with_db_session
     def get(self, db_session: Session):
         categories = db_session.query(Category).order_by(Category.title).all()
-        return render_template("dashboard/publication/edit.html", categories=categories)
+        selected_category_id = None
+        category_raw = request.args.get("category_id", "").strip()
+        if category_raw:
+            try:
+                candidate = UUID(category_raw)
+            except ValueError:
+                pass
+            else:
+                if Category.get_by_id(db_session, candidate) is not None:
+                    selected_category_id = candidate
+        return render_template(
+            "dashboard/publication/edit.html",
+            categories=categories,
+            selected_category_id=selected_category_id,
+        )
 
     @login_required
     @with_db_session
@@ -185,4 +247,13 @@ class DeletePost(MethodView):
             flash("Публикация не найдена", "error")
         else:
             flash("Публикация удалена", "success")
-        return redirect(url_for("admin.publication.index"))
+
+        category_raw = request.form.get("category_id", "").strip()
+        if category_raw:
+            try:
+                UUID(category_raw)
+            except ValueError:
+                category_raw = ""
+        return redirect(
+            url_for("admin.publication.index", category_id=category_raw or None)
+        )
