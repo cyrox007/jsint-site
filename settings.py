@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import timedelta
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from dotenv import load_dotenv
 
@@ -63,6 +64,13 @@ class Config:
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    NOTES_CONTROL_PLANE_ENABLED = _env_bool("NOTES_CONTROL_PLANE_ENABLED", False)
+    NOTES_UPDATE_API_PREFIX = os.getenv("NOTES_UPDATE_API_PREFIX", "/api/notes/v1").strip().rstrip("/")
+    NOTES_UPDATE_BASE_URL = os.getenv("NOTES_UPDATE_BASE_URL", "").strip()
+    NOTES_RELEASE_STORAGE_PATH = os.getenv(
+        "NOTES_RELEASE_STORAGE_PATH", "/var/lib/jsint-site/notes-releases"
+    ).strip()
+
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
         driver = "postgresql+asyncpg" if async_mode else "postgresql"
@@ -111,6 +119,25 @@ class Config:
                 raise RuntimeError("CELERY_BROKER_URL is required in production")
             if not cls.CELERY_RESULT_BACKEND:
                 raise RuntimeError("CELERY_RESULT_BACKEND is required in production")
+
+        if cls.NOTES_CONTROL_PLANE_ENABLED:
+            if not cls.NOTES_UPDATE_API_PREFIX.startswith("/") or cls.NOTES_UPDATE_API_PREFIX == "/":
+                raise RuntimeError("NOTES_UPDATE_API_PREFIX must be a non-root absolute URL path")
+            parsed = urlparse(cls.NOTES_UPDATE_BASE_URL)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or "." not in parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.query
+                or parsed.fragment
+                or not parsed.path.endswith("/")
+                or re.fullmatch(r"/(?:[A-Za-z0-9_-]+/)*", parsed.path) is None
+            ):
+                raise RuntimeError("NOTES_UPDATE_BASE_URL must be a canonical HTTPS directory URL")
+            if not os.path.isabs(cls.NOTES_RELEASE_STORAGE_PATH):
+                raise RuntimeError("NOTES_RELEASE_STORAGE_PATH must be an absolute external path")
 
 
 config = Config()

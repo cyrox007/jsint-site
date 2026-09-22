@@ -106,9 +106,21 @@ GitHub Actions проверяет:
 
 Порядок описан в `docs/DEPLOYMENT.md`.
 
-## Отдельная следующая функция
+## Единый Workspace Organizer control plane
 
-Управление release artifacts Workspace Organizer из CMS портфолио не смешивается с этим hardening PR. После стабилизации сайта можно добавить раздел «Workspace Organizer → Релизы» как frontend к отдельному Notes Update Service. Private update signing key остаётся вне сайта.
+После baseline-аудита в jsint-site добавлен собственный control plane, поэтому отдельный Notes Update Service больше не является обязательным приложением.
+
+В той же CMS доступны:
+
+- реестр подписанных лицензий и installation IDs;
+- active/revoked update entitlement;
+- одноразовая активация online update access;
+- реестр immutable signed releases;
+- клиентский API `/api/notes/v1/`, совместимый с Workspace Organizer.
+
+Private license/update signing keys по-прежнему остаются офлайн. Web-приложение содержит только публичные Ed25519 trust roots и проверяет уже подписанные данные.
+
+Подробности: `docs/CONTROL_PLANE.md`.
 
 
 ## Дополнение: фоновые процессы

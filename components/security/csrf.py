@@ -3,7 +3,7 @@ from __future__ import annotations
 import hmac
 import secrets
 
-from flask import abort, request, session
+from flask import abort, current_app, request, session
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 _SESSION_KEY = "_csrf_token"
