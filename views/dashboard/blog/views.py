@@ -23,7 +23,10 @@ def _publication_payload(schema_cls):
         slug=request.form.get("slug", "").strip(),
         content=content,
         source_type=request.form.get("source-type", "article").strip(),
-        extra_data={},
+        extra_data={
+            "seo_title": request.form.get("seo_title", "").strip()[:255],
+            "seo_description": request.form.get("seo_description", "").strip()[:320],
+        },
         category_id=request.form.get("category_id", ""),
         author_id=session.get("user_id"),
         is_published=request.form.get("is_published") == "on",
@@ -69,10 +72,14 @@ class PublicationListPage(MethodView):
 
         publications = PublicationService.get_publications(db_session, **filters)
         categories = db_session.query(Category).order_by(Category.title).all()
+        category_tree = Category.get_tree(db_session)
+        selected_category_id = str(filters.get("category_id") or "")
         return render_template(
             "dashboard/publication/index.html",
             publications=publications,
             categories=categories,
+            category_tree=category_tree,
+            selected_category_id=selected_category_id,
         )
 
 
