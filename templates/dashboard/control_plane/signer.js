@@ -73,6 +73,7 @@
             mode: 'cors',
             cache: 'no-store',
             credentials: 'omit',
+            targetAddressSpace: 'loopback',
             headers: {
                 'Authorization': 'Bearer ' + pairingToken,
             },
