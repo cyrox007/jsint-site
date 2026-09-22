@@ -82,7 +82,7 @@
             <p class="admin-page__description">Рубрики и публикации управляются в одном рабочем пространстве.</p>
         </div>
         <div class="admin-page__actions">
-            <a href="{{ url_for('admin.publication.create', category_id=selected_category_id or None) }}" class="btn primary">+ Новая публикация</a>
+            <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary">+ Новая публикация</a>
         </div>
     </header>
 
@@ -156,7 +156,7 @@
                     <span class="publication-catalog__eyebrow">Материалы</span>
                     <h2>{{ 'Выбранная рубрика' if selected_category_id else 'Все публикации' }}</h2>
                 </div>
-                <a href="{{ url_for('admin.publication.create', category_id=selected_category_id or None) }}" class="btn primary btn-small">+ Добавить</a>
+                <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary btn-small">+ Добавить</a>
             </div>
 
             <div class="admin-toolbar publication-toolbar">
@@ -169,7 +169,7 @@
                         <option value="draft" {% if request.args.get('status') == 'draft' %}selected{% endif %}>Черновики</option>
                     </select>
                     <button type="submit" class="btn secondary btn-small">Применить</button>
-                    <a href="{{ url_for('admin.publication.index', category_id=selected_category_id or None) }}" class="btn secondary btn-small">Сбросить</a>
+                    <a href="{{ url_for('admin.publication.index', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.index') }}" class="btn secondary btn-small">Сбросить</a>
                 </form>
             </div>
 
@@ -206,7 +206,7 @@
                 <div class="admin-empty publication-empty">
                     <strong>Здесь пока нет публикаций</strong>
                     <span>Создайте материал в выбранной рубрике или измените фильтры.</span>
-                    <a href="{{ url_for('admin.publication.create', category_id=selected_category_id or None) }}" class="btn primary btn-small">Создать публикацию</a>
+                    <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary btn-small">Создать публикацию</a>
                 </div>
                 {% endfor %}
             </div>
