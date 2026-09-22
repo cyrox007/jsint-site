@@ -64,6 +64,17 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("background_healthcheck", updater)
         self.assertIn("install_service_units", updater)
 
+    def test_checkout_updater_refreshes_runtime_on_same_commit(self):
+        updater = self.read("update.sh")
+        self.assertIn(
+            "Выполняю полное обновление runtime и перезапуск сервисов",
+            updater,
+        )
+        self.assertNotIn("Обновление не требуется.", updater)
+        self.assertIn("stop_services", updater)
+        self.assertIn("start_services", updater)
+        self.assertIn("HTTP healthcheck", updater)
+
     def test_release_runtime_does_not_unzip_over_live_tree(self):
         runtime = self.read("deploy/release-lib.sh")
         self.assertIn("RELEASES_DIR", runtime)

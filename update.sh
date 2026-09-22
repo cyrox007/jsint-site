@@ -104,8 +104,7 @@ fi
 
 OLD_COMMIT="$(git rev-parse HEAD)"
 if [[ "${TARGET_COMMIT}" == "${OLD_COMMIT}" ]]; then
-    log "Уже установлен commit ${TARGET_COMMIT}. Обновление не требуется."
-    exit 0
+    log "Commit ${TARGET_COMMIT} уже находится на диске. Выполняю полное обновление runtime и перезапуск сервисов."
 fi
 
 set -a
