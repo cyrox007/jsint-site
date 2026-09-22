@@ -227,6 +227,10 @@ fi
 
 DB_PASSWORD_ENV="$(printf '%q' "${DB_PASSWORD}")"
 
+NOTES_RELEASE_STORAGE_PATH=/var/lib/jsint-site/notes-releases
+log "Подготовка внешнего read-only release storage для Workspace Organizer."
+install -d -o root -g "${APP_GROUP}" -m 0750 "${NOTES_RELEASE_STORAGE_PATH}"
+
 ALLOWED_HOSTS_VALUE="${DOMAIN}"
 SERVER_NAMES="${DOMAIN}"
 if [[ -n "${WWW_DOMAIN}" ]]; then
@@ -267,6 +271,11 @@ CELERY_BROKER_URL=redis://127.0.0.1:6379/1
 CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
 AUTH_RATE_LIMIT_ATTEMPTS=5
 AUTH_RATE_LIMIT_WINDOW_SECONDS=300
+
+NOTES_CONTROL_PLANE_ENABLED=true
+NOTES_UPDATE_API_PREFIX=/api/notes/v1
+NOTES_UPDATE_BASE_URL=https://${DOMAIN}/api/notes/v1/
+NOTES_RELEASE_STORAGE_PATH=${NOTES_RELEASE_STORAGE_PATH}
 
 YANDEX_METRIKA_ID=
 EOF
