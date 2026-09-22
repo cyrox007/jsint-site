@@ -2,32 +2,22 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, request, url_for
 from flask.views import MethodView
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
 from models.categories import Category
-from models.publication import Publication
 from services.catalog import CatalogService
 from utils.validation import validate_slug
 
 
 class CatalogIndexView(MethodView):
-    @login_required
-    @with_db_session
-    def get(self, db_session: Session):
-        categories = db_session.query(Category).order_by(Category.title).all()
-        total = db_session.query(Publication).count()
-        published = db_session.query(Publication).filter(Publication.is_published.is_(True)).count()
+    """Совместимый маршрут: управление рубриками перенесено в раздел «Контент»."""
 
-        return render_template(
-            "dashboard/catalog/index.html",
-            categories=categories,
-            total_publications=total,
-            published_count=published,
-            draft_count=total - published,
-        )
+    @login_required
+    def get(self):
+        return redirect(url_for("admin.publication.index"))
 
     @login_required
     @with_db_session
@@ -38,7 +28,7 @@ class CatalogIndexView(MethodView):
             slug = validate_slug(request.form.get("slug", ""))
         except ValueError as exc:
             flash(str(exc), "error")
-            return redirect(url_for("admin.catalog.index"))
+            return redirect(url_for("admin.publication.index"))
 
         category = CatalogService.create_category(
             db_session,
@@ -49,11 +39,12 @@ class CatalogIndexView(MethodView):
                 "parent_id": None,
             },
         )
-        flash(
-            "Категория создана" if category else "Не удалось создать категорию",
-            "success" if category else "error",
-        )
-        return redirect(url_for("admin.catalog.index"))
+        if category:
+            flash("Рубрика создана", "success")
+            return redirect(url_for("admin.publication.index", category_id=category.id))
+
+        flash("Не удалось создать рубрику", "error")
+        return redirect(url_for("admin.publication.index"))
 
 
 class CategoryTreeView(MethodView):
@@ -76,33 +67,30 @@ class CategoryDeleteView(MethodView):
     @with_db_session
     def post(self, db_session: Session, cat_id: UUID):
         if CatalogService.delete_category(db_session, cat_id):
-            flash("Категория удалена", "success")
+            flash("Рубрика удалена", "success")
         else:
-            flash("Категорию нельзя удалить: проверьте дочерние категории и публикации", "error")
-        return redirect(url_for("admin.catalog.index"))
+            flash(
+                "Рубрику нельзя удалить: проверьте дочерние рубрики и публикации",
+                "error",
+            )
+        return redirect(url_for("admin.publication.index"))
 
 
 class CategoryEditView(MethodView):
+    """Старый URL редактора открывает inline-редактор в едином workspace."""
+
     @login_required
     @with_db_session
     def get(self, db_session: Session, cat_id: UUID):
-        category = Category.get_by_id(db_session, cat_id)
-        if not category:
-            flash("Категория не найдена", "error")
-            return redirect(url_for("admin.catalog.index"))
-
-        invalid_ids = {cat_id}
-        invalid_ids.update(item.id for item in Category.get_all_descendants(db_session, cat_id))
-        all_categories = (
-            db_session.query(Category)
-            .filter(~Category.id.in_(invalid_ids))
-            .order_by(Category.title)
-            .all()
-        )
-        return render_template(
-            "dashboard/catalog/edit.html",
-            category=category,
-            all_categories=all_categories,
+        if Category.get_by_id(db_session, cat_id) is None:
+            flash("Рубрика не найдена", "error")
+            return redirect(url_for("admin.publication.index"))
+        return redirect(
+            url_for(
+                "admin.publication.index",
+                category_id=cat_id,
+                edit_category=cat_id,
+            )
         )
 
     @login_required
@@ -116,8 +104,14 @@ class CategoryEditView(MethodView):
             slug = validate_slug(request.form.get("slug", ""))
             parent_id = UUID(parent_raw) if parent_raw else None
         except ValueError as exc:
-            flash(str(exc) or "Некорректные данные категории", "error")
-            return redirect(url_for("admin.catalog.edit", cat_id=cat_id))
+            flash(str(exc) or "Некорректные данные рубрики", "error")
+            return redirect(
+                url_for(
+                    "admin.publication.index",
+                    category_id=cat_id,
+                    edit_category=cat_id,
+                )
+            )
 
         updated = CatalogService.update_category(
             db_session,
@@ -130,7 +124,14 @@ class CategoryEditView(MethodView):
             },
         )
         if updated:
-            flash("Категория обновлена", "success")
-        else:
-            flash("Категорию не удалось обновить: проверьте URL и иерархию", "error")
-        return redirect(url_for("admin.catalog.edit", cat_id=cat_id))
+            flash("Рубрика обновлена", "success")
+            return redirect(url_for("admin.publication.index", category_id=cat_id))
+
+        flash("Рубрику не удалось обновить: проверьте URL и иерархию", "error")
+        return redirect(
+            url_for(
+                "admin.publication.index",
+                category_id=cat_id,
+                edit_category=cat_id,
+            )
+        )
