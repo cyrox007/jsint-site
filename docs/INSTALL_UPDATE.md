@@ -278,7 +278,7 @@ Private deployment key даёт только read-доступ к source reposit
 - не выполняет blind `alembic downgrade`;
 - не хранит GitHub personal access token;
 - не копирует файлы поверх live release;
-- не обновляет Notes Update Service — это отдельное приложение.
+- не подписывает лицензии или update manifests: private signing keys остаются офлайн.
 
 ## Ручная диагностика
 
@@ -365,4 +365,4 @@ sudo -H -u jsint-site /bin/bash -c '
 '
 ```
 
-Эта задача служебная. Бизнес-задачи мониторинга, лицензий и релизов будут добавляться поверх уже работающего Worker/Beat.
+Эта задача служебная. Лицензии и релизы обслуживаются тем же jsint-site через control plane; Worker/Beat остаются базой для будущего мониторинга и фоновых операторских задач.
