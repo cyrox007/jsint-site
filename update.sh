@@ -71,7 +71,7 @@ done
 [[ -d "${APP_DIR}/.git" ]] || die "Не найден Git repository: ${APP_DIR}"
 [[ -f "${ENV_FILE}" ]] || die "Не найден .env: ${ENV_FILE}"
 
-for cmd in git flock python3 pg_dump pg_restore psql systemctl curl; do
+for cmd in git flock python3 psql systemctl curl; do
     command -v "$cmd" >/dev/null 2>&1 || die "Не найдена обязательная команда: $cmd"
 done
 
@@ -121,13 +121,67 @@ DB_SSLMODE="${DB_SSLMODE:-prefer}"
 APP_BIND="${APP_BIND:-127.0.0.1:18080}"
 ALLOWED_HOSTS="${ALLOWED_HOSTS:-jsinteractive.ru}"
 
+select_postgresql_client_tools() {
+    local server_version_num server_major
+    local path_dump path_restore
+    local generic_dump="" generic_restore="" generic_major=""
+
+    server_version_num="$(
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        psql \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --tuples-only \
+            --no-align \
+            --command='SHOW server_version_num;' \
+        | tr -d '[:space:]'
+    )"
+
+    [[ "${server_version_num}" =~ ^[0-9]+$ ]] \
+        || die "Не удалось определить server_version_num PostgreSQL."
+
+    server_major="$((server_version_num / 10000))"
+    path_dump="/usr/lib/postgresql/${server_major}/bin/pg_dump"
+    path_restore="/usr/lib/postgresql/${server_major}/bin/pg_restore"
+
+    if [[ -x "${path_dump}" && -x "${path_restore}" ]]; then
+        PG_DUMP_BIN="${path_dump}"
+        PG_RESTORE_BIN="${path_restore}"
+    else
+        generic_dump="$(command -v pg_dump || true)"
+        generic_restore="$(command -v pg_restore || true)"
+
+        if [[ -n "${generic_dump}" && -n "${generic_restore}" ]]; then
+            generic_major="$(
+                "${generic_dump}" --version \
+                | sed -E 's/.* ([0-9]+)(\.[0-9]+)?.*/\1/' \
+                | tr -d '[:space:]'
+            )"
+        fi
+
+        if [[ "${generic_major}" =~ ^[0-9]+$ ]] && (( generic_major >= server_major )); then
+            PG_DUMP_BIN="${generic_dump}"
+            PG_RESTORE_BIN="${generic_restore}"
+        else
+            die "PostgreSQL server major=${server_major}, а совместимый pg_dump/pg_restore не найден. Установите postgresql-client-${server_major}; ожидаемый путь: ${path_dump}"
+        fi
+    fi
+
+    log "PostgreSQL server major: ${server_major}."
+    log "Backup client: $("${PG_DUMP_BIN}" --version)."
+}
+
+select_postgresql_client_tools
+
 install -d -o root -g jsint-site -m 0750 "${BACKUP_ROOT}"
 STAMP="$(date -u +'%Y%m%d%H%M%S')"
 BACKUP_FILE="${BACKUP_ROOT}/${DB_NAME}-before-${TARGET_COMMIT:0:12}-${STAMP}.dump"
 
 log "Backup PostgreSQL: ${BACKUP_FILE}"
 PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
-pg_dump \
+"${PG_DUMP_BIN}" \
     --host="${DB_HOST}" \
     --port="${DB_PORT}" \
     --username="${DB_USER}" \
@@ -183,7 +237,7 @@ rollback() {
     install_dependencies
     install_units
     PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
-    pg_restore \
+    "${PG_RESTORE_BIN}" \
         --host="${DB_HOST}" \
         --port="${DB_PORT}" \
         --username="${DB_USER}" \
