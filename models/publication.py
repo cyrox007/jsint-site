@@ -84,6 +84,8 @@ class Publication(Database.Base):
                 query = query.filter(cls.is_published == value)
             elif key == 'category_id':
                 query = query.filter(cls.category_id == value)
+            elif key == 'category_ids' and value:
+                query = query.filter(cls.category_id.in_(value))
             elif key == 'source_type':
                 query = query.filter(cls.source_type == value)
             elif key == 'author_id':
