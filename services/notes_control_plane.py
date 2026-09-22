@@ -544,6 +544,8 @@ class NotesControlPlane:
         record.edition = payload["edition"]
         record.max_users = payload.get("max_users")
         record.features = list(payload.get("features", []))
+        record.license_not_before = _datetime_from_timestamp(payload.get("not_before", payload["issued_at"]))
+        record.license_expires_at = _datetime_from_timestamp(payload.get("expires_at"))
         record.activation_hash = hashlib.sha256(activation_code.encode("ascii")).hexdigest()
         record.credential_hash = None
         record.activated_at = None
@@ -552,6 +554,107 @@ class NotesControlPlane:
         session.commit()
         session.refresh(record)
         return record, activation_code
+
+    @classmethod
+    def issue_license_local(
+        cls,
+        session: Session,
+        *,
+        private_key_path: str,
+        key_id: str,
+        installation_id: str,
+        license_id: str,
+        edition: str,
+        expires_at: datetime | None,
+        not_before: datetime | None,
+        customer: str | None,
+        features: list[str],
+        max_users: int | None,
+        updates_until: datetime | None,
+        max_version: int | None,
+    ) -> tuple[LicenseRecord, str, str]:
+        token = _build_license_token(
+            private_key_path=private_key_path,
+            key_id=key_id,
+            installation_id=installation_id,
+            license_id=license_id,
+            edition=edition,
+            expires_at=expires_at,
+            not_before=not_before,
+            customer=customer,
+            features=features,
+            max_users=max_users,
+        )
+        record, activation_code = cls.register_license(
+            session,
+            token,
+            updates_until=updates_until,
+            max_version=max_version,
+        )
+        return record, activation_code, token
+
+    @staticmethod
+    def presence(record: LicenseRecord, *, now: datetime | None = None) -> dict[str, Any]:
+        now = now or datetime.now(timezone.utc)
+        if record.last_seen_at is None:
+            return {
+                "code": "unknown",
+                "label": "Нет данных",
+                "detail": "Клиент ещё не обращался к control plane.",
+                "age_seconds": None,
+            }
+
+        last_seen = record.last_seen_at
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+        age = max(0, int((now - last_seen).total_seconds()))
+        if age <= _PRESENCE_ONLINE_SECONDS:
+            code, label = "online", "На связи"
+        elif age <= _PRESENCE_RECENT_SECONDS:
+            code, label = "recent", "Недавно"
+        else:
+            code, label = "offline", "Нет связи"
+        return {
+            "code": code,
+            "label": label,
+            "detail": "Статус основан на последнем исходящем запросе клиента к серверу.",
+            "age_seconds": age,
+        }
+
+    @staticmethod
+    def touch_seen(
+        session: Session,
+        record: LicenseRecord,
+        *,
+        action: str,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> None:
+        if len(action) > 64:
+            action = action[:64]
+        if remote_addr:
+            remote_addr = remote_addr.strip()[:64] or None
+        if client_version:
+            client_version = client_version.strip()[:64] or None
+        if channel and channel not in {"alpha", "beta", "stable"}:
+            channel = None
+        if client_version_code is not None and client_version_code <= 0:
+            client_version_code = None
+
+        record.last_seen_at = datetime.now(timezone.utc)
+        record.last_seen_action = action
+        if remote_addr:
+            record.last_seen_ip = remote_addr
+        if client_version:
+            record.last_client_version = client_version
+        if client_version_code is not None:
+            record.last_client_version_code = client_version_code
+        if channel:
+            record.last_client_channel = channel
+        session.add(record)
+        session.commit()
 
     @staticmethod
     def reissue_activation(session: Session, record: LicenseRecord) -> str:
@@ -584,7 +687,17 @@ class NotesControlPlane:
         verify_license_token(record.signed_license, str(record.installation_id))
 
     @classmethod
-    def activate(cls, session: Session, installation_id: str, activation_code: str) -> dict[str, Any]:
+    def activate(
+        cls,
+        session: Session,
+        installation_id: str,
+        activation_code: str,
+        *,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> dict[str, Any]:
         try:
             installation_uuid = UUID(installation_id)
         except ValueError as exc:
@@ -608,6 +721,15 @@ class NotesControlPlane:
         record.activation_hash = None
         record.credential_hash = hashlib.sha256(credential.encode("ascii")).hexdigest()
         record.activated_at = datetime.now(timezone.utc)
+        record.last_seen_at = record.activated_at
+        record.last_seen_action = "activation"
+        record.last_seen_ip = remote_addr.strip()[:64] if remote_addr else record.last_seen_ip
+        if client_version:
+            record.last_client_version = client_version.strip()[:64]
+        if client_version_code is not None and client_version_code > 0:
+            record.last_client_version_code = client_version_code
+        if channel in {"alpha", "beta", "stable"}:
+            record.last_client_channel = channel
         session.add(record)
         session.commit()
 
@@ -636,6 +758,64 @@ class NotesControlPlane:
             raise ControlPlaneError("Authentication required", status=401, code="authentication_required")
         cls._assert_entitled(record)
         return record
+
+    @staticmethod
+    def prepare_release_manifest(
+        *,
+        package_path: str,
+        version: str,
+        version_code: int,
+        channel: str,
+        source_commit: str,
+        min_source_version_code: int,
+        requires_php: str,
+    ) -> tuple[str, str]:
+        manifest_bytes, resolved = _build_release_manifest(
+            package_path=package_path,
+            version=version,
+            version_code=version_code,
+            channel=channel,
+            source_commit=source_commit,
+            min_source_version_code=min_source_version_code,
+            requires_php=requires_php,
+        )
+        return manifest_bytes, str(resolved)
+
+    @classmethod
+    def publish_release_local(
+        cls,
+        session: Session,
+        *,
+        package_path: str,
+        version: str,
+        version_code: int,
+        channel: str,
+        source_commit: str,
+        min_source_version_code: int,
+        requires_php: str,
+        private_key_path: str,
+        key_id: str,
+    ) -> ReleaseRecord:
+        manifest_bytes, resolved = _build_release_manifest(
+            package_path=package_path,
+            version=version,
+            version_code=version_code,
+            channel=channel,
+            source_commit=source_commit,
+            min_source_version_code=min_source_version_code,
+            requires_php=requires_php,
+        )
+        signature = _sign_update_manifest(
+            manifest_bytes,
+            private_key_path=private_key_path,
+            key_id=key_id,
+        )
+        return cls.publish_release(
+            session,
+            manifest_bytes=manifest_bytes,
+            signature=signature,
+            package_path=str(resolved),
+        )
 
     @staticmethod
     def publish_release(
