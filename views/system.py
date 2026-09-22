@@ -27,7 +27,20 @@ def healthcheck():
     checks["redis"] = redis_client.ping()
     background = get_background_status()
 
-    critical_ok = checks["database"] and (checks["redis"] or not config.REDIS_REQUIRED)
+    control_session = Database.connect_database()
+    try:
+        control_plane = NotesControlPlane.health(control_session)
+    finally:
+        control_session.close()
+
+    critical_ok = (
+        checks["database"]
+        and (checks["redis"] or not config.REDIS_REQUIRED)
+        and (
+            not config.NOTES_CONTROL_PLANE_ENABLED
+            or control_plane["status"] == "ok"
+        )
+    )
     status = (
         "ok"
         if critical_ok and checks["redis"]
@@ -40,5 +53,6 @@ def healthcheck():
             "version": application_version(),
             "checks": checks,
             "background": background,
+            "control_plane": control_plane,
         }
     ), (200 if critical_ok else 503)
