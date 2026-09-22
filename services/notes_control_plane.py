@@ -64,7 +64,11 @@ def _public_key(registry: dict[str, str], key_id: str, pattern: re.Pattern[str])
     return raw
 
 
-def verify_license_token(\n    token: str,\n    expected_installation: str | None = None,\n    trusted_keys: dict[str, str] | None = None,\n) -> dict[str, Any]:
+def verify_license_token(
+    token: str,
+    expected_installation: str | None = None,
+    trusted_keys: dict[str, str] | None = None,
+) -> dict[str, Any]:
     token = token.strip()
     if not token or len(token) > 16384:
         raise ControlPlaneError("Некорректный лицензионный токен")
@@ -73,7 +77,8 @@ def verify_license_token(\n    token: str,\n    expected_installation: str | Non
         raise ControlPlaneError("Некорректный формат лицензионного токена")
 
     _, key_id, payload_encoded, signature_encoded = parts
-    registry = LICENSE_TRUSTED_KEYS if trusted_keys is None else trusted_keys\n    public_key = _public_key(registry, key_id, _LICENSE_KEY_RE)
+    registry = LICENSE_TRUSTED_KEYS if trusted_keys is None else trusted_keys
+    public_key = _public_key(registry, key_id, _LICENSE_KEY_RE)
     signature = _b64url_decode(signature_encoded)
     if len(signature) != 64:
         raise ControlPlaneError("Некорректная подпись лицензии")
@@ -141,7 +146,11 @@ def verify_license_token(\n    token: str,\n    expected_installation: str | Non
     return payload
 
 
-def verify_update_manifest(\n    manifest_bytes: str,\n    signature_token: str,\n    trusted_keys: dict[str, str] | None = None,\n) -> dict[str, Any]:
+def verify_update_manifest(
+    manifest_bytes: str,
+    signature_token: str,
+    trusted_keys: dict[str, str] | None = None,
+) -> dict[str, Any]:
     encoded = manifest_bytes.encode("utf-8")
     if not encoded or len(encoded) > _MAX_MANIFEST_BYTES:
         raise ControlPlaneError("Некорректный размер update manifest")
@@ -150,7 +159,8 @@ def verify_update_manifest(\n    manifest_bytes: str,\n    signature_token: str,
     if len(parts) != 3 or parts[0] != "wou1":
         raise ControlPlaneError("Некорректный формат подписи update manifest")
     _, key_id, signature_encoded = parts
-    registry = UPDATE_TRUSTED_KEYS if trusted_keys is None else trusted_keys\n    public_key = _public_key(registry, key_id, _UPDATE_KEY_RE)
+    registry = UPDATE_TRUSTED_KEYS if trusted_keys is None else trusted_keys
+    public_key = _public_key(registry, key_id, _UPDATE_KEY_RE)
     signature = _b64url_decode(signature_encoded)
     if len(signature) != 64:
         raise ControlPlaneError("Некорректная подпись update manifest")
