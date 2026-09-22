@@ -142,25 +142,27 @@
 
     {% elif tab == 'issue' %}
     <section class="operator-layout">
-        <form class="admin-card operator-form" method="post" action="{{ url_for('admin.licenses.issue') }}">
+        <form class="admin-card operator-form" id="license-issue-form" method="post" action="{{ url_for('admin.licenses.issue') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="admin-card__header">
                 <div>
-                    <h2 class="admin-card__title">Выпуск новой лицензии</h2>
-                    <p class="admin-card__description">Форма сама собирает payload, подписывает его Ed25519 и сразу регистрирует установку.</p>
+                    <h2 class="admin-card__title">Выпустить новую лицензию</h2>
+                    <p class="admin-card__description">Параметры задаются на сайте, но Ed25519-подпись выполняется локально на вашем компьютере.</p>
                 </div>
             </div>
+
             <div class="admin-card__body admin-form">
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>1</span><div><strong>Кому выдаём</strong><small>Installation ID копируется с конкретной установки Workspace Organizer.</small></div></div>
+                    <div class="operator-section__heading"><span>1</span><div><strong>Установка и клиент</strong><small>Installation ID копируется с той установки Workspace Organizer, для которой выпускается лицензия.</small></div></div>
                     <div class="admin-form-grid">
                         <label class="admin-form-grid__wide">Installation ID<input name="installation_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required></label>
                         <label>Клиент / организация<input name="customer" maxlength="160" placeholder="ООО Пример"></label>
-                        <label>License ID<input name="license_id" maxlength="128" placeholder="Оставьте пустым — ID создастся автоматически"></label>
+                        <label>License ID<input name="license_id" maxlength="128" value="{{ suggested_license_id }}" required></label>
                     </div>
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>2</span><div><strong>Что разрешено</strong><small>Эти параметры входят в подписанный токен и не могут быть изменены без нового выпуска.</small></div></div>
+                    <div class="operator-section__heading"><span>2</span><div><strong>Параметры лицензии</strong><small>Эти значения входят в подписанный wo1 token и не меняются без нового выпуска.</small></div></div>
                     <div class="admin-form-grid">
                         <label>Редакция
                             <select name="edition">
@@ -184,7 +186,7 @@
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>3</span><div><strong>Право на обновления</strong><small>Это серверные ограничения control plane; они не меняют локальную runtime-лицензию.</small></div></div>
+                    <div class="operator-section__heading"><span>3</span><div><strong>Доступ к обновлениям</strong><small>Это серверные ограничения control plane; они не изменяют сам локальный license token.</small></div></div>
                     <div class="admin-form-grid">
                         <label>Обновления доступны до, UTC<input type="datetime-local" name="updates_until"><small>Пусто = без ограничения по дате.</small></label>
                         <label>Максимальный version_code<input type="number" name="max_version" min="1" step="1" placeholder="Пусто = без ограничения"></label>
@@ -192,37 +194,54 @@
                 </div>
 
                 <div class="operator-section operator-section--security">
-                    <div class="operator-section__heading"><span>4</span><div><strong>Подпись</strong><small>Private key читается только во время этой операции; путь и содержимое не сохраняются.</small></div></div>
-                    {% if local_signing_enabled %}
-                    <div class="admin-form-grid">
-                        <label>Key ID
-                            <select name="key_id" required>{% for key_id in license_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}</select>
-                        </label>
-                        <label>Путь к private key<input name="private_key_path" required placeholder="{{ signing_key_root }}/prod-license-2026-01.license-secret"></label>
+                    <div class="operator-section__heading"><span>4</span><div><strong>Ключи на этом компьютере</strong><small>Вставьте флешку или укажите локальную папку. Web-сервер этот путь не получает.</small></div></div>
+
+                    <div class="local-signer-panel">
+                        <div class="admin-form-grid">
+                            <label>Код подключения local signer
+                                <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
+                            </label>
+                            <label>Папка с ключами на этом ПК
+                                <input id="operator-signer-directory" type="text" autocomplete="off" placeholder="E:\workspace-keys">
+                            </label>
+                            <label>License signing key
+                                <select id="operator-signer-key-id">
+                                    {% for key_id in license_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}
+                                </select>
+                            </label>
+                            <div class="local-signer-panel__action">
+                                <button class="btn secondary" id="operator-signer-scan" type="button">Проверить ключи</button>
+                            </div>
+                        </div>
+
+                        <div class="local-signer-status" id="operator-signer-status" data-state="idle">
+                            Запустите local signer на этом компьютере, вставьте код подключения и укажите папку с ключами.
+                        </div>
+
+                        <details class="local-signer-help">
+                            <summary>Как запустить local signer</summary>
+                            <p>На компьютере, где физически находится флешка/папка с private keys, запустите <code>tools/operator-signer/start.ps1</code> (Windows) или <code>tools/operator-signer/start.sh</code> (Linux/macOS). Он слушает только <code>127.0.0.1</code> и показывает временный код подключения.</p>
+                        </details>
                     </div>
-                    <p class="admin-form-note">Разрешены только файлы внутри <code>{{ signing_key_root }}</code>, без symlink, с правами 0600. Public half ключа должен совпасть с выбранным trust root.</p>
-                    {% else %}
-                    <div class="admin-callout admin-callout--warning">
-                        <strong>Локальная подпись выключена</strong>
-                        <p>Это безопасный режим по умолчанию. Для выпуска через эту форму включите <code>NOTES_LOCAL_SIGNING_ENABLED=true</code> и настройте отдельный <code>NOTES_SIGNING_KEY_ROOT</code>, либо используйте вкладку «Импорт готовой» после офлайн-подписи.</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
+
             <div class="admin-card__footer">
-                <button class="btn primary" type="submit" {% if not local_signing_enabled %}disabled{% endif %}>Подписать и выпустить</button>
+                <button class="btn primary" id="license-issue-submit" type="submit">Подписать на этом ПК и выпустить</button>
             </div>
         </form>
 
         <aside class="operator-help admin-card">
             <div class="admin-card__body">
-                <h3>Что получится после выпуска</h3>
+                <h3>Что происходит при выпуске</h3>
                 <ol class="operator-steps">
-                    <li><strong>wo1 token</strong><span>Устанавливается в самом Workspace Organizer.</span></li>
-                    <li><strong>Запись в реестре</strong><span>Появится здесь с параметрами лицензии.</span></li>
-                    <li><strong>Activation code</strong><span>Одноразовый код для получения credential updater.</span></li>
+                    <li><strong>Проверяем папку</strong><span>Local signer ищет Workspace Organizer keys и возвращает только public fingerprint.</span></li>
+                    <li><strong>Сверяем trust root</strong><span>Private key должен соответствовать production public key, который знает сайт.</span></li>
+                    <li><strong>Подписываем локально</strong><span>Private key остаётся на вашем ПК/флешке.</span></li>
+                    <li><strong>Регистрируем wo1 token</strong><span>На сервер отправляется только уже подписанная лицензия.</span></li>
+                    <li><strong>Выдаём activation code</strong><span>Отдельный одноразовый код для online updater.</span></li>
                 </ol>
-                <p class="admin-form-note">Private key на web-сервере ухудшает изоляцию signing boundary. Для production vendor-процесса предпочтительнее офлайн-подпись; local mode предназначен для контролируемого операторского сервера.</p>
+                <p class="admin-form-note">Браузер сам не имеет права читать <code>D:\</code> или флешку. Доступ к ОС выполняет только локальный helper на <code>127.0.0.1</code>.</p>
             </div>
         </aside>
     </section>
@@ -253,20 +272,90 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+window.operatorSignerConfig = {
+    url: {{ operator_signer_url|tojson }},
+    licenseTrustedKeys: {{ license_trusted_keys|tojson }},
+    updateTrustedKeys: {}
+};
+{% include 'dashboard/control_plane/signer.js' %}
+
 document.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-copy-target]');
-    if (!button) return;
-    const target = document.getElementById(button.dataset.copyTarget);
-    if (!target) return;
-    const value = target.value || target.textContent || '';
-    try {
-        await navigator.clipboard.writeText(value);
-        const original = button.textContent;
-        button.textContent = 'Скопировано';
-        window.setTimeout(() => { button.textContent = original; }, 1400);
-    } catch (_) {
-        target.select?.();
+    const copyButton = event.target.closest('[data-copy-target]');
+    if (copyButton) {
+        const target = document.getElementById(copyButton.dataset.copyTarget);
+        if (!target) return;
+        const value = target.value || target.textContent || '';
+        try {
+            await navigator.clipboard.writeText(value);
+            const original = copyButton.textContent;
+            copyButton.textContent = 'Скопировано';
+            window.setTimeout(() => { copyButton.textContent = original; }, 1400);
+        } catch (_) {
+            target.select?.();
+        }
+        return;
+    }
+
+    if (event.target.closest('#operator-signer-scan')) {
+        const keyId = document.getElementById('operator-signer-key-id').value;
+        try {
+            await OperatorSigner.scanAndMatch('license', keyId);
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
+        }
     }
 });
+
+const issueForm = document.getElementById('license-issue-form');
+if (issueForm) {
+    issueForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!issueForm.reportValidity()) return;
+
+        const submit = document.getElementById('license-issue-submit');
+        submit.disabled = true;
+        OperatorSigner.setStatus('Готовлю параметры лицензии…', 'working');
+
+        try {
+            const features = Array.from(
+                issueForm.querySelectorAll('input[name="features"]:checked')
+            ).map(input => input.value);
+            const extra = issueForm.elements.features_extra.value
+                .split(',')
+                .map(value => value.trim().toLowerCase())
+                .filter(Boolean);
+            for (const feature of extra) {
+                if (!features.includes(feature)) features.push(feature);
+            }
+
+            const token = await OperatorSigner.signLicense({
+                keyId: document.getElementById('operator-signer-key-id').value,
+                license: {
+                    installation_id: issueForm.elements.installation_id.value.trim().toLowerCase(),
+                    license_id: issueForm.elements.license_id.value.trim(),
+                    edition: issueForm.elements.edition.value,
+                    customer: issueForm.elements.customer.value.trim(),
+                    max_users: OperatorSigner.nullablePositiveInt(
+                        issueForm.elements.max_users.value,
+                        'max_users'
+                    ),
+                    not_before: OperatorSigner.utcTimestamp(issueForm.elements.not_before.value),
+                    expires_at: OperatorSigner.utcTimestamp(issueForm.elements.expires_at.value),
+                    features,
+                },
+            });
+
+            OperatorSigner.submitHidden(issueForm.action, {
+                _csrf_token: issueForm.elements._csrf_token.value,
+                signed_license: token,
+                updates_until: issueForm.elements.updates_until.value,
+                max_version: issueForm.elements.max_version.value,
+            });
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
+            submit.disabled = false;
+        }
+    });
+}
 </script>
 {% endblock %}
