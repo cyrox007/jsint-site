@@ -458,7 +458,10 @@ function signerLicensePayload(array $data): array
 
     $customer = trim((string) ($license['customer'] ?? ''));
     if ($customer !== '') {
-        if (mb_strlen($customer) > 160) {
+        $customerLength = function_exists('mb_strlen')
+            ? mb_strlen($customer)
+            : strlen($customer);
+        if ($customerLength > 160) {
             signerFail('Название клиента не должно превышать 160 символов.');
         }
         $payload['customer'] = $customer;
@@ -560,34 +563,32 @@ if ($method === 'POST' && $path === '/v1/sign-license') {
     $file = (string) ($data['file'] ?? '');
     $key = signerLoadKey($directory, $file);
 
-    try {
-        $keyId = signerRequireExpectedPublic($data, $key, 'license');
-        $payload = signerLicensePayload($data);
-        $json = json_encode(
-            $payload,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
-        );
-        $payloadEncoded = signerBase64UrlEncode($json);
-        $signed = 'wo1.' . $keyId . '.' . $payloadEncoded;
-        $signature = sodium_crypto_sign_detached($signed, $key['secret']);
-        $token = $signed . '.' . signerBase64UrlEncode($signature);
+    $keyId = signerRequireExpectedPublic($data, $key, 'license');
+    $payload = signerLicensePayload($data);
+    $json = json_encode(
+        $payload,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
+    );
+    $payloadEncoded = signerBase64UrlEncode($json);
+    $signed = 'wo1.' . $keyId . '.' . $payloadEncoded;
+    $signature = sodium_crypto_sign_detached($signed, $key['secret']);
+    $token = $signed . '.' . signerBase64UrlEncode($signature);
+    $publicEncoded = signerBase64UrlEncode($key['public']);
+    sodium_memzero($key['secret']);
 
-        signerRespond([
-            'status' => 'ok',
-            'token' => $token,
-            'key_id' => $keyId,
-            'public_key' => signerBase64UrlEncode($key['public']),
-            'summary' => [
-                'license_id' => $payload['license_id'],
-                'installation_id' => $payload['installation_id'],
-                'edition' => $payload['edition'],
-                'customer' => $payload['customer'] ?? null,
-                'expires_at' => $payload['expires_at'],
-            ],
-        ]);
-    } finally {
-        sodium_memzero($key['secret']);
-    }
+    signerRespond([
+        'status' => 'ok',
+        'token' => $token,
+        'key_id' => $keyId,
+        'public_key' => $publicEncoded,
+        'summary' => [
+            'license_id' => $payload['license_id'],
+            'installation_id' => $payload['installation_id'],
+            'edition' => $payload['edition'],
+            'customer' => $payload['customer'] ?? null,
+            'expires_at' => $payload['expires_at'],
+        ],
+    ]);
 }
 
 if ($method === 'POST' && $path === '/v1/sign-manifest') {
@@ -601,21 +602,20 @@ if ($method === 'POST' && $path === '/v1/sign-manifest') {
     signerValidateManifest($manifest);
 
     $key = signerLoadKey($directory, $file);
-    try {
-        $keyId = signerRequireExpectedPublic($data, $key, 'update');
-        $signature = sodium_crypto_sign_detached(
-            UPDATE_SIGNATURE_DOMAIN . $manifest,
-            $key['secret']
-        );
-        signerRespond([
-            'status' => 'ok',
-            'signature' => 'wou1.' . $keyId . '.' . signerBase64UrlEncode($signature),
-            'key_id' => $keyId,
-            'public_key' => signerBase64UrlEncode($key['public']),
-        ]);
-    } finally {
-        sodium_memzero($key['secret']);
-    }
+    $keyId = signerRequireExpectedPublic($data, $key, 'update');
+    $signature = sodium_crypto_sign_detached(
+        UPDATE_SIGNATURE_DOMAIN . $manifest,
+        $key['secret']
+    );
+    $publicEncoded = signerBase64UrlEncode($key['public']);
+    sodium_memzero($key['secret']);
+
+    signerRespond([
+        'status' => 'ok',
+        'signature' => 'wou1.' . $keyId . '.' . signerBase64UrlEncode($signature),
+        'key_id' => $keyId,
+        'public_key' => $publicEncoded,
+    ]);
 }
 
 signerFail('Endpoint локального signer не найден.', 'not_found', 404);
