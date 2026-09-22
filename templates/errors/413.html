@@ -1,0 +1,10 @@
+{% extends "public/^core/base.html" %}
+{% block title %}Слишком большой запрос | +УЛЬТРА{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:760px; padding-top:80px; padding-bottom:80px;">
+    <h1 style="font-size:clamp(2rem,6vw,4rem); margin-bottom:18px;">Запрос слишком большой</h1>
+    <p style="color:var(--muted);">Размер отправленных данных превышает разрешённый предел.</p>
+  </div>
+</section>
+{% endblock %}

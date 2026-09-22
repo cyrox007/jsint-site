@@ -1,28 +1,28 @@
 {% extends '/dashboard/^core/base.html' %}
 
 {% import '/dashboard/^elements/UI/Editor/index.html' as editor %}
-{% from '/dashboard/^elements/UI/Fields/index.html' import text_input, image_input %}
-{% from '/dashboard/^elements/UI/Buttons/index.html' import button %}
-
+{% from '/dashboard/^elements/UI/Fields/index.html' import text_input %}
 
 {% block title %}
     {{ 'Редактирование публикации' if publication else 'Новая публикация' }}
 {% endblock %}
 
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
 <form class="publication-editor" method="post">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
     <div class="page-title">
         <div>
             <h1>{{ 'Редактирование публикации' if publication else 'Создание публикации' }}</h1>
         </div>
-
-        <button class="btn primary">
-            Сохранить
-        </button>
+        <button type="submit" class="btn primary">Сохранить</button>
     </div>
-    <div class="editor-left">  
 
+    <div class="editor-left">
         <div class="card">
             {{ text_input(
                 name="title",
@@ -33,21 +33,13 @@
             {{ editor.Editor(
                 fieldName="content",
                 fieldId="publication-content",
-                labelText="Описание",
+                labelText="Содержание",
                 value=publication.content if publication else ''
             ) }}
-
         </div>
     </div>
 
     <aside class="editor-right">
-        <div class="card">
-            {{ image_input(
-                name="preview",
-                label="Изображение"
-            ) }}
-        </div>
-
         <div class="card">
             {{ text_input(
                 name="slug",
@@ -72,73 +64,69 @@
                 </option>
                 {% endfor %}
             </select>
-        
-            <label for="">Тип статьи</label>
+
+            <label for="source-type">Тип материала</label>
             <select name="source-type" id="source-type">
                 <option value="article" {% if publication and publication.source_type == 'article' %}selected{% endif %}>Статья</option>
-                <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчет</option>
+                <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчёт</option>
                 <option value="case" {% if publication and publication.source_type == 'case' %}selected{% endif %}>Кейс</option>
                 <option value="changelog" {% if publication and publication.source_type == 'changelog' %}selected{% endif %}>Changelog</option>
             </select>
         </div>
     </aside>
 </form>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const ruToEnMap = {
-            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
-            'е': 'e', 'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i',
-            'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
-            'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
-            'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch',
-            'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '',
-            'э': 'e', 'ю': 'yu', 'я': 'ya'
-        };
+document.addEventListener('DOMContentLoaded', () => {
+    const ruToEnMap = {
+        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i',
+        'й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t',
+        'у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y',
+        'ь':'','э':'e','ю':'yu','я':'ya'
+    };
 
-        function transliterate(text) {
-            return text.split('').map(char => {
-                const lower = char.toLowerCase();
-                return ruToEnMap[lower] || char;
-            }).join('');
+    const isNew = {{ 'true' if not publication else 'false' }};
+    const titleField = document.getElementById('title');
+    const slugInput = document.getElementById('slug');
+    const checkUrlTemplate = {{ url_for('admin.publication.check-slug', slug='__SLUG__')|tojson }};
+
+    function transliterate(text) {
+        return text.split('').map(char => ruToEnMap[char.toLowerCase()] ?? char).join('');
+    }
+
+    function normalizeSlug(text) {
+        return transliterate(text)
+            .toLowerCase()
+            .trim()
+            .replace(/[\s\u00A0]+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    async function checkSlug(slug) {
+        if (!slug) return;
+        const url = checkUrlTemplate.replace('__SLUG__', encodeURIComponent(slug));
+        try {
+            const response = await fetch(url, {credentials: 'same-origin'});
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.slug) slugInput.value = data.slug;
+        } catch (_error) {
+            // Сервер всё равно повторно валидирует slug при сохранении.
         }
+    }
 
-        const titleField = document.getElementById('title');
-        // ✅ Используем обычную функцию или получаем value через event.target
-        titleField.addEventListener('change', function(event) {
-            // Безопасно берём значение из event.target или this
-            let title = event.target.value.trim();
-
-            // Транслитерация и очистка
-            title = transliterate(title);
-            title = title.toLowerCase();
-            title = title.replace(/[\s\u00A0]+/g, '-');
-            title = title.replace(/[^a-z0-9\-]/g, '');
-            title = title.replace(/-+/g, '-');
-            title = title.replace(/^-+|-+$/g, '');
-
-            const slugInput = document.getElementById('slug');
-            slugInput.value = title || 'default-slug';
-
-            // 🚀 Вызываем проверку уникальности
-            checkSlug(slugInput.value);
+    if (isNew && titleField && slugInput) {
+        titleField.addEventListener('change', () => {
+            const slug = normalizeSlug(titleField.value) || 'material';
+            slugInput.value = slug;
+            checkSlug(slug);
         });
-
-        async function checkSlug(slug) {
-            if (!slug) return;
-            const url = '/x321/dashboard/publications/check-slug/' + encodeURIComponent(slug);
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                const slugInput = document.getElementById('slug');
-                
-                slugInput.value = data.slug;
-                 
-            } catch (error) {
-                console.error('❌ Ошибка проверки слага:', error);
-            }
-        }
-    });
+    }
+});
 </script>
-
 {% endblock %}

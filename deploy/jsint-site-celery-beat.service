@@ -1,0 +1,32 @@
+[Unit]
+Description=JSInteractive Celery Beat Scheduler
+After=network-online.target redis-server.service jsint-site-celery-worker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jsint-site
+Group=jsint-site
+WorkingDirectory=/opt/jsint-site/current
+EnvironmentFile=/etc/jsint-site.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app beat --loglevel=INFO --schedule=/var/lib/jsint-site/celery/celerybeat-schedule --pidfile=
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/jsint-site/celery
+
+[Install]
+WantedBy=multi-user.target

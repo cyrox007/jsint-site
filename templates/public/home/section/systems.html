@@ -18,7 +18,7 @@
 				<h3 style="font-size: 1.25rem; margin-bottom: 12px; font-weight: 600;">{{ article.title }}</h3>
 				<p
 					style="color: var(--muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px; flex-grow: 1;">
-					{{ article.content[:150] }}{% if article.content | length > 150 %}...{% endif %}
+					{{ article.content|striptags|truncate(150, true, '...') }}
 				</p>
 				<div class="project-stack" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
 					{% if article.category %}
@@ -32,9 +32,11 @@
 						{{ article.created_at.strftime('%d.%m.%Y') }}
 					</div>
 				</div>
+				{% if article.category %}
 				<a href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) }}" class="project-link">
 					Читать далее <span>→</span>
 				</a>
+				{% endif %}
 			</div>
 			{% endfor %}
 			{% else %}

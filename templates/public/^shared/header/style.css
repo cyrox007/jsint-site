@@ -112,3 +112,24 @@
 	border-color: rgba(56, 189, 248, .4);
 	background: rgba(255, 255, 255, .08);
 }
+
+
+@media (max-width: 760px) {
+    .navbar-inner {
+        height: 72px;
+        gap: 14px;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .logo-sub {
+        font-size: .62rem;
+    }
+
+    .nav-cta {
+        height: 40px;
+        padding: 0 14px;
+    }
+}

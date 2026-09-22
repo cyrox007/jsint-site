@@ -10,9 +10,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship, selectinload
 
 from database import Database
+from models.technology import Technology
 
 if TYPE_CHECKING:
-    from models.technology import Technology
     from models.categories import Category
     from models.users import User
 
@@ -36,11 +36,11 @@ class Publication(Database.Base):
 
     # Категория (для статей/кейсов)
     category_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), ForeignKey('categories.id'), nullable=True)
-    category = relationship("Category", lazy="selectin")
+    category = relationship("Category", back_populates="articles", lazy="selectin")
 
     # Автор
     author_id: Mapped[Optional[UUID]] = mapped_column(PG_UUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    author = relationship("User", lazy="selectin")
+    author = relationship("User", back_populates="articles", lazy="selectin")
 
     # Статус публикации
     is_published: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -159,8 +159,11 @@ class Publication(Database.Base):
             elif hasattr(pub, key) and key not in ['id', 'created_at', 'updated_at']:
                 setattr(pub, key, value)
 
-        if 'is_published' in kwargs and kwargs['is_published'] and not pub.published_at:
-            pub.published_at = datetime.now(timezone.utc)
+        if 'is_published' in kwargs:
+            if kwargs['is_published'] and not pub.published_at:
+                pub.published_at = datetime.now(timezone.utc)
+            elif not kwargs['is_published']:
+                pub.published_at = None
 
         session.add(pub)
         return pub

@@ -1,17 +1,13 @@
 {% extends '/dashboard/^core/base.html' %}
 
-{% block title %}Авторизация{% endblock %}
+{% block title %}Вход в панель | jsint cms{% endblock %}
 
 {% block content %}
-
 <div class="login-page">
-
-    <form class="login-form"
-          action="{{ url_for('auth.login') }}"
-          method="post">
+    <form class="login-form" action="{{ url_for('auth.login') }}" method="post" autocomplete="on">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
         <h1>Вход</h1>
-
         <p>Введите данные администратора</p>
 
         <div class="field">
@@ -21,6 +17,8 @@
                 id="email"
                 name="email"
                 placeholder="admin@example.com"
+                autocomplete="username"
+                maxlength="320"
                 required>
         </div>
 
@@ -31,15 +29,12 @@
                 id="password"
                 name="password"
                 placeholder="••••••••"
+                autocomplete="current-password"
+                maxlength="1024"
                 required>
         </div>
 
-        <button type="submit">
-            Войти
-        </button>
-
+        <button type="submit">Войти</button>
     </form>
-
 </div>
-
 {% endblock %}

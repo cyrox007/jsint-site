@@ -1,24 +1,18 @@
 <header class="navbar">
-	<div class="container">
-		<div class="navbar-inner">
-			<router-link :to="{name: 'home'}" class="logo">
-				<div class="logo-main">
-					+УЛЬТРА
-				</div>
-				<div class="logo-sub">
-					на базе jsinteractive
-				</div>
-			</router-link>
-			<nav class="nav-links">
-				<router-link :to="{ name: 'home', hash: '#systems' }">Системы</router-link>
-				<router-link :to="{name: 'home', hash: '#philosophy'}">Подход</router-link>
-				<router-link :to="{name: 'home', hash: '#about'}">О студии</router-link>
-			</nav>
-			<div class="nav-actions">
-				<a href="mailto:cyrox007@gmail.com" class="nav-cta">
-					Связаться
-				</a>
-			</div>
-		</div>
-	</div>
+    <div class="container">
+        <div class="navbar-inner">
+            <a href="{{ url_for('index') }}" class="logo">
+                <div class="logo-main">+УЛЬТРА</div>
+                <div class="logo-sub">на базе jsinteractive</div>
+            </a>
+            <nav class="nav-links" aria-label="Основная навигация">
+                <a href="{{ url_for('index') }}#systems">Системы</a>
+                <a href="{{ url_for('index') }}#philosophy">Подход</a>
+                <a href="{{ url_for('index') }}#about">О студии</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="mailto:cyrox007@gmail.com" class="nav-cta">Связаться</a>
+            </div>
+        </div>
+    </div>
 </header>

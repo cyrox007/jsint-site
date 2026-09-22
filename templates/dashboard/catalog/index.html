@@ -4,68 +4,69 @@
 
 {% block content %}
 <div class="page-header">
-	<div>
-		<h1>Категории</h1>
-		<p>Управление рубриками публикаций</p>
-	</div>
+    <div>
+        <h1>Категории</h1>
+        <p>Управление рубриками публикаций</p>
+    </div>
 </div>
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
-	<!-- Список категорий -->
-	<div class="card">
-		<h3 style="margin-bottom:16px; font-size:1rem;">Список категорий</h3>
-		{% if categories %}
-		<ul style="list-style:none; padding:0; margin:0;">
-			{% for cat in categories %}
-			<li
-				style="display:flex; justify-content:space-between; align-items:center; padding:8px 4px; border-bottom:1px solid var(--border);">
-				<span>
-					<strong>{{ cat.title }}</strong>
-					<br>
-					<small style="color:var(--muted);">{{ cat.slug }}</small>
-				</span>
-				<div style="display:flex; gap:6px;">
-					<a href="{{ url_for('admin.catalog.edit', cat_id=cat.id) }}" class="btn btn-small">✎</a>
-					<a href="{{ url_for('admin.catalog.delete', cat_id=cat.id) }}" class="btn btn-small danger"
-						onclick="return confirm('Удалить категорию «{{ cat.title }}»?')">✕</a>
-				</div>
-			</li>
-			{% endfor %}
-		</ul>
-		{% else %}
-		<p style="color:var(--muted);">Категорий пока нет.</p>
-		{% endif %}
-	</div>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:24px;">
+    <div class="card">
+        <h3 style="margin-bottom:16px; font-size:1rem;">Список категорий</h3>
+        {% if categories %}
+        <ul style="list-style:none; padding:0; margin:0;">
+            {% for cat in categories %}
+            <li style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 4px; border-bottom:1px solid var(--border);">
+                <span>
+                    <strong>{{ cat.title }}</strong><br>
+                    <small style="color:var(--muted);">{{ cat.slug }}</small>
+                </span>
+                <div style="display:flex; gap:6px;">
+                    <a href="{{ url_for('admin.catalog.edit', cat_id=cat.id) }}" class="btn btn-small" aria-label="Редактировать">✎</a>
+                    <form method="post"
+                          action="{{ url_for('admin.catalog.delete', cat_id=cat.id) }}"
+                          onsubmit="return confirm('Удалить категорию «{{ cat.title|e }}»?')"
+                          style="display:inline;">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-small danger" aria-label="Удалить">✕</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color:var(--muted);">Категорий пока нет.</p>
+        {% endif %}
+    </div>
 
-	<!-- Форма создания категории -->
-	<div class="card">
-		<h3 style="margin-bottom:16px; font-size:1rem;">Создать категорию</h3>
-		<form method="post" action="{{ url_for('admin.catalog.index') }}">
-			<div class="form-field">
-				<label for="title">Название</label>
-				<input type="text" name="title" id="title" required>
-			</div>
-			<div class="form-field">
-				<label for="slug">URL</label>
-				<input type="text" name="slug" id="slug" required>
-				<small>Латиница, без пробелов, через дефис</small>
-			</div>
-			<div class="form-field">
-				<label for="description">Описание</label>
-				<textarea name="description" id="description" rows="2"></textarea>
-			</div>
-			<button type="submit" class="btn primary">Сохранить</button>
-		</form>
-	</div>
+    <div class="card">
+        <h3 style="margin-bottom:16px; font-size:1rem;">Создать категорию</h3>
+        <form method="post" action="{{ url_for('admin.catalog.index') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="form-field">
+                <label for="title">Название</label>
+                <input type="text" name="title" id="title" maxlength="50" required>
+            </div>
+            <div class="form-field">
+                <label for="slug">URL</label>
+                <input type="text" name="slug" id="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required>
+                <small>Латиница и цифры, слова разделяются дефисом</small>
+            </div>
+            <div class="form-field">
+                <label for="description">Описание</label>
+                <textarea name="description" id="description" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn primary">Сохранить</button>
+        </form>
+    </div>
 </div>
 
-<!-- Счётчик публикаций по категориям -->
 <div class="card" style="margin-top:20px;">
-	<h3 style="margin-bottom:12px; font-size:0.9rem; color:var(--muted);">Статистика</h3>
-	<div style="display:flex; gap:20px; flex-wrap:wrap;">
-		<div><strong>Всего публикаций:</strong> {{ total_publications }}</div>
-		<div><strong>Опубликовано:</strong> {{ published_count }}</div>
-		<div><strong>Черновиков:</strong> {{ draft_count }}</div>
-	</div>
+    <h3 style="margin-bottom:12px; font-size:0.9rem; color:var(--muted);">Статистика</h3>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+        <div><strong>Всего публикаций:</strong> {{ total_publications }}</div>
+        <div><strong>Опубликовано:</strong> {{ published_count }}</div>
+        <div><strong>Черновиков:</strong> {{ draft_count }}</div>
+    </div>
 </div>
 {% endblock %}

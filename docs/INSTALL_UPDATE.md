@@ -1,0 +1,368 @@
+# Установщик и обновлятор jsint-site
+
+Стартовая production-линия сайта использует release-layout вместо изменения файлов «на месте».
+
+## Layout
+
+После установки:
+
+```text
+/opt/jsint-site/
+├── repository/                 # deployment Git repository
+├── releases/
+│   └── 0.1.0-<sha>-<timestamp>/
+│       ├── .venv/
+│       ├── .release-commit
+│       ├── .release-version
+│       └── application files
+├── current -> releases/...
+└── .ssh/                       # read-only Git deploy key, если используется
+
+/etc/jsint-site.env             # production secrets/config
+/var/backups/jsint-site/        # PostgreSQL rollback dumps
+```
+
+Gunicorn и Nginx всегда используют `/opt/jsint-site/current`. Новый release готовится рядом и становится активным только атомарной заменой symlink.
+
+## Preflight сервера
+
+Перед первой установкой ничего не меняйте на VPS. Из checkout проекта выполните:
+
+```bash
+bash deploy/server-preflight.sh --domain=jsinteractive.ru
+```
+
+Скрипт только читает состояние и показывает:
+
+- ОС и ресурсы;
+- DNS resolution;
+- listening ports;
+- существующие Nginx `server_name jsinteractive.ru`;
+- PostgreSQL/Redis;
+- старые jsint-site systemd services;
+- существующие deployment paths.
+
+Если хостер уже создал Nginx virtual host для `jsinteractive.ru`, сначала сверяем его. При необходимости installer запускается с `--skip-nginx`, а существующий reverse proxy направляется на `127.0.0.1:18080`.
+
+## Первая установка
+
+Установщик рассчитан на Ubuntu/Debian и запускается только для чистой установки.
+
+### Private GitHub repository
+
+Рекомендуется отдельный **read-only deploy key**.
+
+Создайте ключ на операторской машине/сервере:
+
+```bash
+ssh-keygen -t ed25519 -f /root/jsint-site-deploy-key -N ''
+cat /root/jsint-site-deploy-key.pub
+```
+
+Добавьте public half в GitHub:
+
+```text
+Repository → Settings → Deploy keys → Add deploy key
+```
+
+Write access для deployment key не нужен.
+
+Private key не коммитится в репозиторий.
+
+### Внешний PostgreSQL
+
+Если production БД уже создана отдельно от application VPS, installer не должен создавать локальные PostgreSQL role/database. Используйте `--existing-db` и передайте параметры подключения. Пароль храните в отдельном root-only файле, а не в history shell:
+
+```bash
+install -m 0600 /dev/null /root/jsint-db-password
+read -s -p "DB password: " DB_PASSWORD; echo
+printf '%s' "$DB_PASSWORD" > /root/jsint-db-password
+unset DB_PASSWORD
+```
+
+Пример запуска:
+
+```bash
+sudo bash deploy/install.sh \
+  --domain=jsinteractive.ru \
+  --www-domain=www.jsinteractive.ru \
+  --admin-email=you@example.com \
+  --deploy-key=/root/jsint-site-deploy-key \
+  --source-repo="$PWD" \
+  --ref=release/production-readiness \
+  --existing-db \
+  --db-host=5.129.197.37 \
+  --db-port=5432 \
+  --db-name=jsint_db \
+  --db-user=gen_user \
+  --db-sslmode=prefer \
+  --db-password-file=/root/jsint-db-password \
+  --skip-nginx
+```
+
+Перед миграциями installer выполняет `SELECT 1` к указанной БД. Updater умеет делать `pg_dump` и rollback через тот же внешний PostgreSQL connection.
+
+### Запуск
+
+Из доверенного checkout нужной версии:
+
+```bash
+sudo bash deploy/install.sh \
+  --domain=jsinteractive.ru \
+  --admin-email=you@example.com \
+  --deploy-key=/root/jsint-site-deploy-key \
+  --source-repo="$PWD" \
+  --ref=v0.1.0 \
+  --certbot-email=you@example.com
+```
+
+Если `--source-repo` не передан, installer клонирует `git@github.com:cyrox007/jsint-site.git` от service account.
+
+Installer:
+
+1. ставит системные packages;
+2. создаёт отдельные Unix group/user `jsint-site`;
+3. создаёт PostgreSQL role/database;
+4. генерирует случайные DB password и `SECRET_KEY`;
+5. сохраняет secrets только в `/etc/jsint-site.env`;
+6. создаёт deployment repository;
+7. собирает immutable release и отдельный venv;
+8. выполняет Alembic migrations;
+9. запускает unit/HTTP smoke tests;
+10. запускает production healthcheck;
+11. атомарно создаёт `current`;
+12. устанавливает systemd service;
+13. создаёт Nginx config;
+14. интерактивно создаёт первого administrator;
+15. при `--certbot-email` выпускает TLS certificate.
+
+Installer не перезаписывает существующую installation. Если уже существуют `current` или `/etc/jsint-site.env`, он прекращает работу и предлагает updater.
+
+## Проверка
+
+После установки:
+
+```bash
+curl -fsS https://jsinteractive.ru/healthz
+```
+
+Ответ содержит текущую версию:
+
+```json
+{
+  "status": "ok",
+  "version": "0.1.0",
+  "checks": {
+    "database": true,
+    "redis": true
+  }
+}
+```
+
+CLI:
+
+```bash
+sudo -H -u jsint-site /bin/bash -c '
+  set -a
+  source /etc/jsint-site.env
+  set +a
+  cd /opt/jsint-site/current
+  .venv/bin/python manage.py health
+'
+```
+
+## Выпуск следующей версии
+
+Перед production update:
+
+1. увеличьте `VERSION`, например `0.1.0 -> 0.1.1`;
+2. прогоните CI;
+3. создайте immutable Git tag, например `v0.1.1`;
+4. обновляйте production именно на tag.
+
+Updater по умолчанию не разрешает same-version release или downgrade.
+
+## Обновление
+
+```bash
+sudo bash /opt/jsint-site/current/deploy/update.sh \
+  --yes \
+  --ref=v0.1.1
+```
+
+Можно хранить последние пять release-каталогов:
+
+```bash
+sudo bash /opt/jsint-site/current/deploy/update.sh \
+  --yes \
+  --ref=v0.1.1 \
+  --keep-releases=5
+```
+
+### Что делает updater
+
+До destructive boundary:
+
+```text
+Git fetch
+  -> resolve exact commit
+  -> проверить VERSION > installed VERSION
+  -> подготовить candidate release
+  -> создать candidate venv
+  -> compileall
+  -> PostgreSQL backup
+```
+
+После backup:
+
+```text
+stop Gunicorn
+  -> Alembic migrations
+  -> candidate unit/HTTP tests
+  -> candidate production healthcheck
+  -> atomic current switch
+  -> start Gunicorn
+  -> HTTP /healthz
+```
+
+PostgreSQL dump сохраняется в:
+
+```text
+/var/backups/jsint-site/
+```
+
+Он не удаляется автоматически после успешного update.
+
+## Автоматический rollback
+
+Если после начала migrations происходит ошибка:
+
+```text
+stop
+  -> вернуть previous current symlink
+  -> пересоздать PostgreSQL database
+  -> восстановить pre-update dump
+  -> запустить previous release
+  -> проверить /healthz
+```
+
+Restore БД **не начинается**, пока updater не подтвердил, что application service остановлен.
+
+Если rollback healthcheck не проходит, updater завершает работу с critical status и сохраняет backup для ручного recovery.
+
+## Блокировка параллельных операций
+
+Install/update сериализуются через:
+
+```text
+/run/lock/jsint-site-update.lock
+```
+
+Два updater process одновременно не выполняются.
+
+## Обновление private repository
+
+`git fetch` выполняется от Unix account `jsint-site`, а не от root. Поэтому read-only deploy key должен оставаться доступным:
+
+```text
+/opt/jsint-site/.ssh/id_ed25519
+```
+
+Private deployment key даёт только read-доступ к source repository. Это **не** ключ подписи обновлений Workspace Organizer и не должен с ним пересекаться.
+
+## Что updater намеренно не делает
+
+- не меняет production secrets;
+- не создаёт нового admin;
+- не удаляет PostgreSQL backups;
+- не выполняет blind `alembic downgrade`;
+- не хранит GitHub personal access token;
+- не копирует файлы поверх live release;
+- не обновляет Notes Update Service — это отдельное приложение.
+
+## Ручная диагностика
+
+Текущий release:
+
+```bash
+readlink -f /opt/jsint-site/current
+cat /opt/jsint-site/current/.release-version
+cat /opt/jsint-site/current/.release-commit
+```
+
+Service:
+
+```bash
+systemctl status jsint-site
+journalctl -u jsint-site -n 200 --no-pager
+```
+
+Nginx:
+
+```bash
+nginx -t
+journalctl -u nginx -n 100 --no-pager
+```
+
+PostgreSQL backups:
+
+```bash
+ls -lh /var/backups/jsint-site/
+```
+
+
+## Сервисы production runtime
+
+После установки должны быть активны:
+
+```text
+nginx.service
+postgresql.service
+redis-server.service
+jsint-site.service
+jsint-site-celery-worker.service
+jsint-site-celery-beat.service
+certbot.timer            # если TLS выпускается через Certbot
+```
+
+Проверка:
+
+```bash
+systemctl status jsint-site --no-pager
+systemctl status jsint-site-celery-worker --no-pager
+systemctl status jsint-site-celery-beat --no-pager
+systemctl status postgresql --no-pager
+systemctl status redis-server --no-pager
+systemctl status nginx --no-pager
+systemctl status certbot.timer --no-pager
+```
+
+Логи:
+
+```bash
+journalctl -u jsint-site -n 100 --no-pager
+journalctl -u jsint-site-celery-worker -n 100 --no-pager
+journalctl -u jsint-site-celery-beat -n 100 --no-pager
+```
+
+Celery использует отдельные logical Redis databases:
+
+```env
+REDIS_URL=redis://127.0.0.1:6379/0
+CELERY_BROKER_URL=redis://127.0.0.1:6379/1
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2
+```
+
+Beat каждые 30 секунд ставит системную heartbeat-задачу. Worker выполняет её и пишет состояние в Redis. Проверка всей цепочки:
+
+```bash
+sudo -H -u jsint-site /bin/bash -c '
+  set -a
+  source /etc/jsint-site.env
+  set +a
+  cd /opt/jsint-site/current
+  .venv/bin/python manage.py background-health --fresh --expect-version=0.1.0 --wait=75
+'
+```
+
+Эта задача служебная. Бизнес-задачи мониторинга, лицензий и релизов будут добавляться поверх уже работающего Worker/Beat.

@@ -1,99 +1,70 @@
-import os
-from flask import render_template, request, flash, redirect, url_for, session
-from flask.views import MethodView
+from __future__ import annotations
 
+from flask import flash, redirect, render_template, request, session, url_for
+from flask.views import MethodView
 from sqlalchemy.orm import Session
-from werkzeug.security import check_password_hash
-from werkzeug.utils import secure_filename
 
 from components.auth.decorator import login_required, with_db_session
+from components.auth.rate_limit import LoginRateLimiter
+from components.security.csrf import rotate_csrf_token
 from models.users import User
-from database import Database
 from settings import config
 from utils.hash_password import verify_password
-
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 class LoginPage(MethodView):
     def get(self):
-        if session.get('user_id'):
-            return redirect(url_for('admin.publication.index'))
-        return render_template('dashboard/auth/index.html')
+        if session.get("user_id"):
+            return redirect(url_for("admin.index"))
+        return render_template("dashboard/auth/index.html")
 
     @with_db_session
     def post(self, db_session: Session):
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+
+        if not email or len(email) > 320 or not password or len(password) > 1024:
+            flash("Неправильный логин и/или пароль", "error")
+            return redirect(url_for("auth.login"))
+
+        try:
+            if LoginRateLimiter.blocked(email):
+                flash("Слишком много попыток входа. Повторите позже.", "error")
+                return redirect(url_for("auth.login"))
+        except RuntimeError:
+            flash("Вход временно недоступен. Повторите позже.", "error")
+            return redirect(url_for("auth.login"))
 
         user = db_session.query(User).filter(User.email == email).first()
-        if not user:
-            flash('Неправильный логин и/или пароль', 'error')
-            return redirect(url_for('auth.login'))
-
-        if verify_password(password, user.hash_password) is False: 
-            flash('Неправильный логин и/или пароль', 'error')
-            return redirect(url_for('auth.login'))
-        
-        session['login'] = user.email
-        session['user_id'] = user.id
-        return redirect(url_for('admin.publication.index'))
-
-
-class RegisterPage(MethodView):
-    def get(self):
-        return render_template('auth/register.html')
-
-    def allowed_file(filename):
-        return '.' in filename and \
-            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-    def post(self):
-        db_session = Database.connect_database()
-        
-        username = request.form.get('username')
-        password = request.form.get('password')
-        first_name = request.form.get('first-name')
-        surname = request.form.get('surname')
-        age = request.form.get('age')
-        avatar = request.files['avatar']
-        
-        if User.login(db_session, username) is not None:
-            flash('Пользователь с таким логином уже зарегестрирован')
-            return render_template('auth/register.html')
-        
-        if avatar.filename == '':
-            avatarPath = 'uploads/us_avatars/user_default.jpg'
-        else:
-            filename = secure_filename(avatar.filename)
-            avatarPath = config.AVATAR_DIR+filename
-            avatar.save(os.path.join(config.FULL_AVATARS_PATH, filename))
-
-        new_user = User.registering_new_user(
-                db_session=db_session, 
-                login=username, 
-                password=password
-            )
-        
-        getUser = User.login(db_session, new_user.username)
-        update_profile = Profile.insert_profile(
-            db_session=db_session,
-            user_id=getUser.id,
-            first_name=first_name,
-            surname=surname,
-            age=age,
-            avatar=avatarPath
+        valid = (
+            user is not None
+            and config.is_admin_email(user.email)
+            and verify_password(password, user.hash_password)
         )
-        
-        if new_user is not None:
-            session['login'] = getUser.username
-            return redirect(url_for('index'))
 
-        
+        if not valid:
+            try:
+                LoginRateLimiter.record_failure(email)
+            except RuntimeError:
+                flash("Вход временно недоступен. Повторите позже.", "error")
+                return redirect(url_for("auth.login"))
+
+            flash("Неправильный логин и/или пароль", "error")
+            return redirect(url_for("auth.login"))
+
+        LoginRateLimiter.clear(email)
+
+        session.clear()
+        rotate_csrf_token()
+        session["login"] = user.email
+        session["user_id"] = str(user.id)
+        session.permanent = True
+
+        return redirect(url_for("admin.publication.index"))
 
 
 class LogoutUser(MethodView):
     @login_required
-    def get(self):
+    def post(self):
         session.clear()
-        return redirect(url_for('login'))
+        return redirect(url_for("auth.login"))
