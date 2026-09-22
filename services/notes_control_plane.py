@@ -561,9 +561,12 @@ class NotesControlPlane:
     @staticmethod
     def store_release_upload(upload: Any) -> dict[str, Any]:
         original_name = str(getattr(upload, "filename", "") or "").strip()
-        filename = secure_filename(original_name)
-        if not filename or not filename.lower().endswith(".zip"):
+        if not original_name or Path(original_name).suffix.lower() != ".zip":
             raise ControlPlaneError("Выберите ZIP-архив релиза")
+
+        filename = secure_filename(Path(original_name).name)
+        if not filename.lower().endswith(".zip"):
+            filename = f"workspace-organizer-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.zip"
 
         root = _release_storage_root()
         max_bytes = min(config.NOTES_RELEASE_UPLOAD_MAX_BYTES, _MAX_PACKAGE_BYTES)
