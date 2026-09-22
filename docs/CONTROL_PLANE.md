@@ -6,80 +6,272 @@
 
 - публичный сайт: `https://jsinteractive.ru/`;
 - админка: `https://jsinteractive.ru/<ADMIN_ROUTE_PREFIX>/`;
-- machine API: `https://jsinteractive.ru/api/notes/v1/`.
+- machine API: `https://jsinteractive.ru/api/notes/v1/`;
+- локальный signer оператора: `http://127.0.0.1:17843/v1`.
 
-## Модель лицензии: что хранится в БД
+## Криптографическая граница
 
-В реестре лицензий хранится не private key, а уже подписанный `wo1...` token и его извлечённые параметры:
+Private license/update keys **не должны находиться на web-сервере**.
 
-- `installation_id` — конкретная установка Workspace Organizer;
-- `license_id` — операторский идентификатор лицензии;
+Операторская схема устроена так:
+
+```text
+браузер на ПК оператора
+        │
+        ├── HTTPS ───────────────► jsinteractive.ru
+        │                         формы, БД, ZIP, manifest, verify
+        │
+        └── HTTP loopback ───────► 127.0.0.1:17843
+                                  чтение флешки/локальной папки,
+                                  Ed25519 signing
+```
+
+Web-сервер знает только public trust roots из `config/notes_trust.py`.
+
+Браузер по правилам безопасности не может сам открыть произвольный
+`D:\...`, `E:\...` или каталог флешки. Поэтому на компьютере оператора
+запускается небольшой local signer из `tools/operator-signer/`.
+
+Путь к папке с ключами, pairing token и содержимое private key не отправляются
+в серверную форму и не сохраняются в PostgreSQL.
+
+## Local Operator Signer
+
+### Запуск в Windows
+
+Если нужный PHP находится в `PATH`:
+
+```powershell
+cd tools\operator-signer
+.\start.ps1
+```
+
+Если используется конкретный PHP, например из OSPanel:
+
+```powershell
+.\start.ps1 -Php "D:\path\to\php.exe"
+```
+
+Signer выводит временный код подключения и начинает слушать только:
+
+```text
+http://127.0.0.1:17843
+```
+
+По умолчанию запросы принимает только от страницы:
+
+```text
+https://jsinteractive.ru
+```
+
+### Как сайт находит ключ
+
+Во вкладке «Лицензии → Выпустить» оператор вводит:
+
+1. временный код подключения signer;
+2. путь к локальной папке, например `E:\workspace-keys`;
+3. нажимает «Проверить ключи».
+
+Браузер отправляет этот путь **на `127.0.0.1`**, а не на VPS.
+
+Signer просматривает только выбранную папку, распознаёт два штатных формата:
+
+```text
+wo-ed25519-secret-v1:<base64url 64-byte Ed25519 secret>
+wo-update-ed25519-secret-v1:<base64url 64-byte Ed25519 secret>
+```
+
+и возвращает в браузер только:
+
+- тип ключа;
+- имя файла;
+- public key;
+- короткий fingerprint.
+
+Админка сопоставляет public key с production trust root. Если нужного ключа нет,
+кнопка выпуска не приводит к серверной регистрации.
+
+### Защита local signer
+
+Signer:
+
+- принимает соединения только с `127.0.0.1/::1`;
+- проверяет точный browser Origin;
+- требует случайный pairing token, созданный при каждом запуске;
+- не имеет endpoint для чтения private key;
+- не имеет endpoint для подписи произвольных bytes;
+- умеет только:
+  - сканировать выбранную папку;
+  - выпускать структурированный Workspace Organizer `wo1...` token;
+  - подписывать валидный Workspace Organizer update manifest;
+- перед подписью сверяет derived public key с public trust root, указанным
+  админкой;
+- очищает рабочую переменную secret key через `sodium_memzero`.
+
+После окончания операторской операции signer следует остановить.
+
+## Реестр лицензий
+
+В PostgreSQL хранятся:
+
+- `installation_id`;
+- `license_id`;
+- уже подписанный `wo1...` token;
 - `customer`, `edition`, `max_users`, `features`;
-- сроки локальной лицензии;
-- отдельные ограничения доступа к online-обновлениям: `updates_until` и `max_version`;
-- хеш одноразового activation code или хеш download credential;
-- время последней связи клиента с control plane.
+- срок действия лицензии;
+- ограничения доступа к обновлениям: `updates_until`, `max_version`;
+- SHA-256 одноразового activation code или download credential;
+- состояние последней связи клиента.
 
-## Операторские вкладки лицензий
+Private key и локальный путь к нему в БД отсутствуют.
 
-### Реестр
+## Выпуск лицензии
 
-Показывает все лицензии, которые уже записаны в PostgreSQL. Для каждой установки отдельно отображаются:
+Админка → «Лицензии → Выпустить».
 
-- административный статус `active/revoked`;
-- срок самой лицензии;
-- право на обновления;
-- активирован ли updater;
-- `last seen`, последняя операция, IP и сообщённая версия клиента;
-- features и лимит пользователей.
+Оператор задаёт:
 
-Presence — это телеметрия, а не удалённая проверка работоспособности. Сервер не может надёжно «пинговать» установку за NAT или в закрытой сети. Статус строится по последнему исходящему запросу клиента:
+- Installation ID;
+- клиента;
+- License ID;
+- edition;
+- лимит пользователей;
+- features;
+- дату начала;
+- срок лицензии;
+- срок доступа к обновлениям;
+- максимальный разрешённый `version_code`.
+
+Далее:
+
+1. оператор подключает local signer;
+2. выбирает папку на своём ПК/флешке;
+3. сайт сверяет найденный ключ с public trust root;
+4. параметры лицензии передаются напрямую из браузера в local signer;
+5. signer строит и подписывает `wo1...`;
+6. только готовый `wo1...` отправляется в `jsinteractive.ru`;
+7. сервер повторно проверяет Ed25519 signature и записывает лицензию в БД;
+8. сервер показывает одноразовый activation code для updater.
+
+То есть результат состоит из двух разных сущностей:
+
+- `wo1...` — лицензия самого Workspace Organizer;
+- activation code — одноразовый код для получения online-update credential.
+
+### Импорт готовой лицензии
+
+Вкладка «Импорт готовой» остаётся для полностью офлайн-процесса. Можно
+подписать лицензию штатным tooling Workspace Organizer на отдельной машине и
+вставить уже готовый `wo1...`.
+
+## Presence / last seen
+
+Control plane не пытается входящим соединением «пинговать» клиентскую
+установку: за NAT или в закрытой сети это ненадёжно.
+
+Статус строится по последнему исходящему запросу клиента:
 
 - «На связи» — контакт не старше 15 минут;
 - «Недавно» — контакт за последние 24 часа;
 - «Нет связи» — контакта не было более суток;
-- «Нет данных» — клиент ещё ни разу не обращался к control plane.
+- «Нет данных» — клиент ещё не связывался с control plane.
 
-Контакт обновляется при activation, обращении к feed/manifest/signature/ZIP и через `POST /api/notes/v1/heartbeat`.
+Last seen обновляется при:
 
-### Выпустить
+- activation;
+- heartbeat;
+- запросе feed;
+- manifest;
+- signature;
+- ZIP.
 
-Оператор вводит обычные поля: installation ID, клиента, тариф, лимит пользователей, features и сроки.
-
-По умолчанию local signing выключен. Это сохраняет исходную security boundary: private keys остаются офлайн.
-
-Если оператор осознанно включает:
-
-```env
-NOTES_LOCAL_SIGNING_ENABLED=true
-NOTES_SIGNING_KEY_ROOT=/var/lib/jsint-site/signing
-```
-
-то в форме можно указать путь к private key внутри `NOTES_SIGNING_KEY_ROOT`.
-
-Ограничения local signing:
-
-1. путь не сохраняется в БД и `.env`;
-2. разрешены только regular files внутри отдельного signing root;
-3. symlink запрещён;
-4. файл должен иметь права 0600;
-5. формат должен совпадать со штатным Notes tooling;
-6. derived public key обязан совпасть с выбранным public trust root.
-
-Поддерживаемый license-key format:
+Machine endpoint:
 
 ```text
-wo-ed25519-secret-v1:<base64url 64-byte Ed25519 secret>
+POST /api/notes/v1/heartbeat
 ```
 
-После выпуска оператор получает две разные сущности:
+Он использует те же update credentials:
 
-1. `wo1...` — лицензия самого Workspace Organizer;
-2. одноразовый activation code — выдача credential для online updater.
+```text
+Authorization: Bearer <64hex credential>
+X-Notes-Installation: <installation UUID>
+```
 
-### Импорт готовой
+«Нет связи» не означает, что offline/закрытая установка неисправна.
 
-Если signing keys остаются на отдельной offline-машине, лицензия выпускается штатным Notes tooling, а в админку вставляется готовый `wo1...`.
+## Релизы
+
+### Реестр
+
+Показывает:
+
+- version;
+- version_code;
+- channel;
+- source commit;
+- минимальный source version_code;
+- PHP requirement;
+- signing key;
+- ZIP;
+- SHA-256;
+- время публикации;
+- active/inactive.
+
+Релиз можно снять с feed без удаления записи.
+
+### Подготовка и публикация
+
+Оператор вводит на сайте:
+
+- абсолютный путь к ZIP внутри `NOTES_RELEASE_STORAGE_PATH`;
+- version;
+- version_code;
+- channel;
+- source commit;
+- min_source_version_code;
+- requires_php.
+
+Сервер:
+
+1. проверяет ZIP;
+2. считает размер и SHA-256;
+3. строит exact update manifest;
+4. возвращает manifest в браузер.
+
+Далее браузер передаёт exact manifest в local signer на компьютере оператора.
+Local signer подписывает его update private key и возвращает только
+`wou1...` signature.
+
+После этого браузер отправляет на сервер:
+
+- exact manifest;
+- готовую `wou1...` signature;
+- путь к уже проверенному ZIP на сервере.
+
+Control plane повторно проверяет signature, имя ZIP, размер и SHA-256 и только
+после этого публикует release в feed.
+
+### Расширенный импорт
+
+Если local signer не используется, exact manifest можно подписать на отдельной
+offline-машине и импортировать через вкладку «Расширенный импорт».
+
+## Release storage
+
+ZIP хранится вне application tree:
+
+```text
+/var/lib/jsint-site/notes-releases
+```
+
+Пример:
+
+```bash
+sudo install -o root -g jsint-site -m 0640 \
+  ./workspace-organizer-v1.0.2.zip \
+  /var/lib/jsint-site/notes-releases/workspace-organizer-v1.0.2.zip
+```
 
 ## Активация online updater
 
@@ -93,96 +285,13 @@ php bin/update_activate.php \
   --credentials-out=/private/update-access.json
 ```
 
-Machine API:
+После активации:
 
-- `POST /api/notes/v1/activate`;
-- `POST /api/notes/v1/heartbeat`;
-- `GET /api/notes/v1/{alpha|beta|stable}/feed.json`;
-- manifest/signature/ZIP в том же канале.
-
-Artifact и heartbeat requests требуют:
-
-```text
-Authorization: Bearer <64hex credential>
-X-Notes-Installation: <installation UUID>
+```env
+UPDATE_ACCESS_MODE=online
+UPDATE_CREDENTIALS_FILE=/private/update-access.json
+UPDATE_FEED_URL=https://jsinteractive.ru/api/notes/v1/stable/feed.json
 ```
-
-## Операторские вкладки релизов
-
-### Реестр
-
-Показывает опубликованные версии, channel, version_code, source commit, минимальную исходную версию, PHP requirement, signing key, ZIP и SHA-256.
-
-Релиз можно временно снять с feed без удаления записи.
-
-### Опубликовать
-
-Обычный оператор больше не собирает manifest вручную. Он указывает:
-
-- путь к ZIP внутри `NOTES_RELEASE_STORAGE_PATH`;
-- человекочитаемую версию;
-- монотонно растущий `version_code`;
-- канал `alpha/beta/stable`;
-- `source_commit` — полный 40-символьный Git SHA;
-- `min_source_version_code` — минимальная версия, с которой разрешён прямой переход;
-- `requires_php`.
-
-Control plane автоматически:
-
-1. проверяет ZIP;
-2. считает размер и SHA-256;
-3. строит exact update manifest;
-4. подписывает его локально, если local signing включён, либо показывает manifest для offline signing;
-5. повторно проверяет signature штатным verifier;
-6. регистрирует release и включает его в feed.
-
-Update-key format:
-
-```text
-wo-update-ed25519-secret-v1:<base64url 64-byte Ed25519 secret>
-```
-
-### Расширенный импорт
-
-Сохраняет старый низкоуровневый workflow: exact manifest JSON + `wou1...` signature + путь к ZIP. Нужен для полностью офлайн-signing ceremony.
-
-## Release storage
-
-ZIP хранится вне application tree:
-
-```text
-/var/lib/jsint-site/notes-releases
-```
-
-Пример размещения:
-
-```bash
-sudo install -o root -g jsint-site -m 0640 \
-  ./workspace-organizer-v1.0.2.zip \
-  /var/lib/jsint-site/notes-releases/workspace-organizer-v1.0.2.zip
-```
-
-## Local signing: подготовка каталога
-
-Local signing — опциональное ослабление исходной offline boundary. Включайте его только на контролируемом vendor-сервере.
-
-Пример:
-
-```bash
-sudo install -d -o jsint-site -g jsint-site -m 0700 /var/lib/jsint-site/signing
-sudo install -o jsint-site -g jsint-site -m 0600 \
-  /secure/source/prod-license-2026-01.license-secret \
-  /var/lib/jsint-site/signing/prod-license-2026-01.license-secret
-```
-
-Аналогично размещается update signing key. Не храните signing root внутри Git checkout или release storage.
-
-## Healthcheck
-
-- общий: `GET /healthz`;
-- control plane: `GET /api/notes/v1/health`.
-
-Health дополнительно сообщает, включён ли local signing и существует ли signing root.
 
 ## Production environment
 
@@ -192,7 +301,18 @@ NOTES_UPDATE_API_PREFIX=/api/notes/v1
 NOTES_UPDATE_BASE_URL=https://jsinteractive.ru/api/notes/v1/
 NOTES_RELEASE_STORAGE_PATH=/var/lib/jsint-site/notes-releases
 
-# Безопасный default:
-NOTES_LOCAL_SIGNING_ENABLED=false
-NOTES_SIGNING_KEY_ROOT=/var/lib/jsint-site/signing
+# Этот URL открывает браузер оператора, поэтому он обязан указывать только
+# на loopback текущего компьютера.
+NOTES_OPERATOR_SIGNER_URL=http://127.0.0.1:17843/v1
 ```
+
+Private signing paths в production env отсутствуют.
+
+## Healthcheck
+
+- общий: `GET /healthz`;
+- control plane: `GET /api/notes/v1/health`.
+
+Healthcheck web-сервера намеренно не проверяет local signer: helper находится
+на компьютере конкретного оператора и может быть выключен большую часть
+времени.
