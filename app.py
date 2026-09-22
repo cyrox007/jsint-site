@@ -26,6 +26,8 @@ def create_app() -> Flask:
     from views.dashboard.main import router as d_main_router
     from views.dashboard.blog import routers as d_blog_router
     from views.dashboard.catalog import routers as d_catalog_router
+    from views.dashboard.control_plane import router as d_control_plane_router
+    from views import notes_api
 
     app = Flask(__name__, static_folder="static")
     app.config.from_mapping(
@@ -61,6 +63,8 @@ def create_app() -> Flask:
     d_main_router.install(app)
     d_blog_router.install(app)
     d_catalog_router.install(app)
+    d_control_plane_router.install(app)
+    notes_api.install(app)
 
     app.add_url_rule("/healthz", endpoint="healthz", view_func=healthcheck, methods=["GET"])
 
