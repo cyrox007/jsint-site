@@ -312,6 +312,17 @@ document.addEventListener('change', async (event) => {
     }
 });
 
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+    const pathInput = form.querySelector && form.querySelector('#release-package-path');
+    if (!pathInput) return;
+    if (!pathInput.value.trim()) {
+        event.preventDefault();
+        setReleaseUploadStatus('Сначала выберите и дождитесь загрузки ZIP-архива.', 'error');
+        document.getElementById('release-package-pick')?.focus();
+    }
+});
+
 document.addEventListener('click', async (event) => {
     const copyButton = event.target.closest('[data-copy-target]');
     if (copyButton) {
