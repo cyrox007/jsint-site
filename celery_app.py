@@ -29,3 +29,8 @@ celery_app.conf.update(
         },
     },
 )
+
+
+# Регистрируем системные задачи при импорте приложения, чтобы CLI, тесты,
+# Worker и Beat видели один и тот же task registry до первого сообщения.
+import tasks.system  # noqa: E402,F401
