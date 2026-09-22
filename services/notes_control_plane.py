@@ -4,12 +4,15 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import UUID
+
+from werkzeug.utils import secure_filename
 
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
@@ -554,6 +557,69 @@ class NotesControlPlane:
             raise ControlPlaneError("Authentication required", status=401, code="authentication_required")
         cls._assert_entitled(record)
         return record
+
+    @staticmethod
+    def store_release_upload(upload: Any) -> dict[str, Any]:
+        original_name = str(getattr(upload, "filename", "") or "").strip()
+        if not original_name or Path(original_name).suffix.lower() != ".zip":
+            raise ControlPlaneError("Выберите ZIP-архив релиза")
+
+        filename = secure_filename(Path(original_name).name)
+        if not filename.lower().endswith(".zip"):
+            filename = f"workspace-organizer-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.zip"
+
+        root = _release_storage_root()
+        max_bytes = min(config.NOTES_RELEASE_UPLOAD_MAX_BYTES, _MAX_PACKAGE_BYTES)
+        suffix = secrets.token_hex(4)
+        candidate = root / filename
+        if candidate.exists():
+            source = Path(filename)
+            candidate = root / f"{source.stem}-{suffix}{source.suffix.lower()}"
+
+        temporary = root / f".upload-{secrets.token_hex(12)}.part"
+        digest = hashlib.sha256()
+        size = 0
+
+        try:
+            stream = upload.stream
+            with temporary.open("xb") as target:
+                magic = stream.read(4)
+                if magic not in (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"):
+                    raise ControlPlaneError("Загруженный файл не является ZIP-архивом")
+                target.write(magic)
+                digest.update(magic)
+                size = len(magic)
+
+                while True:
+                    chunk = stream.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    size += len(chunk)
+                    if size > max_bytes:
+                        raise ControlPlaneError(
+                            f"ZIP превышает допустимый размер {max_bytes // (1024 * 1024)} MiB",
+                            status=413,
+                            code="package_too_large",
+                        )
+                    target.write(chunk)
+                    digest.update(chunk)
+
+                target.flush()
+                os.fsync(target.fileno())
+
+            os.chmod(temporary, 0o640)
+            temporary.replace(candidate)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+
+        return {
+            "path": str(candidate),
+            "filename": candidate.name,
+            "original_filename": original_name,
+            "size": size,
+            "sha256": digest.hexdigest(),
+        }
 
     @staticmethod
     def prepare_release_manifest(

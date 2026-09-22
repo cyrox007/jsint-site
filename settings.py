@@ -74,6 +74,10 @@ class Config:
     NOTES_RELEASE_STORAGE_PATH = os.getenv(
         "NOTES_RELEASE_STORAGE_PATH", "/var/lib/jsint-site/notes-releases"
     ).strip()
+    NOTES_RELEASE_UPLOAD_MAX_BYTES = max(
+        1024 * 1024,
+        int(os.getenv("NOTES_RELEASE_UPLOAD_MAX_BYTES", str(512 * 1024 * 1024))),
+    )
     NOTES_OPERATOR_SIGNER_URL = os.getenv(
         "NOTES_OPERATOR_SIGNER_URL", "http://127.0.0.1:17843/v1"
     ).strip().rstrip("/")

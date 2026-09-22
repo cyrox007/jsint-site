@@ -38,3 +38,14 @@
 .local-signer-stage{margin-bottom:18px}
 .release-sign-stage{align-items:start}
 @media(max-width:620px){.local-signer-panel__action{align-items:stretch}}
+
+.path-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.path-picker input[readonly]{background:var(--admin-surface-raised);cursor:default}
+.release-upload-picker{display:flex;align-items:center;gap:12px;padding:12px;background:var(--admin-surface-raised);border:1px dashed var(--admin-border-strong);border-radius:10px}
+.release-upload-picker__info{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.release-upload-picker__info strong{overflow:hidden;color:var(--admin-text);font-size:.82rem;text-overflow:ellipsis;white-space:nowrap}
+.release-upload-picker__info small{color:var(--admin-muted);font-size:.72rem}
+.release-upload-progress{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.release-upload-progress progress{width:100%;height:10px;accent-color:var(--color-primary)}
+.release-upload-progress span{min-width:38px;color:var(--admin-muted);font-size:.72rem;font-weight:750;text-align:right}
+@media(max-width:620px){.path-picker{grid-template-columns:1fr}.release-upload-picker{align-items:stretch;flex-direction:column}.release-upload-picker .btn{width:100%}}
