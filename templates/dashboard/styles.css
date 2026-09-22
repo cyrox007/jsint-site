@@ -1,10 +1,11 @@
 {% include '/dashboard/^core/common.css' %}
 {% include '/dashboard/^shared/header/style.css' %}
-
+{% include '/dashboard/^shared/sidebar/style.css' %}
 {% include '/dashboard/^elements/UI/Buttons/style.css' %}
 {% include '/dashboard/^elements/UI/Fields/style.css' %}
 {% include '/dashboard/^elements/UI/Editor/style.css' %}
-
 {% include '/dashboard/auth/style.css' %}
 {% include '/dashboard/publication/style.css' %}
 {% include '/dashboard/catalog/style.css' %}
+{% include '/dashboard/^core/ui.css' %}
+{% include '/dashboard/^core/comfort-palette.css' %}

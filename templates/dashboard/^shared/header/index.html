@@ -1,33 +1,23 @@
-<header>
-    <a class="title" href="{{ url_for('admin.index') }}">jsint cms</a>
-
-    <nav>
-        <a class="{{ 'active' if request.endpoint == 'admin.index' }}"
-           href="{{ url_for('admin.index') }}">
-            Обзор
+<header class="admin-header">
+    <div class="header-left">
+        <a class="admin-brand" href="{{ url_for('admin.index') }}" aria-label="JSInteractive — панель управления">
+            <span class="admin-brand__mark" aria-hidden="true">JS</span>
+            <span class="admin-brand__copy"><strong>JSInteractive</strong><small>Панель управления</small></span>
         </a>
-        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.publication.') }}"
-           href="{{ url_for('admin.publication.index') }}">
-            Публикации
-        </a>
-        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.catalog.') }}"
-           href="{{ url_for('admin.catalog.index') }}">
-            Каталог
-        </a>
-        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.licenses.') }}"
-           href="{{ url_for('admin.licenses.index') }}">
-            Лицензии
-        </a>
-        <a class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.releases.') }}"
-           href="{{ url_for('admin.releases.index') }}">
-            Релизы
-        </a>
-
-        <a href="{{ url_for('index') }}" target="_blank" rel="noopener">Сайт ↗</a>
-
-        <form method="post" action="{{ url_for('auth.logout') }}" class="header-logout-form">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="header-nav-button">Выйти</button>
-        </form>
-    </nav>
+        <a class="site-link" href="{{ url_for('index') }}" target="_blank" rel="noopener"><span aria-hidden="true">↗</span><span>Открыть сайт</span></a>
+    </div>
+    <details class="header-user">
+        <summary class="user-button">
+            <span class="user-button__avatar" aria-hidden="true">A</span>
+            <span class="user-button__copy"><strong>Администратор</strong><small>jsint-site</small></span>
+            <span class="user-button__chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="user-dropdown">
+            <div class="user-dropdown__meta"><strong>Панель управления</strong><span>Публикации · лицензии · релизы</span></div>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Выйти из панели</button>
+            </form>
+        </div>
+    </details>
 </header>
