@@ -37,6 +37,24 @@ class ApplicationSmokeTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_dashboard_templates_compile(self):
+        templates = [
+            "dashboard/^core/base.html",
+            "dashboard/^shared/header/index.html",
+            "dashboard/^shared/sidebar/index.html",
+            "dashboard/main/index.html",
+            "dashboard/publication/index.html",
+            "dashboard/publication/edit.html",
+            "dashboard/catalog/index.html",
+            "dashboard/catalog/edit.html",
+            "dashboard/control_plane/licenses.html",
+            "dashboard/control_plane/releases.html",
+            "dashboard/auth/index.html",
+        ]
+        for template_name in templates:
+            with self.subTest(template=template_name):
+                self.app.jinja_env.get_template(template_name)
+
     def test_public_registration_is_absent(self):
         response = self.client.get("/register", base_url=self.base)
         self.assertEqual(response.status_code, 404)
