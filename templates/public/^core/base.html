@@ -7,9 +7,25 @@
     <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#060816">
+
     <title>{% block title %}JSInteractive | +УЛЬТРА{% endblock %}</title>
     <meta name="description" content="{% block description %}+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, аудит и архитектура web-систем.{% endblock %}">
+    <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1{% endblock %}">
+    <link rel="canonical" href="{{ canonical_url or request.base_url }}">
+
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:site_name" content="+УЛЬТРА">
+    <meta property="og:type" content="{{ og_type or 'website' }}">
+    <meta property="og:title" content="{{ self.title()|striptags|trim }}">
+    <meta property="og:description" content="{{ self.description()|striptags|trim }}">
+    <meta property="og:url" content="{{ canonical_url or request.base_url }}">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ self.title()|striptags|trim }}">
+    <meta name="twitter:description" content="{{ self.description()|striptags|trim }}">
+
     <meta name="yandex-verification" content="725d05a47d08b13d">
+
     <style>
         {% include 'public/styles.css' %}
     </style>
