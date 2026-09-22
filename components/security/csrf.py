@@ -9,6 +9,12 @@ _SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 _SESSION_KEY = "_csrf_token"
 
 
+def csrf_exempt(view):
+    """Помечает machine-to-machine endpoint как не использующий browser CSRF."""
+    setattr(view, "_csrf_exempt", True)
+    return view
+
+
 def csrf_token() -> str:
     token = session.get(_SESSION_KEY)
     if not isinstance(token, str) or len(token) < 32:
@@ -26,6 +32,11 @@ def _submitted_token() -> str:
 
 def validate_csrf() -> None:
     if request.method in _SAFE_METHODS:
+        return
+
+    endpoint = request.endpoint
+    view = current_app.view_functions.get(endpoint) if endpoint else None
+    if view is not None and getattr(view, "_csrf_exempt", False):
         return
 
     expected = session.get(_SESSION_KEY)
