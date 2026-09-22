@@ -202,7 +202,10 @@
                                 <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
                             </label>
                             <label>Папка с ключами на этом ПК
-                                <input id="operator-signer-directory" type="text" autocomplete="off" placeholder="E:\workspace-keys">
+                                <div class="path-picker">
+                                    <input id="operator-signer-directory" type="text" autocomplete="off" readonly placeholder="Папка ещё не выбрана">
+                                    <button class="btn secondary" id="operator-signer-directory-pick" type="button">Выбрать папку…</button>
+                                </div>
                             </label>
                             <label>License signing key
                                 <select id="operator-signer-key-id">
@@ -215,7 +218,7 @@
                         </div>
 
                         <div class="local-signer-status" id="operator-signer-status" data-state="idle">
-                            Запустите local signer на этом компьютере, вставьте код подключения и укажите папку с ключами.
+                            Запустите local signer на этом компьютере, вставьте код подключения и выберите папку с ключами системным диалогом.
                         </div>
 
                         <details class="local-signer-help">
@@ -292,6 +295,15 @@ document.addEventListener('click', async (event) => {
             window.setTimeout(() => { copyButton.textContent = original; }, 1400);
         } catch (_) {
             target.select?.();
+        }
+        return;
+    }
+
+    if (event.target.closest('#operator-signer-directory-pick')) {
+        try {
+            await OperatorSigner.selectDirectory();
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
         }
         return;
     }
