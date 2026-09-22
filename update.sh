@@ -145,6 +145,13 @@ stop_services() {
     systemctl stop "${BEAT_SERVICE_NAME}" "${WORKER_SERVICE_NAME}" "${SERVICE_NAME}" || true
 }
 
+install_units() {
+    install -o root -g root -m 0644 "${APP_DIR}/deploy/checkout/jsint-site.service" "/etc/systemd/system/${SERVICE_NAME}"
+    install -o root -g root -m 0644 "${APP_DIR}/deploy/checkout/jsint-site-celery-worker.service" "/etc/systemd/system/${WORKER_SERVICE_NAME}"
+    install -o root -g root -m 0644 "${APP_DIR}/deploy/checkout/jsint-site-celery-beat.service" "/etc/systemd/system/${BEAT_SERVICE_NAME}"
+    systemctl daemon-reload
+}
+
 start_services() {
     systemctl start "${SERVICE_NAME}"
     systemctl start "${WORKER_SERVICE_NAME}"
@@ -175,6 +182,7 @@ rollback() {
     stop_services
     git reset --hard "${OLD_COMMIT}"
     install_dependencies
+    install_units
     PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
     pg_restore \
         --host="${DB_HOST}" \
@@ -222,7 +230,7 @@ fi
 log "Проверка production dependencies."
 "${APP_DIR}/.venv/bin/python" manage.py health
 
-systemctl daemon-reload
+install_units
 start_services
 sleep 2
 
