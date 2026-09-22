@@ -62,6 +62,10 @@ class Config:
     AUTH_RATE_LIMIT_WINDOW_SECONDS = max(30, int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300")))
 
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
+    SITE_BASE_URL = os.getenv(
+        "SITE_BASE_URL",
+        "https://jsinteractive.ru" if IS_PRODUCTION else "http://localhost:5000",
+    ).strip().rstrip("/")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
     NOTES_CONTROL_PLANE_ENABLED = _env_bool("NOTES_CONTROL_PLANE_ENABLED", False)
@@ -106,7 +110,21 @@ class Config:
         if not cls.ADMIN_ROUTE_PREFIX.startswith("/") or cls.ADMIN_ROUTE_PREFIX == "/":
             raise RuntimeError("ADMIN_ROUTE_PREFIX must be a non-root absolute URL path")
 
+        parsed_site_url = urlparse(cls.SITE_BASE_URL)
+        if (
+            parsed_site_url.scheme not in {"http", "https"}
+            or not parsed_site_url.hostname
+            or parsed_site_url.username is not None
+            or parsed_site_url.password is not None
+            or parsed_site_url.query
+            or parsed_site_url.fragment
+            or parsed_site_url.path not in {"", "/"}
+        ):
+            raise RuntimeError("SITE_BASE_URL must be an absolute origin URL without path/query/fragment")
+
         if cls.IS_PRODUCTION:
+            if parsed_site_url.scheme != "https":
+                raise RuntimeError("SITE_BASE_URL must use HTTPS in production")
             if not cls.ALLOWED_HOSTS:
                 raise RuntimeError("ALLOWED_HOSTS is required in production")
             if not cls.ADMIN_EMAILS:
