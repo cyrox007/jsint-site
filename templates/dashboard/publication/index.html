@@ -1,36 +1,101 @@
 {% extends '/dashboard/^core/base.html' %}
 {% block title %}Публикации | JSInteractive{% endblock %}
+
+{% macro render_tree(items) %}
+    <ul class="publication-tree">
+        {% for item in items %}
+        <li>
+            <a class="{{ 'is-active' if selected_category_id == item.id|string }}" href="{{ url_for('admin.publication.index', category_id=item.id) }}">
+                <span>{{ item.title }}</span>
+            </a>
+            {% if item.children %}
+                {{ render_tree(item.children) }}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+{% endmacro %}
+
 {% block content %}
-<div class="admin-page">
+<div class="admin-page publication-workspace">
     <header class="admin-page__header">
-        <div class="admin-page__heading"><span class="admin-page__eyebrow">Контент</span><h1 class="admin-page__title">Публикации</h1><p class="admin-page__description">Материалы публичного сайта: статьи, отчёты, кейсы и changelog.</p></div>
-        <div class="admin-page__actions"><a href="{{ url_for('admin.publication.create') }}" class="btn primary">+ Создать публикацию</a></div>
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Контент</span>
+            <h1 class="admin-page__title">Публикации</h1>
+            <p class="admin-page__description">Рабочее пространство для структуры сайта, материалов и SEO.</p>
+        </div>
+        <div class="admin-page__actions">
+            <a href="{{ url_for('admin.catalog.index') }}" class="btn secondary">Категории</a>
+            <a href="{{ url_for('admin.publication.create') }}" class="btn primary">+ Новая публикация</a>
+        </div>
     </header>
-    <div class="admin-toolbar">
-        <form method="get">
-            <input type="search" name="search" maxlength="200" placeholder="Поиск по названию…" value="{{ request.args.get('search', '') }}">
-            <select name="status"><option value="">Все статусы</option><option value="published" {% if request.args.get('status') == 'published' %}selected{% endif %}>Опубликовано</option><option value="draft" {% if request.args.get('status') == 'draft' %}selected{% endif %}>Черновик</option></select>
-            <select name="category_id"><option value="">Все категории</option>{% for category in categories %}<option value="{{ category.id }}" {% if request.args.get('category_id')|string == category.id|string %}selected{% endif %}>{{ category.title }}</option>{% endfor %}</select>
-            <button type="submit" class="btn secondary btn-small">Применить</button><a href="{{ url_for('admin.publication.index') }}" class="btn secondary btn-small">Сбросить</a>
-        </form>
-    </div>
-    <div class="admin-table-wrap">
-        <table>
-            <thead><tr><th>Название</th><th>Категория</th><th>Статус</th><th>Дата</th><th>Действия</th></tr></thead>
-            <tbody>
-            {% for publication in publications %}
-                <tr>
-                    <td><span class="admin-table__primary">{{ publication.title }}</span><span class="admin-table__secondary">{{ publication.slug }}</span></td>
-                    <td>{% if publication.category %}<span class="status-badge status-badge--info">{{ publication.category.title }}</span>{% else %}<span class="admin-table__secondary">Без категории</span>{% endif %}</td>
-                    <td><span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span></td>
-                    <td>{{ publication.created_at.strftime('%d.%m.%Y') if publication.created_at else '—' }}</td>
-                    <td><div class="admin-table__actions"><a href="{{ url_for('admin.publication.edit', id=publication.id) }}" class="btn secondary btn-small">Редактировать</a><form method="post" action="{{ url_for('admin.publication.delete', id=publication.id) }}" onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn danger btn-small">Удалить</button></form></div></td>
-                </tr>
-            {% else %}
-                <tr><td colspan="5"><div class="admin-empty"><strong>Публикаций пока нет</strong><span>Создайте первый материал для публичного сайта.</span></div></td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
+
+    <div class="publication-workspace__grid">
+        <aside class="publication-tree-card admin-card">
+            <div class="publication-tree-card__header">
+                <div>
+                    <span class="publication-tree-card__eyebrow">Структура</span>
+                    <strong>Категории</strong>
+                </div>
+                <a href="{{ url_for('admin.catalog.index') }}" class="publication-tree-card__manage" title="Управление категориями">⚙</a>
+            </div>
+            <div class="publication-tree-card__body">
+                <a class="publication-tree-root {{ 'is-active' if not selected_category_id }}" href="{{ url_for('admin.publication.index') }}">Все публикации</a>
+                {% if category_tree %}
+                    {{ render_tree(category_tree) }}
+                {% else %}
+                    <div class="publication-tree-empty">Категорий пока нет.</div>
+                {% endif %}
+            </div>
+        </aside>
+
+        <section class="publication-catalog">
+            <div class="admin-toolbar publication-toolbar">
+                <form method="get">
+                    {% if selected_category_id %}<input type="hidden" name="category_id" value="{{ selected_category_id }}">{% endif %}
+                    <input type="search" name="search" maxlength="200" placeholder="Поиск по названию и тексту…" value="{{ request.args.get('search', '') }}">
+                    <select name="status">
+                        <option value="">Все статусы</option>
+                        <option value="published" {% if request.args.get('status') == 'published' %}selected{% endif %}>Опубликовано</option>
+                        <option value="draft" {% if request.args.get('status') == 'draft' %}selected{% endif %}>Черновики</option>
+                    </select>
+                    <button type="submit" class="btn secondary btn-small">Применить</button>
+                    <a href="{{ url_for('admin.publication.index', category_id=selected_category_id or None) }}" class="btn secondary btn-small">Сбросить</a>
+                </form>
+            </div>
+
+            <div class="publication-cards">
+                {% for publication in publications %}
+                <article class="publication-card">
+                    <div class="publication-card__body">
+                        <div class="publication-card__icon" aria-hidden="true">▤</div>
+                        <div class="publication-card__content">
+                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id) }}">{{ publication.title }}</a>
+                            <div class="publication-card__meta">
+                                <span>{{ publication.category.title if publication.category else 'Без категории' }}</span>
+                                <span>{{ publication.source_type }}</span>
+                                <span>{{ publication.created_at.strftime('%d.%m.%Y') if publication.created_at else '—' }}</span>
+                            </div>
+                            <div class="publication-card__slug">{{ publication.slug }}</div>
+                        </div>
+                    </div>
+                    <div class="publication-card__actions">
+                        <span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span>
+                        <a href="{{ url_for('admin.publication.edit', id=publication.id) }}" class="btn secondary btn-small">Редактировать</a>
+                        <form method="post" action="{{ url_for('admin.publication.delete', id=publication.id) }}" onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn danger btn-small">Удалить</button>
+                        </form>
+                    </div>
+                </article>
+                {% else %}
+                <div class="admin-empty publication-empty">
+                    <strong>Здесь пока нет публикаций</strong>
+                    <span>Создайте материал или измените фильтры.</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}
