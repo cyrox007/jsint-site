@@ -9,3 +9,5 @@
 {% include '/dashboard/catalog/style.css' %}
 {% include '/dashboard/^core/ui.css' %}
 {% include '/dashboard/^core/comfort-palette.css' %}
+
+{% include '/dashboard/control_plane/style.css' %}
