@@ -113,6 +113,7 @@ def _release_context(db_session: Session, *, tab: str = "registry", **extra):
         "update_trusted_keys": UPDATE_TRUSTED_KEYS,
         "operator_signer_url": config.NOTES_OPERATOR_SIGNER_URL,
         "release_storage_path": config.NOTES_RELEASE_STORAGE_PATH,
+        "release_upload_max_bytes": config.NOTES_RELEASE_UPLOAD_MAX_BYTES,
         "prepared_manifest": None,
         "prepared_package_path": None,
     }
