@@ -1,0 +1,63 @@
+{% extends '/dashboard/^core/base.html' %}
+
+{% block title %}Релизы Workspace Organizer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Релизы</h1>
+        <p>Публикация immutable update artifacts для Workspace Organizer.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom:20px;">
+    <h3>Зарегистрировать подписанный релиз</h3>
+    <p style="color:var(--muted);">
+        Сначала поместите уже принятый ZIP в внешний каталог <code>NOTES_RELEASE_STORAGE_PATH</code>.
+        Manifest и detached signature должны быть созданы и подписаны офлайн. После регистрации файлы не перепаковываются.
+    </p>
+    <form method="post" style="display:grid;gap:12px;">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label>
+            Update manifest JSON
+            <textarea name="manifest_bytes" rows="12" required spellcheck="false"></textarea>
+        </label>
+        <label>
+            Detached signature (wou1...)
+            <textarea name="signature" rows="3" required spellcheck="false"></textarea>
+        </label>
+        <label>
+            Абсолютный путь к ZIP во внешнем release storage
+            <input type="text" name="package_path" required placeholder="/var/lib/jsint-site/notes-releases/workspace-organizer-v1.0.2.zip">
+        </label>
+        <div><button class="btn primary" type="submit">Проверить подпись, SHA-256 и зарегистрировать</button></div>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Версия</th>
+                <th>Канал</th>
+                <th>Source SHA</th>
+                <th>Package</th>
+                <th>Опубликован</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in releases %}
+            <tr>
+                <td><strong>{{ item.version }}</strong><br><small style="color:var(--muted);">code {{ item.version_code }}</small></td>
+                <td><span class="badge published">{{ item.channel }}</span></td>
+                <td><code>{{ item.source_commit }}</code></td>
+                <td>{{ item.package_name }}<br><small style="color:var(--muted);">{{ item.package_size }} bytes · {{ item.package_sha256[:12] }}…</small></td>
+                <td>{{ item.published_at.strftime('%d.%m.%Y %H:%M') if item.published_at else '—' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5" style="text-align:center;padding:36px;color:var(--muted);">Релизы ещё не зарегистрированы.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
