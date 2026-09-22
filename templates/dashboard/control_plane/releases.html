@@ -86,7 +86,10 @@
                     <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
                 </label>
                 <label>Папка с ключами на этом ПК
-                    <input id="operator-signer-directory" type="text" autocomplete="off" placeholder="E:\workspace-keys">
+                    <div class="path-picker">
+                        <input id="operator-signer-directory" type="text" autocomplete="off" readonly placeholder="Папка ещё не выбрана">
+                        <button class="btn secondary" id="operator-signer-directory-pick" type="button">Выбрать папку…</button>
+                    </div>
                 </label>
                 <label>Update signing key
                     <select id="operator-signer-key-id">
@@ -108,7 +111,7 @@
     {% endif %}
 
     <section class="operator-layout">
-        <form class="admin-card operator-form" method="post" action="{{ url_for('admin.releases.publish') }}">
+        <form class="admin-card operator-form" id="release-publish-form" method="post" action="{{ url_for('admin.releases.publish') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="admin-card__header">
                 <div>
@@ -118,8 +121,21 @@
             </div>
             <div class="admin-card__body admin-form">
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>1</span><div><strong>ZIP-пакет на сервере</strong><small>Именно этот файл будет скачивать Workspace Organizer.</small></div></div>
-                    <label>Путь к ZIP в release storage<input name="package_path" required placeholder="{{ release_storage_path }}/workspace-organizer-v1.0.2.zip"><small>Разрешены только файлы внутри <code>{{ release_storage_path }}</code>. Размер и SHA-256 вычисляются автоматически.</small></label>
+                    <div class="operator-section__heading"><span>1</span><div><strong>ZIP-пакет новой версии</strong><small>Выберите архив на своём компьютере — панель сама загрузит его в release storage.</small></div></div>
+                    <input type="hidden" name="package_path" id="release-package-path" required>
+                    <input type="file" id="release-package-file" accept=".zip,application/zip" hidden>
+                    <div class="release-upload-picker">
+                        <button class="btn secondary" id="release-package-pick" type="button">Выбрать ZIP…</button>
+                        <div class="release-upload-picker__info">
+                            <strong id="release-package-name">Архив не выбран</strong>
+                            <small id="release-package-meta">Максимальный размер: {{ (release_upload_max_bytes // (1024 * 1024)) }} MiB</small>
+                        </div>
+                    </div>
+                    <div class="release-upload-progress" id="release-upload-progress-wrap" hidden>
+                        <progress id="release-upload-progress" max="100" value="0"></progress>
+                        <span id="release-upload-percent">0%</span>
+                    </div>
+                    <div class="local-signer-status" id="release-upload-status" data-state="idle">После выбора ZIP начнётся загрузка на сервер и проверка архива.</div>
                 </div>
 
                 <div class="operator-section">
@@ -149,7 +165,7 @@
             <div class="admin-card__body">
                 <h3>Процесс публикации</h3>
                 <ol class="operator-steps">
-                    <li><strong>ZIP на сервере</strong><span>Control plane проверяет файл и считает SHA-256.</span></li>
+                    <li><strong>Выбор ZIP</strong><span>Обычный файловый диалог браузера загружает архив с вашего компьютера.</span></li>
                     <li><strong>Manifest</strong><span>Строится автоматически из полей этой формы.</span></li>
                     <li><strong>Локальная подпись</strong><span>Update private key читается только helper на вашем ПК/флешке.</span></li>
                     <li><strong>Серверная проверка</strong><span>Готовая wou1 signature повторно проверяется public trust root.</span></li>
@@ -173,8 +189,21 @@
             <div class="admin-card__body admin-form">
                 <label>Manifest JSON<textarea name="manifest_bytes" rows="14" required spellcheck="false"></textarea><small>Вставляйте exact bytes: форматирование тоже входит в подпись.</small></label>
                 <label>Signature token<textarea name="signature" rows="3" required spellcheck="false" placeholder="wou1.update-prod-..."></textarea></label>
-                <label>Путь к ZIP<input name="package_path" required placeholder="{{ release_storage_path }}/workspace-organizer-v1.0.2.zip"></label>
-                <p class="admin-form-note">Перед публикацией control plane повторно проверит Ed25519 signature и совпадение filename/size/SHA-256 ZIP с manifest.</p>
+                <input type="hidden" name="package_path" id="release-package-path" required>
+                <input type="file" id="release-package-file" accept=".zip,application/zip" hidden>
+                <div class="release-upload-picker">
+                    <button class="btn secondary" id="release-package-pick" type="button">Выбрать ZIP…</button>
+                    <div class="release-upload-picker__info">
+                        <strong id="release-package-name">Архив не выбран</strong>
+                        <small id="release-package-meta">Максимальный размер: {{ (release_upload_max_bytes // (1024 * 1024)) }} MiB</small>
+                    </div>
+                </div>
+                <div class="release-upload-progress" id="release-upload-progress-wrap" hidden>
+                    <progress id="release-upload-progress" max="100" value="0"></progress>
+                    <span id="release-upload-percent">0%</span>
+                </div>
+                <div class="local-signer-status" id="release-upload-status" data-state="idle">Выберите ZIP — панель загрузит его в release storage.</div>
+                <p class="admin-form-note">Перед публикацией control plane повторно проверит Ed25519 signature и совпадение filename/size/SHA-256 загруженного ZIP с manifest.</p>
             </div>
             <div class="admin-card__footer"><button class="btn primary" type="submit">Проверить и импортировать</button></div>
         </form>
@@ -184,12 +213,104 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+const releasePackageUploadUrl = {{ url_for('admin.releases.upload')|tojson }};
+const releasePackageUploadMaxBytes = {{ release_upload_max_bytes }};
 window.operatorSignerConfig = {
     url: {{ operator_signer_url|tojson }},
     licenseTrustedKeys: {},
     updateTrustedKeys: {{ update_trusted_keys|tojson }}
 };
 {% include 'dashboard/control_plane/signer.js' %}
+
+function setReleaseUploadStatus(message, state = 'idle') {
+    const node = document.getElementById('release-upload-status');
+    if (!node) return;
+    node.textContent = message;
+    node.dataset.state = state;
+}
+
+function humanBytes(value) {
+    if (value >= 1024 * 1024 * 1024) return (value / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
+    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(1) + ' MiB';
+    if (value >= 1024) return (value / 1024).toFixed(1) + ' KiB';
+    return value + ' B';
+}
+
+function uploadReleasePackage(file) {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.name.toLowerCase().endsWith('.zip')) {
+            reject(new Error('Выберите ZIP-архив.'));
+            return;
+        }
+        if (file.size > releasePackageUploadMaxBytes) {
+            reject(new Error('ZIP превышает допустимый размер ' + humanBytes(releasePackageUploadMaxBytes) + '.'));
+            return;
+        }
+
+        const csrf = document.querySelector('input[name="_csrf_token"]')?.value || '';
+        const formData = new FormData();
+        formData.append('package', file, file.name);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', releasePackageUploadUrl, true);
+        xhr.setRequestHeader('X-CSRF-Token', csrf);
+        xhr.responseType = 'json';
+
+        const progressWrap = document.getElementById('release-upload-progress-wrap');
+        const progress = document.getElementById('release-upload-progress');
+        const percent = document.getElementById('release-upload-percent');
+        if (progressWrap) progressWrap.hidden = false;
+        if (progress) progress.value = 0;
+        if (percent) percent.textContent = '0%';
+        setReleaseUploadStatus('Загружаю ZIP на сервер…', 'working');
+
+        xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            const value = Math.min(100, Math.round((event.loaded / event.total) * 100));
+            if (progress) progress.value = value;
+            if (percent) percent.textContent = value + '%';
+        };
+
+        xhr.onload = () => {
+            const payload = xhr.response || {};
+            if (xhr.status < 200 || xhr.status >= 300 || payload.status !== 'ok') {
+                reject(new Error(payload.message || ('Ошибка загрузки HTTP ' + xhr.status)));
+                return;
+            }
+            resolve(payload.package);
+        };
+        xhr.onerror = () => reject(new Error('Соединение оборвалось во время загрузки ZIP.'));
+        xhr.onabort = () => reject(new Error('Загрузка ZIP отменена.'));
+    });
+}
+
+document.addEventListener('change', async (event) => {
+    const input = event.target.closest('#release-package-file');
+    if (!input) return;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const pathInput = document.getElementById('release-package-path');
+    const nameNode = document.getElementById('release-package-name');
+    const metaNode = document.getElementById('release-package-meta');
+    if (pathInput) pathInput.value = '';
+    if (nameNode) nameNode.textContent = file.name;
+    if (metaNode) metaNode.textContent = humanBytes(file.size) + ' · локальный файл';
+
+    try {
+        const stored = await uploadReleasePackage(file);
+        if (pathInput) pathInput.value = stored.path;
+        if (nameNode) nameNode.textContent = stored.filename;
+        if (metaNode) {
+            metaNode.textContent = humanBytes(stored.size)
+                + ' · SHA-256 ' + stored.sha256.slice(0, 16) + '…';
+        }
+        setReleaseUploadStatus('ZIP загружен и проверен. Можно готовить manifest.', 'ok');
+    } catch (error) {
+        if (pathInput) pathInput.value = '';
+        setReleaseUploadStatus(error.message, 'error');
+    }
+});
 
 document.addEventListener('click', async (event) => {
     const copyButton = event.target.closest('[data-copy-target]');
@@ -205,6 +326,20 @@ document.addEventListener('click', async (event) => {
         } catch (_) {
             target.select?.();
         }
+        return;
+    }
+
+    if (event.target.closest('#operator-signer-directory-pick')) {
+        try {
+            await OperatorSigner.selectDirectory();
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
+        }
+        return;
+    }
+
+    if (event.target.closest('#release-package-pick')) {
+        document.getElementById('release-package-file')?.click();
         return;
     }
 
