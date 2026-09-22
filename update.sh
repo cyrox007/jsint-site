@@ -120,6 +120,9 @@ set +a
 DB_SSLMODE="${DB_SSLMODE:-prefer}"
 APP_BIND="${APP_BIND:-127.0.0.1:18080}"
 ALLOWED_HOSTS="${ALLOWED_HOSTS:-jsinteractive.ru}"
+NOTES_RELEASE_STORAGE_PATH="${NOTES_RELEASE_STORAGE_PATH:-/var/lib/jsint-site/notes-releases}"
+
+install -d -o root -g jsint-site -m 0770 "${NOTES_RELEASE_STORAGE_PATH}"
 
 select_postgresql_client_tools() {
     local server_version_num server_major
