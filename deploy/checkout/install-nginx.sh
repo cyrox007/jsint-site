@@ -29,8 +29,20 @@ fi
 install -o root -g root -m 0644 "${SOURCE}" "${TARGET}"
 ln -sfn "${TARGET}" "${ENABLED}"
 
-if ! nginx -t; then
-    log "Новый Nginx config не прошёл проверку. Выполняю rollback."
+NGINX_TEST_OUTPUT=""
+NGINX_TEST_STATUS=0
+set +e
+NGINX_TEST_OUTPUT="$(nginx -t 2>&1)"
+NGINX_TEST_STATUS=$?
+set -e
+printf '%s\n' "${NGINX_TEST_OUTPUT}"
+
+if [[ "${NGINX_TEST_STATUS}" -ne 0 ]] \
+    || grep -Eq 'conflicting server name "(jsinteractive\\.ru|www\\.jsinteractive\\.ru)"' <<<"${NGINX_TEST_OUTPUT}"; then
+    if grep -Eq 'conflicting server name "(jsinteractive\\.ru|www\\.jsinteractive\\.ru)"' <<<"${NGINX_TEST_OUTPUT}"; then
+        log "ОШИБКА: найден другой включённый virtual host для jsinteractive.ru. Сначала объедините или отключите legacy-конфиг."
+    fi
+    log "Новый Nginx config не прошёл безопасную проверку. Выполняю rollback."
     rm -f "${ENABLED}"
     if [[ -n "${BACKUP}" && -f "${BACKUP}" ]]; then
         cp -a "${BACKUP}" "${TARGET}"
