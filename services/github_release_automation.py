@@ -22,9 +22,9 @@ _REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _TAG_RE = re.compile(r"^v[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$")
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_VERSION_CONST_RE = re.compile(r"public const VERSION\\s*=\\s*['\"]([^'\"]+)['\"]")
-_VERSION_CODE_CONST_RE = re.compile(r"public const VERSION_CODE\\s*=\\s*([0-9]+)")
-_STATUS_CONST_RE = re.compile(r"public const STATUS\\s*=\\s*['\"]([^'\"]+)['\"]")
+_VERSION_CONST_RE = re.compile(r"public const VERSION\s*=\s*['\"]([^'\"]+)['\"]")
+_VERSION_CODE_CONST_RE = re.compile(r"public const VERSION_CODE\s*=\s*([0-9]+)")
+_STATUS_CONST_RE = re.compile(r"public const STATUS\s*=\s*['\"]([^'\"]+)['\"]")
 _ALLOWED_REDIRECT_HOSTS = {
     "api.github.com",
     "github.com",
@@ -191,7 +191,7 @@ def _read_small_asset(asset: dict[str, Any]) -> str:
 
 def _expected_sha256(checksum_text: str, package_name: str) -> str:
     first_line = checksum_text.splitlines()[0].strip() if checksum_text else ""
-    match = re.fullmatch(r"([0-9a-f]{64})\\s+\\*?(.+)", first_line)
+    match = re.fullmatch(r"([0-9a-f]{64})\s+\*?(.+)", first_line)
     if match is None:
         raise ControlPlaneError("Некорректный SHA-256 artifact GitHub", status=502)
     filename = match.group(2).strip()
