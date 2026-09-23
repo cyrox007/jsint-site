@@ -20,13 +20,15 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("Проверить ключи", template)
         self.assertIn("last_seen", self.read("models/control_plane.py"))
 
-    def test_release_ui_uses_two_stage_local_signing_flow(self):
+    def test_release_ui_uses_single_form_browser_signing(self):
         template = self.read("templates/dashboard/control_plane/releases.html")
-        self.assertIn("Опубликовать", template)
-        self.assertIn("version_code", template)
-        self.assertIn("min_source_version_code", template)
-        self.assertIn("Проверить ZIP и подготовить manifest", template)
-        self.assertIn("Подписать на этом ПК и опубликовать", template)
+        self.assertIn('id="release-one-click-form"', template)
+        self.assertIn('id="release-update-key-file"', template)
+        self.assertIn("Выпустить релиз", template)
+        self.assertIn("crypto.subtle", template)
+        self.assertIn("wo-update-ed25519-secret-v1:", template)
+        self.assertNotIn("Код подключения local signer", template)
+        self.assertNotIn("Расширенный импорт</a>", template)
 
     def test_web_server_never_reads_private_signing_keys(self):
         settings = self.read("settings.py")
@@ -72,19 +74,15 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("def touch_seen(", service)
         self.assertIn("update-feed", api)
 
-    def test_release_zip_is_selected_and_uploaded_from_browser(self):
+    def test_release_zip_is_downloaded_from_github_for_normal_flow(self):
         template = self.read("templates/dashboard/control_plane/releases.html")
         router = self.read("views/dashboard/control_plane/router.py")
-        service = self.read("services/notes_control_plane.py")
-        nginx = self.read("deploy/checkout/nginx.conf.example")
-        self.assertIn('type="file" id="release-package-file"', template)
-        self.assertIn("Выбрать ZIP…", template)
-        self.assertIn("uploadReleasePackage", template)
-        self.assertIn("xhr.send(formData)", template)
-        self.assertIn("/api/operator/v1/release-upload", router)
-        self.assertIn("def store_release_upload(", service)
-        self.assertIn("location = /api/operator/v1/release-upload", nginx)
-        self.assertIn("client_max_body_size 520m", nginx)
+        service = self.read("services/github_release_automation.py")
+        self.assertNotIn('id="release-package-file"', template)
+        self.assertNotIn("Выбрать ZIP…", template)
+        self.assertIn('f"{prefix}/releases/github"', router)
+        self.assertIn("_download_package", service)
+        self.assertIn("api.github.com", service)
 
     def test_release_ui_has_one_click_github_preparation(self):
         template = self.read("templates/dashboard/control_plane/releases.html")
@@ -92,8 +90,8 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         service = self.read("services/github_release_automation.py")
         settings = self.read("settings.py")
 
-        self.assertIn("Быстрый выпуск", template)
-        self.assertIn("Подтянуть, проверить и подготовить к подписи", template)
+        self.assertIn("Обычный выпуск", template)
+        self.assertIn("GitHub → подпись → публикация", template)
         self.assertIn("admin.releases.github", template)
         self.assertIn('f"{prefix}/releases/github"', router)
         self.assertIn("GitHubReleaseAutomation", service)
@@ -104,13 +102,14 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("NOTES_RELEASE_GITHUB_REPOSITORY", settings)
         self.assertNotIn("private signing key", service.lower())
 
-    def test_release_manifest_is_built_server_side_then_signed_locally(self):
+    def test_release_manifest_is_built_server_side_then_signed_in_browser(self):
         service = self.read("services/notes_control_plane.py")
         template = self.read("templates/dashboard/control_plane/releases.html")
         self.assertIn("def _build_release_manifest(", service)
         self.assertIn('"sha256": sha256', service)
         self.assertIn('"size": size', service)
-        self.assertIn("prepared_manifest", template)
+        self.assertIn("signManifest", template)
+        self.assertIn("release.manifest", template)
         self.assertNotIn("def publish_release_local(", service)
 
 

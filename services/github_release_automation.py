@@ -14,7 +14,12 @@ from typing import Any, BinaryIO
 from sqlalchemy.orm import Session
 
 from models.control_plane import ReleaseRecord
-from services.notes_control_plane import ControlPlaneError, NotesControlPlane
+from services.notes_control_plane import (
+    ControlPlaneError,
+    NotesControlPlane,
+    _hash_file,
+    _release_storage_root,
+)
 from settings import config
 
 
@@ -105,7 +110,7 @@ def _request(url: str, *, accept: str) -> BinaryIO:
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise ControlPlaneError(
-                "GitHub Release или его artifact не найден",
+                "GitHub Release или нужный файл не найден",
                 status=404,
                 code="release_source_not_found",
             ) from exc
@@ -158,7 +163,7 @@ def _release(tag: str) -> dict[str, Any]:
 def _asset_map(release: dict[str, Any]) -> dict[str, dict[str, Any]]:
     assets = release.get("assets")
     if not isinstance(assets, list):
-        raise ControlPlaneError("GitHub Release не содержит список artifacts", status=502)
+        raise ControlPlaneError("GitHub Release не содержит список файлов", status=502)
 
     result: dict[str, dict[str, Any]] = {}
     for item in assets:
@@ -173,7 +178,7 @@ def _asset_map(release: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def _asset_response(asset: dict[str, Any]) -> BinaryIO:
     api_url = asset.get("url")
     if not isinstance(api_url, str) or not api_url:
-        raise ControlPlaneError("GitHub artifact не содержит API URL", status=502)
+        raise ControlPlaneError("Файл GitHub Release не содержит API URL", status=502)
     return _request(api_url, accept="application/octet-stream")
 
 
@@ -182,28 +187,28 @@ def _read_small_asset(asset: dict[str, Any]) -> str:
     with response:
         raw = response.read(_MAX_SMALL_ASSET_BYTES + 1)
     if len(raw) > _MAX_SMALL_ASSET_BYTES:
-        raise ControlPlaneError("Служебный artifact GitHub слишком большой", status=502)
+        raise ControlPlaneError("Служебный файл GitHub Release слишком большой", status=502)
     try:
         return raw.decode("utf-8").strip()
     except UnicodeDecodeError as exc:
-        raise ControlPlaneError("Служебный artifact GitHub не является UTF-8", status=502) from exc
+        raise ControlPlaneError("Служебный файл GitHub Release не является UTF-8", status=502) from exc
 
 
 def _expected_sha256(checksum_text: str, package_name: str) -> str:
     first_line = checksum_text.splitlines()[0].strip() if checksum_text else ""
     match = re.fullmatch(r"([0-9a-f]{64})\s+\*?(.+)", first_line)
     if match is None:
-        raise ControlPlaneError("Некорректный SHA-256 artifact GitHub", status=502)
+        raise ControlPlaneError("Некорректный файл SHA-256 в GitHub Release", status=502)
     filename = match.group(2).strip()
     if filename != package_name:
-        raise ControlPlaneError("SHA-256 artifact относится к другому ZIP", status=502)
+        raise ControlPlaneError("Файл SHA-256 относится к другому ZIP", status=502)
     return match.group(1)
 
 
 def _source_commit(source_text: str) -> str:
     source = source_text.strip().lower()
     if _SHA_RE.fullmatch(source) is None:
-        raise ControlPlaneError("Некорректный source SHA artifact GitHub", status=502)
+        raise ControlPlaneError("Некорректный source SHA в GitHub Release", status=502)
     return source
 
 
@@ -236,11 +241,11 @@ def _resolve_tag_commit(tag: str) -> str:
 def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[BinaryIO, int, str]:
     declared_size = asset.get("size")
     if not isinstance(declared_size, int) or declared_size <= 0:
-        raise ControlPlaneError("GitHub artifact не содержит корректный размер", status=502)
+        raise ControlPlaneError("Файл GitHub Release не содержит корректный размер", status=502)
 
     if declared_size > config.NOTES_RELEASE_UPLOAD_MAX_BYTES:
         raise ControlPlaneError(
-            "GitHub artifact превышает допустимый размер release storage",
+            "Файл GitHub Release превышает допустимый размер хранилища",
             status=413,
             code="package_too_large",
         )
@@ -254,7 +259,7 @@ def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[Bina
         )
     api_sha256 = digest.removeprefix("sha256:").lower()
     if _SHA256_RE.fullmatch(api_sha256) is None or api_sha256 != expected_sha256:
-        raise ControlPlaneError("SHA-256 metadata GitHub не совпадает с checksum artifact", status=502)
+        raise ControlPlaneError("SHA-256 в метаданных GitHub не совпадает с ожидаемой контрольной суммой", status=502)
 
     response = _asset_response(asset)
     temporary = tempfile.TemporaryFile(mode="w+b")
@@ -269,7 +274,7 @@ def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[Bina
                 size += len(chunk)
                 if size > config.NOTES_RELEASE_UPLOAD_MAX_BYTES:
                     raise ControlPlaneError(
-                        "Загрузка GitHub artifact превысила допустимый размер",
+                        "Загрузка файла GitHub Release превысила допустимый размер",
                         status=413,
                         code="package_too_large",
                     )
@@ -279,7 +284,7 @@ def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[Bina
         actual_sha256 = hasher.hexdigest()
         if size != declared_size or actual_sha256 != expected_sha256:
             raise ControlPlaneError(
-                "Скачанный ZIP не совпадает с GitHub Release metadata",
+                "Скачанный ZIP не совпадает с метаданными GitHub Release",
                 status=502,
                 code="release_provenance_mismatch",
             )
@@ -300,13 +305,13 @@ def _inspect_workspace_zip(stream: BinaryIO) -> dict[str, Any]:
                 if item.filename == "core/Version.php" or item.filename.endswith("/core/Version.php")
             ]
             if len(candidates) != 1:
-                raise ControlPlaneError("В release ZIP не найден единственный core/Version.php")
+                raise ControlPlaneError("В ZIP релиза не найден единственный core/Version.php")
             info = candidates[0]
             if info.file_size <= 0 or info.file_size > _MAX_VERSION_FILE_BYTES:
                 raise ControlPlaneError("core/Version.php имеет недопустимый размер")
             source = archive.read(info).decode("utf-8")
     except (zipfile.BadZipFile, UnicodeDecodeError, OSError) as exc:
-        raise ControlPlaneError("Не удалось прочитать версию из release ZIP") from exc
+        raise ControlPlaneError("Не удалось прочитать версию из ZIP релиза") from exc
     finally:
         stream.seek(0)
 
@@ -337,6 +342,29 @@ def _sequential_source_floor(version_code: int) -> int:
     return version_code - 1
 
 
+def _reuse_existing_package(
+    package_name: str,
+    package_size: int,
+    package_sha256: str,
+) -> dict[str, Any] | None:
+    root = _release_storage_root()
+    candidate = root / package_name
+    if candidate.is_symlink() or not candidate.is_file():
+        return None
+
+    existing_size, existing_sha256 = _hash_file(candidate)
+    if existing_size != package_size or existing_sha256 != package_sha256:
+        return None
+
+    return {
+        "path": str(candidate),
+        "filename": candidate.name,
+        "original_filename": package_name,
+        "size": existing_size,
+        "sha256": existing_sha256,
+    }
+
+
 class GitHubReleaseAutomation:
     @classmethod
     def prepare(cls, session: Session, *, tag: str = "") -> dict[str, Any]:
@@ -350,25 +378,50 @@ class GitHubReleaseAutomation:
         package_asset = assets.get(package_name)
         checksum_asset = assets.get(package_name + ".sha256")
         source_asset = assets.get(package_name + ".source-sha")
-        if package_asset is None or checksum_asset is None or source_asset is None:
+        if package_asset is None:
             raise ControlPlaneError(
-                "GitHub Release должен содержать ZIP, .sha256 и .source-sha",
+                f"В GitHub Release не найден {package_name}",
                 status=502,
                 code="release_provenance_missing",
             )
 
-        expected_sha256 = _expected_sha256(
-            _read_small_asset(checksum_asset),
-            package_name,
-        )
-        source_commit = _source_commit(_read_small_asset(source_asset))
-        tag_commit = _resolve_tag_commit(tag_name)
-        if source_commit != tag_commit:
+        digest = package_asset.get("digest")
+        if not isinstance(digest, str) or not digest.startswith("sha256:"):
             raise ControlPlaneError(
-                "Source SHA пакета не совпадает с commit Git tag",
+                "GitHub Release не содержит SHA-256 digest для ZIP",
                 status=502,
-                code="release_provenance_mismatch",
+                code="release_provenance_missing",
             )
+        expected_sha256 = digest.removeprefix("sha256:").lower()
+        if _SHA256_RE.fullmatch(expected_sha256) is None:
+            raise ControlPlaneError(
+                "GitHub Release содержит некорректный SHA-256 digest для ZIP",
+                status=502,
+                code="release_provenance_missing",
+            )
+
+        if checksum_asset is not None:
+            checksum_sha256 = _expected_sha256(
+                _read_small_asset(checksum_asset),
+                package_name,
+            )
+            if checksum_sha256 != expected_sha256:
+                raise ControlPlaneError(
+                    "Файл контрольной суммы GitHub не совпадает с SHA-256 ZIP",
+                    status=502,
+                    code="release_provenance_mismatch",
+                )
+
+        tag_commit = _resolve_tag_commit(tag_name)
+        source_commit = tag_commit
+        if source_asset is not None:
+            sidecar_source_commit = _source_commit(_read_small_asset(source_asset))
+            if sidecar_source_commit != tag_commit:
+                raise ControlPlaneError(
+                    "Source SHA пакета не совпадает с commit Git tag",
+                    status=502,
+                    code="release_provenance_mismatch",
+                )
 
         package_stream, package_size, package_sha256 = _download_package(
             package_asset,
@@ -400,15 +453,21 @@ class GitHubReleaseAutomation:
                     code="release_already_registered",
                 )
 
-            stored = NotesControlPlane.store_release_upload(
-                SimpleNamespace(filename=package_name, stream=package_stream)
+            stored = _reuse_existing_package(
+                package_name,
+                package_size,
+                package_sha256,
             )
+            if stored is None:
+                stored = NotesControlPlane.store_release_upload(
+                    SimpleNamespace(filename=package_name, stream=package_stream)
+                )
         finally:
             package_stream.close()
 
         if stored["size"] != package_size or stored["sha256"] != package_sha256:
             raise ControlPlaneError(
-                "Release storage изменил содержимое ZIP",
+                "Хранилище релизов изменило содержимое ZIP",
                 status=500,
                 code="release_storage_mismatch",
             )

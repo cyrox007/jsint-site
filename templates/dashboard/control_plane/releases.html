@@ -6,14 +6,13 @@
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">Workspace Organizer</span>
             <h1 class="admin-page__title">Релизы</h1>
-            <p class="admin-page__description">Подготовка, подпись и публикация обновлений без ручной сборки manifest JSON.</p>
+            <p class="admin-page__description">Обычный выпуск выполняется одной формой: GitHub → проверка → локальная подпись в браузере → публикация.</p>
         </div>
     </header>
 
     <nav class="control-tabs" aria-label="Разделы релизов">
         <a class="{{ 'is-active' if tab == 'registry' }}" href="{{ url_for('admin.releases.index', tab='registry') }}">Реестр <span>{{ releases|length }}</span></a>
-        <a class="{{ 'is-active' if tab == 'publish' }}" href="{{ url_for('admin.releases.index', tab='publish') }}">Опубликовать</a>
-        <a class="{{ 'is-active' if tab == 'import' }}" href="{{ url_for('admin.releases.index', tab='import') }}">Расширенный импорт</a>
+        <a class="{{ 'is-active' if tab == 'publish' }}" href="{{ url_for('admin.releases.index', tab='publish') }}">Выпустить</a>
     </nav>
 
     {% if tab == 'registry' %}
@@ -21,9 +20,9 @@
         <div class="admin-card__header">
             <div>
                 <h2 class="admin-card__title">Опубликованные релизы</h2>
-                <p class="admin-card__description">Feed каждого канала отдаёт самый новый активный релиз, разрешённый конкретной лицензии.</p>
+                <p class="admin-card__description">Здесь остаются только управление лентой и история опубликованных версий.</p>
             </div>
-            <a class="btn primary btn-small" href="{{ url_for('admin.releases.index', tab='publish') }}">+ Новый релиз</a>
+            <a class="btn primary btn-small" href="{{ url_for('admin.releases.index', tab='publish') }}">+ Выпустить</a>
         </div>
         <div class="admin-card__body control-registry">
             {% for row in release_rows %}
@@ -33,422 +32,434 @@
                     <span class="status-badge status-badge--info">{{ item.channel }}</span>
                     <strong>{{ item.version }}</strong>
                     <code>{{ item.version_code }}</code>
-                    <span class="status-badge {{ 'status-badge--success' if item.is_active else 'status-badge--warning' }}">{{ 'active' if item.is_active else 'inactive' }}</span>
+                    <span class="status-badge {{ 'status-badge--success' if item.is_active else 'status-badge--warning' }}">{{ 'активен' if item.is_active else 'снят с ленты' }}</span>
                 </div>
                 <div class="release-row__facts">
-                    <div><span>Source commit</span><code>{{ item.source_commit }}</code></div>
-                    <div><span>Минимальный source version</span><strong>{{ row.manifest.get('min_source_version_code', '—') }}</strong></div>
+                    <div><span>Исходный commit</span><code>{{ item.source_commit }}</code></div>
+                    <div><span>Обновление с версии</span><strong>{{ row.manifest.get('min_source_version_code', '—') }}</strong></div>
                     <div><span>PHP</span><strong>≥ {{ row.manifest.get('requires_php', '—') }}</strong></div>
-                    <div><span>Signing key</span><strong>{{ row.key_id }}</strong></div>
-                    <div><span>ZIP</span><strong>{{ item.package_name }}</strong><small>{{ item.package_size }} bytes · {{ item.package_sha256[:12] }}…</small></div>
+                    <div><span>Ключ подписи</span><strong>{{ row.key_id }}</strong></div>
+                    <div><span>ZIP</span><strong>{{ item.package_name }}</strong><small>{{ item.package_size }} байт · {{ item.package_sha256[:12] }}…</small></div>
                     <div><span>Опубликован</span><strong>{{ item.published_at.strftime('%d.%m.%Y %H:%M UTC') }}</strong></div>
                 </div>
                 <div class="release-row__actions">
                     <form method="post" action="{{ url_for('admin.releases.status', release_row_id=item.id) }}">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="status" value="{{ 'inactive' if item.is_active else 'active' }}">
-                        <button class="btn secondary btn-small" type="submit">{{ 'Снять с feed' if item.is_active else 'Вернуть в feed' }}</button>
+                        <button class="btn secondary btn-small" type="submit">{{ 'Снять с ленты' if item.is_active else 'Вернуть в ленту' }}</button>
                     </form>
                 </div>
             </article>
             {% else %}
-            <div class="admin-empty"><strong>Релизов пока нет</strong><span>Откройте вкладку «Опубликовать»: manifest и SHA-256 будут собраны автоматически.</span></div>
+            <div class="admin-empty"><strong>Релизов пока нет</strong><span>Откройте «Выпустить», выберите update key и нажмите одну кнопку.</span></div>
             {% endfor %}
         </div>
     </section>
-
-    {% elif tab == 'publish' %}
-    <section class="admin-card quick-release-card">
-        <form method="post" action="{{ url_for('admin.releases.github') }}">
+    {% else %}
+    <section class="admin-card quick-release-card release-one-click">
+        <form id="release-one-click-form" method="post" action="{{ url_for('admin.releases.github') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="file" id="release-update-key-file" accept=".update-secret" hidden>
+
             <div class="admin-card__header">
                 <div>
-                    <span class="operator-result__eyebrow">Быстрый выпуск</span>
-                    <h2 class="admin-card__title">Подготовить официальный GitHub Release</h2>
+                    <span class="operator-result__eyebrow">Обычный выпуск</span>
+                    <h2 class="admin-card__title">GitHub → подпись → публикация</h2>
                     <p class="admin-card__description">
-                        Сервер сам скачает ZIP из <code>{{ release_github_repository }}</code>,
-                        сверит GitHub digest, <code>.sha256</code>, <code>.source-sha</code>,
-                        Git tag и версию внутри пакета, затем построит manifest.
+                        ZIP вручную скачивать и загружать не нужно. Сайт сам возьмёт последний официальный Release из
+                        <code>{{ release_github_repository }}</code>, проверит его и сформирует manifest.
+                        Приватный update key читается только браузером на этом компьютере и на сервер не отправляется.
                     </p>
                 </div>
             </div>
-            <div class="admin-card__body admin-form">
-                <label>Git tag — можно оставить пустым
-                    <input name="tag" placeholder="v1.0.1">
-                    <small>Пустое поле означает последний опубликованный GitHub Release.</small>
-                </label>
-                <div class="local-signer-status" data-state="ok">
-                    Для обычного последовательного релиза минимальная исходная версия вычисляется автоматически:
-                    <code>version_code - 1</code>. Нестандартные переходы остаются в ручном режиме ниже.
-                </div>
-            </div>
-            <div class="admin-card__footer">
-                <button class="btn primary" type="submit">Подтянуть, проверить и подготовить к подписи</button>
-            </div>
-        </form>
-    </section>
 
-    {% if prepared_manifest %}
-    <section class="operator-result operator-result--important release-sign-stage">
-        <div>
-            <span class="operator-result__eyebrow">Manifest готов</span>
-            <h2>ZIP проверен — осталось подписать на вашем компьютере</h2>
-            <p>Размер и SHA-256 уже рассчитаны сервером. Exact manifest ниже будет отправлен только в local signer на <code>127.0.0.1</code>; private update key на сервер не передаётся.</p>
-            {% if prepared_release_source %}
-            <div class="release-auto-facts">
-                <span>GitHub: <strong>{{ prepared_release_source.tag }}</strong></span>
-                <span>Версия: <strong>{{ prepared_release_source.version }} / {{ prepared_release_source.version_code }}</strong></span>
-                <span>Обновление с: <strong>{{ prepared_release_source.min_source_version_code }}</strong></span>
-                <span>Commit: <code>{{ prepared_release_source.source_commit[:12] }}…</code></span>
-                <span>SHA-256: <code>{{ prepared_release_source.package_sha256[:16] }}…</code></span>
-            </div>
-            {% endif %}
-        </div>
-        <div class="copy-value">
-            <textarea id="prepared-manifest" readonly rows="12">{{ prepared_manifest }}</textarea>
-            <button class="btn secondary btn-small" type="button" data-copy-target="prepared-manifest">Копировать manifest</button>
-            <small>ZIP на сервере: <code id="prepared-package-path">{{ prepared_package_path }}</code></small>
-        </div>
-    </section>
-
-    <section class="admin-card local-signer-stage">
-        <div class="admin-card__header">
-            <div>
-                <h2 class="admin-card__title">Подписать update manifest локальным ключом</h2>
-                <p class="admin-card__description">Вставьте флешку или укажите папку с update key на компьютере, где открыт браузер.</p>
-            </div>
-        </div>
-        <div class="admin-card__body admin-form">
-            <input id="release-sign-csrf" type="hidden" value="{{ csrf_token() }}">
-            <div class="admin-form-grid">
-                <label>Код подключения local signer
-                    <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
-                </label>
-                <label>Папка с ключами на этом ПК
-                    <div class="path-picker">
-                        <input id="operator-signer-directory" type="text" autocomplete="off" readonly placeholder="Папка ещё не выбрана">
-                        <button class="btn secondary" id="operator-signer-directory-pick" type="button">Выбрать папку…</button>
-                    </div>
-                </label>
-                <label>Update signing key
-                    <select id="operator-signer-key-id">
-                        {% for key_id in update_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}
-                    </select>
-                </label>
-                <div class="local-signer-panel__action">
-                    <button class="btn secondary" id="operator-signer-scan" type="button">Проверить ключи</button>
-                </div>
-            </div>
-            <div class="local-signer-status" id="operator-signer-status" data-state="idle">
-                Local signer должен быть запущен на этом компьютере. Путь к ключам не отправляется на web-сервер.
-            </div>
-        </div>
-        <div class="admin-card__footer">
-            <button class="btn primary" id="release-sign-publish" type="button">Подписать на этом ПК и опубликовать</button>
-        </div>
-    </section>
-    {% endif %}
-
-    <section class="operator-layout">
-        <form class="admin-card operator-form" id="release-publish-form" method="post" action="{{ url_for('admin.releases.publish') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <div class="admin-card__header">
-                <div>
-                    <h2 class="admin-card__title">Ручной режим</h2>
-                    <p class="admin-card__description">Используйте его только для нестандартного пакета или перехода. Для обычного релиза достаточно быстрого выпуска выше.</p>
-                </div>
-            </div>
             <div class="admin-card__body admin-form">
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>1</span><div><strong>ZIP-пакет новой версии</strong><small>Выберите архив на своём компьютере — панель сама загрузит его в release storage.</small></div></div>
-                    <input type="hidden" name="package_path" id="release-package-path" required>
-                    <input type="file" id="release-package-file" accept=".zip,application/zip" hidden>
-                    <div class="release-upload-picker">
-                        <button class="btn secondary" id="release-package-pick" type="button">Выбрать ZIP…</button>
-                        <div class="release-upload-picker__info">
-                            <strong id="release-package-name">Архив не выбран</strong>
-                            <small id="release-package-meta">Максимальный размер: {{ (release_upload_max_bytes // (1024 * 1024)) }} MiB</small>
+                    <div class="operator-section__heading">
+                        <span>1</span>
+                        <div>
+                            <strong>Update key</strong>
+                            <small>Выберите существующий <code>.update-secret</code>. Ничего генерировать заново не нужно.</small>
                         </div>
                     </div>
-                    <div class="release-upload-progress" id="release-upload-progress-wrap" hidden>
-                        <progress id="release-upload-progress" max="100" value="0"></progress>
-                        <span id="release-upload-percent">0%</span>
-                    </div>
-                    <div class="local-signer-status" id="release-upload-status" data-state="idle">После выбора ZIP начнётся загрузка на сервер и проверка архива.</div>
-                </div>
-
-                <div class="operator-section">
-                    <div class="operator-section__heading"><span>2</span><div><strong>Версия и канал</strong><small>Updater использует version_code для сравнения релизов, а channel — для выбора ленты.</small></div></div>
-                    <div class="admin-form-grid">
-                        <label>Версия<input name="version" required placeholder="1.0.2"><small>Человекочитаемое значение.</small></label>
-                        <label>version_code<input type="number" name="version_code" min="1" required placeholder="10002"><small>Всегда увеличивающееся целое число.</small></label>
-                        <label>Канал<select name="channel"><option value="stable">stable</option><option value="beta">beta</option><option value="alpha">alpha</option></select></label>
-                        <label>Минимальный source version_code<input type="number" name="min_source_version_code" min="1" required placeholder="10001"><small>Минимальная установленная версия для прямого обновления.</small></label>
+                    <div class="release-upload-picker">
+                        <button class="btn secondary" id="release-update-key-pick" type="button">Выбрать update key…</button>
+                        <div class="release-upload-picker__info">
+                            <strong id="release-update-key-name">Ключ ещё не выбран</strong>
+                            <small id="release-update-key-meta">Например: D:\secure\workspace-signing\update-prod-2026-01.update-secret</small>
+                        </div>
                     </div>
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>3</span><div><strong>Источник и совместимость</strong><small>Эти поля входят в подписанный manifest.</small></div></div>
-                    <div class="admin-form-grid">
-                        <label>Source commit<input name="source_commit" minlength="40" maxlength="40" required placeholder="полный 40-символьный Git SHA"></label>
-                        <label>Минимальная версия PHP<input name="requires_php" required value="8.1.0" placeholder="8.1.0"></label>
+                    <div class="operator-section__heading">
+                        <span>2</span>
+                        <div>
+                            <strong>Выпуск</strong>
+                            <small>Остальное выполняется автоматически.</small>
+                        </div>
+                    </div>
+                    <div class="local-signer-status" id="release-one-click-status" data-state="idle">
+                        Выберите update key и нажмите «Выпустить релиз».
                     </div>
                 </div>
             </div>
+
             <div class="admin-card__footer">
-                <button class="btn primary" type="submit">Проверить ZIP и подготовить manifest</button>
+                <button class="btn primary" id="release-one-click-submit" type="submit">Выпустить релиз</button>
             </div>
         </form>
-
-        <aside class="operator-help admin-card">
-            <div class="admin-card__body">
-                <h3>Процесс публикации</h3>
-                <ol class="operator-steps">
-                    <li><strong>Выбор ZIP</strong><span>Обычный файловый диалог браузера загружает архив с вашего компьютера.</span></li>
-                    <li><strong>Manifest</strong><span>Строится автоматически из полей этой формы.</span></li>
-                    <li><strong>Локальная подпись</strong><span>Update private key читается только helper на вашем ПК/флешке.</span></li>
-                    <li><strong>Серверная проверка</strong><span>Готовая wou1 signature повторно проверяется public trust root.</span></li>
-                    <li><strong>Feed</strong><span>После проверки релиз появляется в выбранном канале.</span></li>
-                </ol>
-                <p class="admin-form-note">Если local signer недоступен, exact manifest можно подписать полностью офлайн и импортировать через «Расширенный импорт».</p>
-            </div>
-        </aside>
     </section>
 
-    {% else %}
-    <section class="admin-card operator-form operator-form--narrow">
-        <div class="admin-card__header">
-            <div>
-                <h2 class="admin-card__title">Импорт готового подписанного релиза</h2>
-                <p class="admin-card__description">Расширенный режим для уже подготовленного exact manifest и detached signature.</p>
-            </div>
-        </div>
-        <form method="post" action="{{ url_for('admin.releases.index') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <div class="admin-card__body admin-form">
-                <label>Manifest JSON<textarea name="manifest_bytes" rows="14" required spellcheck="false"></textarea><small>Вставляйте exact bytes: форматирование тоже входит в подпись.</small></label>
-                <label>Signature token<textarea name="signature" rows="3" required spellcheck="false" placeholder="wou1.update-prod-..."></textarea></label>
-                <input type="hidden" name="package_path" id="release-package-path" required>
-                <input type="file" id="release-package-file" accept=".zip,application/zip" hidden>
-                <div class="release-upload-picker">
-                    <button class="btn secondary" id="release-package-pick" type="button">Выбрать ZIP…</button>
-                    <div class="release-upload-picker__info">
-                        <strong id="release-package-name">Архив не выбран</strong>
-                        <small id="release-package-meta">Максимальный размер: {{ (release_upload_max_bytes // (1024 * 1024)) }} MiB</small>
-                    </div>
-                </div>
-                <div class="release-upload-progress" id="release-upload-progress-wrap" hidden>
-                    <progress id="release-upload-progress" max="100" value="0"></progress>
-                    <span id="release-upload-percent">0%</span>
-                </div>
-                <div class="local-signer-status" id="release-upload-status" data-state="idle">Выберите ZIP — панель загрузит его в release storage.</div>
-                <p class="admin-form-note">Перед публикацией control plane повторно проверит Ed25519 signature и совпадение filename/size/SHA-256 загруженного ZIP с manifest.</p>
-            </div>
-            <div class="admin-card__footer"><button class="btn primary" type="submit">Проверить и импортировать</button></div>
-        </form>
-    </section>
     {% endif %}
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
-const releasePackageUploadUrl = {{ url_for('admin.releases.upload')|tojson }};
-const releasePackageUploadMaxBytes = {{ release_upload_max_bytes }};
+(() => {
+    'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.setTimeout(async () => {
-        const manifest = document.getElementById('prepared-manifest');
-        const token = document.getElementById('operator-signer-token');
-        const directory = document.getElementById('operator-signer-directory');
-        const key = document.getElementById('operator-signer-key-id');
-        if (!manifest || !token?.value.trim() || !directory?.value.trim() || !key) {
-            return;
-        }
+    const form = document.getElementById('release-one-click-form');
+    if (!form) return;
+
+    const keyInput = document.getElementById('release-update-key-file');
+    const keyButton = document.getElementById('release-update-key-pick');
+    const keyName = document.getElementById('release-update-key-name');
+    const keyMeta = document.getElementById('release-update-key-meta');
+    const submitButton = document.getElementById('release-one-click-submit');
+    const statusNode = document.getElementById('release-one-click-status');
+    const trustedKeys = {{ update_trusted_keys|tojson }};
+    const publishUrl = {{ url_for('admin.releases.index')|tojson }};
+    const domain = 'WorkspaceOrganizerUpdateManifest/v1\n';
+    const secretPrefix = 'wo-update-ed25519-secret-v1:';
+    const encoder = new TextEncoder();
+    const keyDatabaseName = 'workspace-release-key';
+    const keyStoreName = 'handles';
+    const keyHandleName = 'update-key';
+    let selectedKeyFile = null;
+    let rememberedKeyHandle = null;
+
+    function openKeyDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(keyDatabaseName, 1);
+            request.onupgradeneeded = () => {
+                const database = request.result;
+                if (!database.objectStoreNames.contains(keyStoreName)) {
+                    database.createObjectStore(keyStoreName);
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function rememberKeyHandle(handle) {
+        if (!handle || !window.indexedDB) return;
         try {
-            await OperatorSigner.scanAndMatch('update', key.value);
-        } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
+            const database = await openKeyDatabase();
+            await new Promise((resolve, reject) => {
+                const transaction = database.transaction(keyStoreName, 'readwrite');
+                transaction.objectStore(keyStoreName).put(handle, keyHandleName);
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+            database.close();
+        } catch (_) {
+            // Запоминание — только удобство. Выпуск работает и без него.
         }
-    }, 0);
-});
-window.operatorSignerConfig = {
-    url: {{ operator_signer_url|tojson }},
-    licenseTrustedKeys: {},
-    updateTrustedKeys: {{ update_trusted_keys|tojson }}
-};
-{% include 'dashboard/control_plane/signer.js' %}
+    }
 
-function setReleaseUploadStatus(message, state = 'idle') {
-    const node = document.getElementById('release-upload-status');
-    if (!node) return;
-    node.textContent = message;
-    node.dataset.state = state;
-}
+    async function restoreKeyHandle() {
+        if (!window.indexedDB || !window.showOpenFilePicker) return;
+        try {
+            const database = await openKeyDatabase();
+            const handle = await new Promise((resolve, reject) => {
+                const transaction = database.transaction(keyStoreName, 'readonly');
+                const request = transaction.objectStore(keyStoreName).get(keyHandleName);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error);
+            });
+            database.close();
+            if (!handle) return;
 
-function humanBytes(value) {
-    if (value >= 1024 * 1024 * 1024) return (value / (1024 * 1024 * 1024)).toFixed(2) + ' GiB';
-    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(1) + ' MiB';
-    if (value >= 1024) return (value / 1024).toFixed(1) + ' KiB';
-    return value + ' B';
-}
-
-function uploadReleasePackage(file) {
-    return new Promise((resolve, reject) => {
-        if (!file || !file.name.toLowerCase().endsWith('.zip')) {
-            reject(new Error('Выберите ZIP-архив.'));
-            return;
-        }
-        if (file.size > releasePackageUploadMaxBytes) {
-            reject(new Error('ZIP превышает допустимый размер ' + humanBytes(releasePackageUploadMaxBytes) + '.'));
-            return;
-        }
-
-        const csrf = document.querySelector('input[name="_csrf_token"]')?.value || '';
-        const formData = new FormData();
-        formData.append('package', file, file.name);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', releasePackageUploadUrl, true);
-        xhr.setRequestHeader('X-CSRF-Token', csrf);
-        xhr.responseType = 'json';
-
-        const progressWrap = document.getElementById('release-upload-progress-wrap');
-        const progress = document.getElementById('release-upload-progress');
-        const percent = document.getElementById('release-upload-percent');
-        if (progressWrap) progressWrap.hidden = false;
-        if (progress) progress.value = 0;
-        if (percent) percent.textContent = '0%';
-        setReleaseUploadStatus('Загружаю ZIP на сервер…', 'working');
-
-        xhr.upload.onprogress = (event) => {
-            if (!event.lengthComputable) return;
-            const value = Math.min(100, Math.round((event.loaded / event.total) * 100));
-            if (progress) progress.value = value;
-            if (percent) percent.textContent = value + '%';
-        };
-
-        xhr.onload = () => {
-            const payload = xhr.response || {};
-            if (xhr.status < 200 || xhr.status >= 300 || payload.status !== 'ok') {
-                reject(new Error(payload.message || ('Ошибка загрузки HTTP ' + xhr.status)));
+            rememberedKeyHandle = handle;
+            const permission = await handle.queryPermission({mode: 'read'});
+            if (permission === 'granted') {
+                selectedKeyFile = await handle.getFile();
+                keyName.textContent = selectedKeyFile.name;
+                keyMeta.textContent = 'Ключ запомнен на этом компьютере · содержимое не сохраняется сайтом';
+                setStatus('Update key готов. Для выпуска достаточно нажать кнопку.', 'ok');
                 return;
             }
-            resolve(payload.package);
-        };
-        xhr.onerror = () => reject(new Error('Соединение оборвалось во время загрузки ZIP.'));
-        xhr.onabort = () => reject(new Error('Загрузка ZIP отменена.'));
 
-        xhr.send(formData);
-    });
-}
-
-document.addEventListener('change', async (event) => {
-    const input = event.target.closest('#release-package-file');
-    if (!input) return;
-    const file = input.files && input.files[0];
-    if (!file) return;
-
-    const pathInput = document.getElementById('release-package-path');
-    const nameNode = document.getElementById('release-package-name');
-    const metaNode = document.getElementById('release-package-meta');
-    if (pathInput) pathInput.value = '';
-    if (nameNode) nameNode.textContent = file.name;
-    if (metaNode) metaNode.textContent = humanBytes(file.size) + ' · локальный файл';
-
-    try {
-        const stored = await uploadReleasePackage(file);
-        if (pathInput) pathInput.value = stored.path;
-        if (nameNode) nameNode.textContent = stored.filename;
-        if (metaNode) {
-            metaNode.textContent = humanBytes(stored.size)
-                + ' · SHA-256 ' + stored.sha256.slice(0, 16) + '…';
-        }
-        setReleaseUploadStatus('ZIP загружен и проверен. Можно готовить manifest.', 'ok');
-    } catch (error) {
-        if (pathInput) pathInput.value = '';
-        setReleaseUploadStatus(error.message, 'error');
-    }
-});
-
-document.addEventListener('submit', (event) => {
-    const form = event.target;
-    const pathInput = form.querySelector && form.querySelector('#release-package-path');
-    if (!pathInput) return;
-    if (!pathInput.value.trim()) {
-        event.preventDefault();
-        setReleaseUploadStatus('Сначала выберите и дождитесь загрузки ZIP-архива.', 'error');
-        document.getElementById('release-package-pick')?.focus();
-    }
-});
-
-document.addEventListener('click', async (event) => {
-    const copyButton = event.target.closest('[data-copy-target]');
-    if (copyButton) {
-        const target = document.getElementById(copyButton.dataset.copyTarget);
-        if (!target) return;
-        const value = target.value || target.textContent || '';
-        try {
-            await navigator.clipboard.writeText(value);
-            const original = copyButton.textContent;
-            copyButton.textContent = 'Скопировано';
-            window.setTimeout(() => { copyButton.textContent = original; }, 1400);
+            keyName.textContent = handle.name || 'Запомненный update key';
+            keyMeta.textContent = 'Ключ запомнен · браузер может попросить подтвердить доступ при выпуске';
         } catch (_) {
-            target.select?.();
+            rememberedKeyHandle = null;
         }
-        return;
     }
 
-    if (event.target.closest('#operator-signer-directory-pick')) {
+    async function chooseKeyFile() {
+        if (!window.showOpenFilePicker) {
+            keyInput.click();
+            return;
+        }
+
         try {
-            await OperatorSigner.selectDirectory();
+            const handles = await window.showOpenFilePicker({
+                multiple: false,
+                types: [{
+                    description: 'Update key Workspace Organizer',
+                    accept: {'application/octet-stream': ['.update-secret']},
+                }],
+            });
+            const handle = handles && handles[0];
+            if (!handle) return;
+
+            selectedKeyFile = await handle.getFile();
+            rememberedKeyHandle = handle;
+            await rememberKeyHandle(handle);
+            keyName.textContent = selectedKeyFile.name;
+            keyMeta.textContent = 'Ключ запомнен на этом компьютере · на сервер не загружается';
+            setStatus('Update key готов. Можно выпускать релиз.', 'ok');
         } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
+            if (error && error.name === 'AbortError') return;
+            setStatus('Не удалось выбрать update key.', 'error');
         }
-        return;
     }
 
-    if (event.target.closest('#release-package-pick')) {
-        document.getElementById('release-package-file')?.click();
-        return;
+    async function currentKeyFile() {
+        if (selectedKeyFile) return selectedKeyFile;
+        if (!rememberedKeyHandle) return null;
+
+        let permission = await rememberedKeyHandle.queryPermission({mode: 'read'});
+        if (permission !== 'granted') {
+            permission = await rememberedKeyHandle.requestPermission({mode: 'read'});
+        }
+        if (permission !== 'granted') return null;
+
+        selectedKeyFile = await rememberedKeyHandle.getFile();
+        keyName.textContent = selectedKeyFile.name;
+        keyMeta.textContent = 'Ключ запомнен на этом компьютере · на сервер не загружается';
+        return selectedKeyFile;
     }
 
-    if (event.target.closest('#operator-signer-scan')) {
-        const keyId = document.getElementById('operator-signer-key-id').value;
+    function setStatus(message, state = 'idle') {
+        statusNode.textContent = message;
+        statusNode.dataset.state = state;
+    }
+
+    function decodeBase64Url(value) {
+        const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+        return bytes;
+    }
+
+    function encodeBase64Url(value) {
+        const bytes = new Uint8Array(value);
+        let binary = '';
+        for (const byte of bytes) {
+            binary += String.fromCharCode(byte);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function concatenate(left, right) {
+        const result = new Uint8Array(left.length + right.length);
+        result.set(left, 0);
+        result.set(right, left.length);
+        return result;
+    }
+
+    async function importPrivateUpdateKey(file) {
+        if (!window.crypto?.subtle) {
+            throw new Error('Этот браузер не поддерживает локальную криптографическую подпись.');
+        }
+
+        const text = (await file.text()).trim();
+        if (!text.startsWith(secretPrefix)) {
+            throw new Error('Выбранный файл не является update key Workspace Organizer.');
+        }
+
+        const encoded = text.slice(secretPrefix.length);
+        const secret = decodeBase64Url(encoded);
+        if (secret.length !== 64) {
+            secret.fill(0);
+            throw new Error('Update key имеет некорректный размер.');
+        }
+
+        const seed = secret.slice(0, 32);
+        const prefix = new Uint8Array([
+            0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06,
+            0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
+        ]);
+        const pkcs8 = concatenate(prefix, seed);
+
+        let privateKey;
         try {
-            await OperatorSigner.scanAndMatch('update', keyId);
-        } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
+            privateKey = await crypto.subtle.importKey(
+                'pkcs8',
+                pkcs8,
+                {name: 'Ed25519'},
+                false,
+                ['sign']
+            );
+        } catch (_) {
+            throw new Error('Браузер не смог открыть Ed25519 update key.');
+        } finally {
+            secret.fill(0);
+            seed.fill(0);
+            pkcs8.fill(0);
         }
-        return;
+
+        const challenge = encoder.encode('WorkspaceOrganizer update key check v1');
+        const proof = await crypto.subtle.sign({name: 'Ed25519'}, privateKey, challenge);
+
+        for (const [keyId, encodedPublic] of Object.entries(trustedKeys)) {
+            const publicBytes = decodeBase64Url(String(encodedPublic));
+            try {
+                const publicKey = await crypto.subtle.importKey(
+                    'raw',
+                    publicBytes,
+                    {name: 'Ed25519'},
+                    false,
+                    ['verify']
+                );
+                const matches = await crypto.subtle.verify(
+                    {name: 'Ed25519'},
+                    publicKey,
+                    proof,
+                    challenge
+                );
+                if (matches) {
+                    return {privateKey, keyId};
+                }
+            } finally {
+                publicBytes.fill(0);
+            }
+        }
+
+        throw new Error('Этот update key не соответствует доверенному ключу сайта.');
     }
 
-    const publishButton = event.target.closest('#release-sign-publish');
-    if (!publishButton) return;
-
-    publishButton.disabled = true;
-    try {
-        const manifestNode = document.getElementById('prepared-manifest');
-        const packageNode = document.getElementById('prepared-package-path');
-        const csrfNode = document.getElementById('release-sign-csrf');
-        if (!manifestNode || !packageNode || !csrfNode) {
-            throw new Error('Подготовленный manifest не найден. Повторите проверку ZIP.');
-        }
-
-        const signature = await OperatorSigner.signManifest({
-            keyId: document.getElementById('operator-signer-key-id').value,
-            manifest: manifestNode.value,
+    async function prepareRelease() {
+        const data = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
         });
 
-        OperatorSigner.submitHidden({{ url_for('admin.releases.index')|tojson }}, {
-            _csrf_token: csrfNode.value,
-            manifest_bytes: manifestNode.value,
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (_) {
+            throw new Error('Сервер вернул неожиданный ответ при подготовке релиза.');
+        }
+
+        if (!response.ok || payload.status !== 'ok' || !payload.release) {
+            throw new Error(payload.message || ('Ошибка подготовки релиза HTTP ' + response.status));
+        }
+        return payload.release;
+    }
+
+    async function signManifest(privateKey, keyId, manifest) {
+        const bytes = concatenate(encoder.encode(domain), encoder.encode(manifest));
+        try {
+            const signature = await crypto.subtle.sign(
+                {name: 'Ed25519'},
+                privateKey,
+                bytes
+            );
+            return 'wou1.' + keyId + '.' + encodeBase64Url(signature);
+        } finally {
+            bytes.fill(0);
+        }
+    }
+
+    function publishRelease(release, signature) {
+        const publishForm = document.createElement('form');
+        publishForm.method = 'post';
+        publishForm.action = publishUrl;
+        publishForm.hidden = true;
+
+        const fields = {
+            _csrf_token: form.querySelector('input[name="_csrf_token"]').value,
+            manifest_bytes: release.manifest,
             signature,
-            package_path: packageNode.textContent.trim(),
-        });
-    } catch (error) {
-        OperatorSigner.setStatus(error.message, 'error');
-        publishButton.disabled = false;
+            package_path: release.package_path,
+        };
+        for (const [name, value] of Object.entries(fields)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = String(value);
+            publishForm.appendChild(input);
+        }
+
+        document.body.appendChild(publishForm);
+        publishForm.submit();
     }
-});
+
+    keyButton.addEventListener('click', chooseKeyFile);
+
+    keyInput.addEventListener('change', () => {
+        const file = keyInput.files && keyInput.files[0];
+        if (!file) return;
+        selectedKeyFile = file;
+        keyName.textContent = file.name;
+        keyMeta.textContent = 'Файл выбран локально · на сервер не загружается';
+        setStatus('Update key готов. Можно выпускать релиз.', 'ok');
+    });
+
+    restoreKeyHandle();
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        let file;
+        try {
+            file = await currentKeyFile();
+        } catch (_) {
+            file = null;
+        }
+        if (!file) {
+            setStatus('Один раз выберите существующий update key. После этого браузер его запомнит.', 'error');
+            keyButton.focus();
+            return;
+        }
+
+        submitButton.disabled = true;
+        try {
+            setStatus('Проверяю update key на этом компьютере…', 'working');
+            const key = await importPrivateUpdateKey(file);
+
+            setStatus('Скачиваю официальный GitHub Release и проверяю ZIP…', 'working');
+            const release = await prepareRelease();
+
+            setStatus('Подписываю manifest локально в браузере…', 'working');
+            const signature = await signManifest(key.privateKey, key.keyId, release.manifest);
+
+            setStatus(
+                'Проверки пройдены. Публикую ' + release.version + ' (' + release.channel + ')…',
+                'working'
+            );
+            publishRelease(release, signature);
+        } catch (error) {
+            setStatus(error instanceof Error ? error.message : 'Не удалось выпустить релиз.', 'error');
+            submitButton.disabled = false;
+        }
+    });
+})();
 </script>
 {% endblock %}
