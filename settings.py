@@ -81,6 +81,13 @@ class Config:
     NOTES_OPERATOR_SIGNER_URL = os.getenv(
         "NOTES_OPERATOR_SIGNER_URL", "http://127.0.0.1:17843/v1"
     ).strip().rstrip("/")
+    NOTES_RELEASE_GITHUB_REPOSITORY = os.getenv(
+        "NOTES_RELEASE_GITHUB_REPOSITORY", "cyrox007/Notes"
+    ).strip()
+    NOTES_RELEASE_GITHUB_TOKEN = os.getenv("NOTES_RELEASE_GITHUB_TOKEN", "").strip()
+    NOTES_RELEASE_DEFAULT_REQUIRES_PHP = os.getenv(
+        "NOTES_RELEASE_DEFAULT_REQUIRES_PHP", "8.1.0"
+    ).strip()
 
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
@@ -163,6 +170,13 @@ class Config:
                 raise RuntimeError("NOTES_UPDATE_BASE_URL must be a canonical HTTPS directory URL")
             if not os.path.isabs(cls.NOTES_RELEASE_STORAGE_PATH):
                 raise RuntimeError("NOTES_RELEASE_STORAGE_PATH must be an absolute external path")
+            if re.fullmatch(
+                r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",
+                cls.NOTES_RELEASE_GITHUB_REPOSITORY,
+            ) is None:
+                raise RuntimeError("Некорректный NOTES_RELEASE_GITHUB_REPOSITORY")
+            if re.fullmatch(r"[0-9]+\\.[0-9]+\\.[0-9]+", cls.NOTES_RELEASE_DEFAULT_REQUIRES_PHP) is None:
+                raise RuntimeError("Некорректный NOTES_RELEASE_DEFAULT_REQUIRES_PHP")
             signer = urlparse(cls.NOTES_OPERATOR_SIGNER_URL)
             signer_host = (signer.hostname or "").lower()
             if (
