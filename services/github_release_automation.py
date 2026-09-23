@@ -350,25 +350,50 @@ class GitHubReleaseAutomation:
         package_asset = assets.get(package_name)
         checksum_asset = assets.get(package_name + ".sha256")
         source_asset = assets.get(package_name + ".source-sha")
-        if package_asset is None or checksum_asset is None or source_asset is None:
+        if package_asset is None:
             raise ControlPlaneError(
-                "GitHub Release должен содержать ZIP, .sha256 и .source-sha",
+                f"В GitHub Release не найден {package_name}",
                 status=502,
                 code="release_provenance_missing",
             )
 
-        expected_sha256 = _expected_sha256(
-            _read_small_asset(checksum_asset),
-            package_name,
-        )
-        source_commit = _source_commit(_read_small_asset(source_asset))
-        tag_commit = _resolve_tag_commit(tag_name)
-        if source_commit != tag_commit:
+        digest = package_asset.get("digest")
+        if not isinstance(digest, str) or not digest.startswith("sha256:"):
             raise ControlPlaneError(
-                "Source SHA пакета не совпадает с commit Git tag",
+                "GitHub Release не содержит SHA-256 digest для ZIP",
                 status=502,
-                code="release_provenance_mismatch",
+                code="release_provenance_missing",
             )
+        expected_sha256 = digest.removeprefix("sha256:").lower()
+        if _SHA256_RE.fullmatch(expected_sha256) is None:
+            raise ControlPlaneError(
+                "GitHub Release содержит некорректный SHA-256 digest для ZIP",
+                status=502,
+                code="release_provenance_missing",
+            )
+
+        if checksum_asset is not None:
+            checksum_sha256 = _expected_sha256(
+                _read_small_asset(checksum_asset),
+                package_name,
+            )
+            if checksum_sha256 != expected_sha256:
+                raise ControlPlaneError(
+                    "Checksum-файл GitHub не совпадает с digest ZIP",
+                    status=502,
+                    code="release_provenance_mismatch",
+                )
+
+        tag_commit = _resolve_tag_commit(tag_name)
+        source_commit = tag_commit
+        if source_asset is not None:
+            sidecar_source_commit = _source_commit(_read_small_asset(source_asset))
+            if sidecar_source_commit != tag_commit:
+                raise ControlPlaneError(
+                    "Source SHA пакета не совпадает с commit Git tag",
+                    status=502,
+                    code="release_provenance_mismatch",
+                )
 
         package_stream, package_size, package_sha256 = _download_package(
             package_asset,
