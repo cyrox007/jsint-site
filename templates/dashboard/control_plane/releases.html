@@ -79,7 +79,7 @@
                         <span>1</span>
                         <div>
                             <strong>Update key</strong>
-                            <small>Выберите существующий <code>.update-secret</code>. Ничего генерировать заново не нужно.</small>
+                            <small>Выберите существующий <code>.update-secret</code> один раз. После проверки ключ сохраняется локально в браузере как неэкспортируемый криптографический ключ.</small>
                         </div>
                     </div>
                     <div class="release-upload-picker">
@@ -135,114 +135,108 @@
     const secretPrefix = 'wo-update-ed25519-secret-v1:';
     const encoder = new TextEncoder();
     const keyDatabaseName = 'workspace-release-key';
-    const keyStoreName = 'handles';
-    const keyHandleName = 'update-key';
-    let selectedKeyFile = null;
-    let rememberedKeyHandle = null;
+    const keyStoreName = 'keys';
+    const keyRecordName = 'update-key';
+    let selectedKey = null;
 
     function openKeyDatabase() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(keyDatabaseName, 1);
+            const request = indexedDB.open(keyDatabaseName, 2);
             request.onupgradeneeded = () => {
                 const database = request.result;
-                if (!database.objectStoreNames.contains(keyStoreName)) {
-                    database.createObjectStore(keyStoreName);
+                for (const name of Array.from(database.objectStoreNames)) {
+                    database.deleteObjectStore(name);
                 }
+                database.createObjectStore(keyStoreName);
             };
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }
 
-    async function rememberKeyHandle(handle) {
-        if (!handle || !window.indexedDB) return;
+    async function storeImportedKey(key) {
+        if (!window.indexedDB || !key) return false;
         try {
             const database = await openKeyDatabase();
             await new Promise((resolve, reject) => {
                 const transaction = database.transaction(keyStoreName, 'readwrite');
-                transaction.objectStore(keyStoreName).put(handle, keyHandleName);
+                transaction.objectStore(keyStoreName).put(
+                    {
+                        privateKey: key.privateKey,
+                        keyId: key.keyId,
+                        fileName: key.fileName || 'update key',
+                    },
+                    keyRecordName
+                );
                 transaction.oncomplete = () => resolve();
                 transaction.onerror = () => reject(transaction.error);
             });
             database.close();
+            return true;
         } catch (_) {
-            // Запоминание — только удобство. Выпуск работает и без него.
+            return false;
         }
     }
 
-    async function restoreKeyHandle() {
-        if (!window.indexedDB || !window.showOpenFilePicker) return;
+    async function loadImportedKey() {
+        if (!window.indexedDB) return null;
         try {
             const database = await openKeyDatabase();
-            const handle = await new Promise((resolve, reject) => {
+            const record = await new Promise((resolve, reject) => {
                 const transaction = database.transaction(keyStoreName, 'readonly');
-                const request = transaction.objectStore(keyStoreName).get(keyHandleName);
+                const request = transaction.objectStore(keyStoreName).get(keyRecordName);
                 request.onsuccess = () => resolve(request.result || null);
                 request.onerror = () => reject(request.error);
             });
             database.close();
-            if (!handle) return;
-
-            rememberedKeyHandle = handle;
-            const permission = await handle.queryPermission({mode: 'read'});
-            if (permission === 'granted') {
-                selectedKeyFile = await handle.getFile();
-                keyName.textContent = selectedKeyFile.name;
-                keyMeta.textContent = 'Ключ запомнен на этом компьютере · содержимое не сохраняется сайтом';
-                setStatus('Update key готов. Для выпуска достаточно нажать кнопку.', 'ok');
-                return;
+            if (!record || !record.privateKey || !record.keyId) return null;
+            if (record.privateKey.type !== 'private' || !record.privateKey.usages.includes('sign')) {
+                return null;
             }
-
-            keyName.textContent = handle.name || 'Запомненный update key';
-            keyMeta.textContent = 'Ключ запомнен · браузер может попросить подтвердить доступ при выпуске';
+            return record;
         } catch (_) {
-            rememberedKeyHandle = null;
+            return null;
         }
     }
 
-    async function chooseKeyFile() {
-        if (!window.showOpenFilePicker) {
-            keyInput.click();
-            return;
-        }
+    async function restoreImportedKey() {
+        const record = await loadImportedKey();
+        if (!record) return;
 
         try {
-            const handles = await window.showOpenFilePicker({
-                multiple: false,
-                types: [{
-                    description: 'Update key Workspace Organizer',
-                    accept: {'application/octet-stream': ['.update-secret']},
-                }],
-            });
-            const handle = handles && handles[0];
-            if (!handle) return;
+            const challenge = encoder.encode('WorkspaceOrganizer update key check v1');
+            const proof = await crypto.subtle.sign(
+                {name: 'Ed25519'},
+                record.privateKey,
+                challenge
+            );
+            const encodedPublic = trustedKeys[record.keyId];
+            if (!encodedPublic) return;
 
-            selectedKeyFile = await handle.getFile();
-            rememberedKeyHandle = handle;
-            await rememberKeyHandle(handle);
-            keyName.textContent = selectedKeyFile.name;
-            keyMeta.textContent = 'Ключ запомнен на этом компьютере · на сервер не загружается';
-            setStatus('Update key готов. Можно выпускать релиз.', 'ok');
-        } catch (error) {
-            if (error && error.name === 'AbortError') return;
-            setStatus('Не удалось выбрать update key.', 'error');
+            const publicBytes = decodeBase64Url(String(encodedPublic));
+            const publicKey = await crypto.subtle.importKey(
+                'raw',
+                publicBytes,
+                {name: 'Ed25519'},
+                false,
+                ['verify']
+            );
+            const matches = await crypto.subtle.verify(
+                {name: 'Ed25519'},
+                publicKey,
+                proof,
+                challenge
+            );
+            publicBytes.fill(0);
+            if (!matches) return;
+
+            selectedKey = record;
+            keyName.textContent = record.fileName || record.keyId;
+            keyMeta.textContent = 'Ключ сохранён локально в браузере · на сервер не загружается';
+            setStatus('Update key готов. Для выпуска достаточно нажать кнопку.', 'ok');
+        } catch (_) {
+            selectedKey = null;
         }
-    }
-
-    async function currentKeyFile() {
-        if (selectedKeyFile) return selectedKeyFile;
-        if (!rememberedKeyHandle) return null;
-
-        let permission = await rememberedKeyHandle.queryPermission({mode: 'read'});
-        if (permission !== 'granted') {
-            permission = await rememberedKeyHandle.requestPermission({mode: 'read'});
-        }
-        if (permission !== 'granted') return null;
-
-        selectedKeyFile = await rememberedKeyHandle.getFile();
-        keyName.textContent = selectedKeyFile.name;
-        keyMeta.textContent = 'Ключ запомнен на этом компьютере · на сервер не загружается';
-        return selectedKeyFile;
     }
 
     function setStatus(message, state = 'idle') {
@@ -411,38 +405,56 @@
         publishForm.submit();
     }
 
-    keyButton.addEventListener('click', chooseKeyFile);
+    keyButton.addEventListener('click', () => keyInput.click());
 
-    keyInput.addEventListener('change', () => {
+    keyInput.addEventListener('change', async () => {
         const file = keyInput.files && keyInput.files[0];
         if (!file) return;
-        selectedKeyFile = file;
-        keyName.textContent = file.name;
-        keyMeta.textContent = 'Файл выбран локально · на сервер не загружается';
-        setStatus('Update key готов. Можно выпускать релиз.', 'ok');
+
+        try {
+            setStatus('Проверяю выбранный update key…', 'working');
+            const key = await importPrivateUpdateKey(file);
+            key.fileName = file.name;
+            selectedKey = key;
+            const saved = await storeImportedKey(key);
+            keyName.textContent = file.name;
+            keyMeta.textContent = saved
+                ? 'Ключ сохранён локально в браузере · на сервер не загружается'
+                : 'Ключ выбран для этой вкладки · на сервер не загружается';
+            setStatus(
+                saved
+                    ? 'Update key готов и запомнен. Дальше достаточно нажимать «Выпустить релиз».'
+                    : 'Update key готов. Браузер не смог сохранить его, но текущий выпуск доступен.',
+                'ok'
+            );
+        } catch (error) {
+            selectedKey = null;
+            keyInput.value = '';
+            setStatus(
+                error instanceof Error ? error.message : 'Не удалось открыть update key.',
+                'error'
+            );
+        }
     });
 
-    restoreKeyHandle();
+    restoreImportedKey();
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        let file;
-        try {
-            file = await currentKeyFile();
-        } catch (_) {
-            file = null;
+        if (!selectedKey) {
+            selectedKey = await loadImportedKey();
         }
-        if (!file) {
-            setStatus('Один раз выберите существующий update key. После этого браузер его запомнит.', 'error');
+        if (!selectedKey) {
+            setStatus('Один раз выберите существующий update key.', 'error');
             keyButton.focus();
             return;
         }
 
         submitButton.disabled = true;
         try {
-            setStatus('Проверяю update key на этом компьютере…', 'working');
-            const key = await importPrivateUpdateKey(file);
+            setStatus('Проверяю сохранённый update key…', 'working');
+            const key = selectedKey;
 
             setStatus('Скачиваю официальный GitHub Release и проверяю ZIP…', 'working');
             const release = await prepareRelease();
