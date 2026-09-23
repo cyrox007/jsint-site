@@ -291,17 +291,43 @@ class ReleaseGitHubPrepareView(MethodView):
     def post(self, db_session: Session):
         """Автоматически готовит manifest из официального GitHub Release."""
         tag = request.form.get("tag", "").strip()
+        json_mode = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         try:
             prepared = GitHubReleaseAutomation.prepare(db_session, tag=tag)
         except ControlPlaneError as exc:
+            if json_mode:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "code": exc.code,
+                        "message": str(exc),
+                    }
+                ), exc.status
             flash(str(exc), "error")
             return render_template(
                 "dashboard/control_plane/releases.html",
                 **_release_context(db_session, tab="publish"),
             ), exc.status
 
+        if json_mode:
+            return jsonify(
+                {
+                    "status": "ok",
+                    "release": {
+                        "manifest": prepared["manifest"],
+                        "package_path": prepared["package_path"],
+                        "tag": prepared["tag"],
+                        "version": prepared["version"],
+                        "version_code": prepared["version_code"],
+                        "channel": prepared["channel"],
+                        "source_commit": prepared["source_commit"],
+                        "package_sha256": prepared["package_sha256"],
+                    },
+                }
+            )
+
         flash(
-            f"GitHub Release {prepared['tag']} проверен. Осталось подтвердить локальную подпись.",
+            f"GitHub Release {prepared['tag']} проверен. Выберите update key и опубликуйте релиз.",
             "success",
         )
         return render_template(
