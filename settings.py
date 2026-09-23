@@ -175,7 +175,7 @@ class Config:
                 cls.NOTES_RELEASE_GITHUB_REPOSITORY,
             ) is None:
                 raise RuntimeError("Некорректный NOTES_RELEASE_GITHUB_REPOSITORY")
-            if re.fullmatch(r"[0-9]+\\.[0-9]+\\.[0-9]+", cls.NOTES_RELEASE_DEFAULT_REQUIRES_PHP) is None:
+            if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", cls.NOTES_RELEASE_DEFAULT_REQUIRES_PHP) is None:
                 raise RuntimeError("Некорректный NOTES_RELEASE_DEFAULT_REQUIRES_PHP")
             signer = urlparse(cls.NOTES_OPERATOR_SIGNER_URL)
             signer_host = (signer.hostname or "").lower()
