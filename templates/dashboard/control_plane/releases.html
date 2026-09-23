@@ -66,7 +66,7 @@
                     <span class="operator-result__eyebrow">Обычный выпуск</span>
                     <h2 class="admin-card__title">GitHub → подпись → публикация</h2>
                     <p class="admin-card__description">
-                        ZIP вручную скачивать и загружать не нужно. Сайт сам возьмёт официальный Release из
+                        ZIP вручную скачивать и загружать не нужно. Сайт сам возьмёт последний официальный Release из
                         <code>{{ release_github_repository }}</code>, проверит его и сформирует manifest.
                         Приватный update key читается только браузером на этом компьютере и на сервер не отправляется.
                     </p>
@@ -74,11 +74,6 @@
             </div>
 
             <div class="admin-card__body admin-form">
-                <label>Git tag
-                    <input name="tag" placeholder="оставьте пустым для последнего релиза">
-                    <small>Обычно это поле вообще не нужно заполнять.</small>
-                </label>
-
                 <div class="operator-section">
                     <div class="operator-section__heading">
                         <span>1</span>
