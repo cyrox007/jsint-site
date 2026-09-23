@@ -27,6 +27,9 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("Выпустить релиз", template)
         self.assertIn("crypto.subtle", template)
         self.assertIn("wo-update-ed25519-secret-v1:", template)
+        self.assertIn("indexedDB", template)
+        self.assertIn("privateKey: key.privateKey", template)
+        self.assertNotIn("showOpenFilePicker", template)
         self.assertNotIn("Код подключения local signer", template)
         self.assertNotIn("Расширенный импорт</a>", template)
 
