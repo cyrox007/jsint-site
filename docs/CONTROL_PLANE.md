@@ -221,7 +221,32 @@ X-Notes-Installation: <installation UUID>
 
 Релиз можно снять с feed без удаления записи.
 
-### Подготовка и публикация
+### Быстрый выпуск из GitHub
+
+Основной операторский сценарий не требует ручной загрузки ZIP и заполнения
+технических полей. Во вкладке «Релизы → Опубликовать» нажмите
+«Подтянуть, проверить и подготовить к подписи». Поле Git tag можно оставить
+пустым — тогда берётся последний опубликованный GitHub Release.
+
+Сервер автоматически:
+
+1. получает Release только из настроенного `NOTES_RELEASE_GITHUB_REPOSITORY`;
+2. требует три штатных artifact: ZIP, `.sha256` и `.source-sha`;
+3. сверяет SHA-256 из checksum artifact и GitHub asset digest;
+4. сверяет source SHA с commit, на который указывает Git tag;
+5. читает `VERSION`, `VERSION_CODE` и `STATUS` непосредственно из
+   `core/Version.php` внутри ZIP;
+6. для стандартного последовательного обновления задаёт
+   `min_source_version_code = version_code - 1`;
+7. строит exact manifest и переводит интерфейс сразу к локальной подписи.
+
+После этих проверок единственное критическое действие оператора — подтвердить
+подпись production update key через local signer. Приватный ключ по-прежнему
+не попадает на VPS.
+
+Для нестандартного перехода или стороннего ZIP ниже остаётся ручной режим.
+
+### Ручная подготовка и публикация
 
 Оператор выбирает ZIP стандартным файловым диалогом браузера. Панель загружает
 его в `NOTES_RELEASE_STORAGE_PATH`, показывает прогресс и после загрузки
@@ -304,6 +329,12 @@ NOTES_CONTROL_PLANE_ENABLED=true
 NOTES_UPDATE_API_PREFIX=/api/notes/v1
 NOTES_UPDATE_BASE_URL=https://jsinteractive.ru/api/notes/v1/
 NOTES_RELEASE_STORAGE_PATH=/var/lib/jsint-site/notes-releases
+NOTES_RELEASE_GITHUB_REPOSITORY=cyrox007/Notes
+NOTES_RELEASE_GITHUB_TOKEN=
+NOTES_RELEASE_DEFAULT_REQUIRES_PHP=8.1.0
+
+# Для public repository token не нужен. Для private repository используется
+# отдельный read-only token; его нельзя помещать в Git, release ZIP или логи.
 
 # Этот URL открывает браузер оператора, поэтому он обязан указывать только
 # на loopback текущего компьютера.

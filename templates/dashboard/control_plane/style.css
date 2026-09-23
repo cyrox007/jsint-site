@@ -49,3 +49,10 @@
 .release-upload-progress progress{width:100%;height:10px;accent-color:var(--color-primary)}
 .release-upload-progress span{min-width:38px;color:var(--admin-muted);font-size:.72rem;font-weight:750;text-align:right}
 @media(max-width:620px){.path-picker{grid-template-columns:1fr}.release-upload-picker{align-items:stretch;flex-direction:column}.release-upload-picker .btn{width:100%}}
+
+.quick-release-card{margin-bottom:18px;border-color:#9fc3ad}
+.quick-release-card .admin-card__footer{justify-content:flex-end}
+.release-auto-facts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.release-auto-facts span{padding:6px 8px;background:var(--admin-surface-raised);border:1px solid var(--admin-border);border-radius:8px;color:var(--admin-muted);font-size:.72rem}
+.release-auto-facts strong,.release-auto-facts code{color:var(--admin-text)}
+@media(max-width:620px){.quick-release-card .admin-card__footer .btn{width:100%}}

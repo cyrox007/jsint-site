@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import login_required, with_db_session
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
 from models.control_plane import LicenseRecord, ReleaseRecord
+from services.github_release_automation import GitHubReleaseAutomation
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
@@ -114,8 +115,10 @@ def _release_context(db_session: Session, *, tab: str = "registry", **extra):
         "operator_signer_url": config.NOTES_OPERATOR_SIGNER_URL,
         "release_storage_path": config.NOTES_RELEASE_STORAGE_PATH,
         "release_upload_max_bytes": config.NOTES_RELEASE_UPLOAD_MAX_BYTES,
+        "release_github_repository": config.NOTES_RELEASE_GITHUB_REPOSITORY,
         "prepared_manifest": None,
         "prepared_package_path": None,
+        "prepared_release_source": None,
     }
     context.update(extra)
     return context
@@ -280,6 +283,37 @@ class ReleaseListView(MethodView):
                 "dashboard/control_plane/releases.html",
                 **_release_context(db_session, tab="import"),
             ), exc.status
+
+
+class ReleaseGitHubPrepareView(MethodView):
+    @login_required
+    @with_db_session
+    def post(self, db_session: Session):
+        """Автоматически готовит manifest из официального GitHub Release."""
+        tag = request.form.get("tag", "").strip()
+        try:
+            prepared = GitHubReleaseAutomation.prepare(db_session, tag=tag)
+        except ControlPlaneError as exc:
+            flash(str(exc), "error")
+            return render_template(
+                "dashboard/control_plane/releases.html",
+                **_release_context(db_session, tab="publish"),
+            ), exc.status
+
+        flash(
+            f"GitHub Release {prepared['tag']} проверен. Осталось подтвердить локальную подпись.",
+            "success",
+        )
+        return render_template(
+            "dashboard/control_plane/releases.html",
+            **_release_context(
+                db_session,
+                tab="publish",
+                prepared_manifest=prepared["manifest"],
+                prepared_package_path=prepared["package_path"],
+                prepared_release_source=prepared,
+            ),
+        )
 
 
 class ReleaseUploadView(MethodView):

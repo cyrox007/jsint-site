@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import io
 import json
 import tempfile
 import time
@@ -13,6 +14,7 @@ from uuid import uuid4
 
 from nacl.signing import SigningKey
 
+from services.github_release_automation import _inspect_workspace_zip, _sequential_source_floor
 from services.notes_control_plane import (
     ControlPlaneError,
     NotesControlPlane,
@@ -146,6 +148,25 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
                 self.assertRegex(manifest["package"]["sha256"], r"^[0-9a-f]{64}$")
             finally:
                 config.NOTES_RELEASE_STORAGE_PATH = original_release_root
+
+    def test_github_release_package_version_is_read_from_zip(self):
+        package = io.BytesIO()
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr(
+                "workspace-organizer-v1.0.1/core/Version.php",
+                "<?php\nclass Version {\n"
+                "public const VERSION = '1.0.1';\n"
+                "public const VERSION_CODE = 10001;\n"
+                "public const STATUS = 'stable';\n"
+                "}\n",
+            )
+        package.seek(0)
+
+        meta = _inspect_workspace_zip(package)
+        self.assertEqual(meta["version"], "1.0.1")
+        self.assertEqual(meta["version_code"], 10001)
+        self.assertEqual(meta["status"], "stable")
+        self.assertEqual(_sequential_source_floor(meta["version_code"]), 10000)
 
     def test_presence_is_based_on_last_outbound_contact(self):
         now = datetime.now(timezone.utc)

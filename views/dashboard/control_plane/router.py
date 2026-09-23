@@ -32,6 +32,11 @@ def install(app: Flask) -> None:
         methods=["GET", "POST"],
     )
     app.add_url_rule(
+        f"{prefix}/releases/github",
+        view_func=views.ReleaseGitHubPrepareView.as_view("admin.releases.github"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
         "/api/operator/v1/release-upload",
         view_func=views.ReleaseUploadView.as_view("admin.releases.upload"),
         methods=["POST"],

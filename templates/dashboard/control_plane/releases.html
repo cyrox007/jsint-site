@@ -58,12 +58,51 @@
     </section>
 
     {% elif tab == 'publish' %}
+    <section class="admin-card quick-release-card">
+        <form method="post" action="{{ url_for('admin.releases.github') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="admin-card__header">
+                <div>
+                    <span class="operator-result__eyebrow">Быстрый выпуск</span>
+                    <h2 class="admin-card__title">Подготовить официальный GitHub Release</h2>
+                    <p class="admin-card__description">
+                        Сервер сам скачает ZIP из <code>{{ release_github_repository }}</code>,
+                        сверит GitHub digest, <code>.sha256</code>, <code>.source-sha</code>,
+                        Git tag и версию внутри пакета, затем построит manifest.
+                    </p>
+                </div>
+            </div>
+            <div class="admin-card__body admin-form">
+                <label>Git tag — можно оставить пустым
+                    <input name="tag" placeholder="v1.0.1">
+                    <small>Пустое поле означает последний опубликованный GitHub Release.</small>
+                </label>
+                <div class="local-signer-status" data-state="ok">
+                    Для обычного последовательного релиза минимальная исходная версия вычисляется автоматически:
+                    <code>version_code - 1</code>. Нестандартные переходы остаются в ручном режиме ниже.
+                </div>
+            </div>
+            <div class="admin-card__footer">
+                <button class="btn primary" type="submit">Подтянуть, проверить и подготовить к подписи</button>
+            </div>
+        </form>
+    </section>
+
     {% if prepared_manifest %}
     <section class="operator-result operator-result--important release-sign-stage">
         <div>
             <span class="operator-result__eyebrow">Manifest готов</span>
             <h2>ZIP проверен — осталось подписать на вашем компьютере</h2>
             <p>Размер и SHA-256 уже рассчитаны сервером. Exact manifest ниже будет отправлен только в local signer на <code>127.0.0.1</code>; private update key на сервер не передаётся.</p>
+            {% if prepared_release_source %}
+            <div class="release-auto-facts">
+                <span>GitHub: <strong>{{ prepared_release_source.tag }}</strong></span>
+                <span>Версия: <strong>{{ prepared_release_source.version }} / {{ prepared_release_source.version_code }}</strong></span>
+                <span>Обновление с: <strong>{{ prepared_release_source.min_source_version_code }}</strong></span>
+                <span>Commit: <code>{{ prepared_release_source.source_commit[:12] }}…</code></span>
+                <span>SHA-256: <code>{{ prepared_release_source.package_sha256[:16] }}…</code></span>
+            </div>
+            {% endif %}
         </div>
         <div class="copy-value">
             <textarea id="prepared-manifest" readonly rows="12">{{ prepared_manifest }}</textarea>
@@ -115,8 +154,8 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="admin-card__header">
                 <div>
-                    <h2 class="admin-card__title">Подготовить новый релиз</h2>
-                    <p class="admin-card__description">Сначала сервер проверит ZIP и построит manifest. Подпись выполняется отдельным следующим шагом на вашем ПК.</p>
+                    <h2 class="admin-card__title">Ручной режим</h2>
+                    <p class="admin-card__description">Используйте его только для нестандартного пакета или перехода. Для обычного релиза достаточно быстрого выпуска выше.</p>
                 </div>
             </div>
             <div class="admin-card__body admin-form">
@@ -215,6 +254,23 @@
 <script>
 const releasePackageUploadUrl = {{ url_for('admin.releases.upload')|tojson }};
 const releasePackageUploadMaxBytes = {{ release_upload_max_bytes }};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(async () => {
+        const manifest = document.getElementById('prepared-manifest');
+        const token = document.getElementById('operator-signer-token');
+        const directory = document.getElementById('operator-signer-directory');
+        const key = document.getElementById('operator-signer-key-id');
+        if (!manifest || !token?.value.trim() || !directory?.value.trim() || !key) {
+            return;
+        }
+        try {
+            await OperatorSigner.scanAndMatch('update', key.value);
+        } catch (error) {
+            OperatorSigner.setStatus(error.message, 'error');
+        }
+    }, 0);
+});
 window.operatorSignerConfig = {
     url: {{ operator_signer_url|tojson }},
     licenseTrustedKeys: {},

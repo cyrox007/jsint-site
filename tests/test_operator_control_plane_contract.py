@@ -86,6 +86,24 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("location = /api/operator/v1/release-upload", nginx)
         self.assertIn("client_max_body_size 520m", nginx)
 
+    def test_release_ui_has_one_click_github_preparation(self):
+        template = self.read("templates/dashboard/control_plane/releases.html")
+        router = self.read("views/dashboard/control_plane/router.py")
+        service = self.read("services/github_release_automation.py")
+        settings = self.read("settings.py")
+
+        self.assertIn("Быстрый выпуск", template)
+        self.assertIn("Подтянуть, проверить и подготовить к подписи", template)
+        self.assertIn("admin.releases.github", template)
+        self.assertIn('f"{prefix}/releases/github"', router)
+        self.assertIn("GitHubReleaseAutomation", service)
+        self.assertIn("workspace-organizer-", service)
+        self.assertIn(".sha256", service)
+        self.assertIn(".source-sha", service)
+        self.assertIn("api.github.com", service)
+        self.assertIn("NOTES_RELEASE_GITHUB_REPOSITORY", settings)
+        self.assertNotIn("private signing key", service.lower())
+
     def test_release_manifest_is_built_server_side_then_signed_locally(self):
         service = self.read("services/notes_control_plane.py")
         template = self.read("templates/dashboard/control_plane/releases.html")
