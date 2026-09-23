@@ -264,20 +264,57 @@ class ReleaseListView(MethodView):
     @login_required
     @with_db_session
     def post(self, db_session: Session):
-        """Совместимый расширенный импорт manifest/signature."""
+        """Публикует релиз, сохраняя точные байты manifest при JSON-запросе."""
+        json_mode = request.is_json
+        if json_mode:
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, dict):
+                return jsonify(
+                    {
+                        "status": "error",
+                        "code": "invalid_request",
+                        "message": "Ожидался JSON-объект с данными релиза.",
+                    }
+                ), 400
+            manifest_bytes = str(payload.get("manifest_bytes", ""))
+            signature = str(payload.get("signature", ""))
+            package_path = str(payload.get("package_path", ""))
+        else:
+            manifest_bytes = request.form.get("manifest_bytes", "")
+            signature = request.form.get("signature", "")
+            package_path = request.form.get("package_path", "")
+
         try:
             record = NotesControlPlane.publish_release(
                 db_session,
-                manifest_bytes=request.form.get("manifest_bytes", ""),
-                signature=request.form.get("signature", ""),
-                package_path=request.form.get("package_path", ""),
+                manifest_bytes=manifest_bytes,
+                signature=signature,
+                package_path=package_path,
             )
+            if json_mode:
+                return jsonify(
+                    {
+                        "status": "ok",
+                        "release": {
+                            "version": record.version,
+                            "channel": record.channel,
+                        },
+                    }
+                )
             flash(
                 f"Релиз {record.version} ({record.channel}) импортирован и проверен",
                 "success",
             )
             return redirect(url_for("admin.releases.index", tab="registry"))
         except ControlPlaneError as exc:
+            if json_mode:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "code": exc.code,
+                        "message": str(exc),
+                    }
+                ), exc.status
             flash(str(exc), "error")
             return render_template(
                 "dashboard/control_plane/releases.html",
