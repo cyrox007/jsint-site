@@ -110,7 +110,7 @@ def _request(url: str, *, accept: str) -> BinaryIO:
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             raise ControlPlaneError(
-                "GitHub Release или его файл релиза не найден",
+                "GitHub Release или нужный файл не найден",
                 status=404,
                 code="release_source_not_found",
             ) from exc
@@ -163,7 +163,7 @@ def _release(tag: str) -> dict[str, Any]:
 def _asset_map(release: dict[str, Any]) -> dict[str, dict[str, Any]]:
     assets = release.get("assets")
     if not isinstance(assets, list):
-        raise ControlPlaneError("GitHub Release не содержит список файл релизаs", status=502)
+        raise ControlPlaneError("GitHub Release не содержит список файлов", status=502)
 
     result: dict[str, dict[str, Any]] = {}
     for item in assets:
@@ -178,7 +178,7 @@ def _asset_map(release: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def _asset_response(asset: dict[str, Any]) -> BinaryIO:
     api_url = asset.get("url")
     if not isinstance(api_url, str) or not api_url:
-        raise ControlPlaneError("GitHub файл релиза не содержит API URL", status=502)
+        raise ControlPlaneError("Файл GitHub Release не содержит API URL", status=502)
     return _request(api_url, accept="application/octet-stream")
 
 
@@ -187,28 +187,28 @@ def _read_small_asset(asset: dict[str, Any]) -> str:
     with response:
         raw = response.read(_MAX_SMALL_ASSET_BYTES + 1)
     if len(raw) > _MAX_SMALL_ASSET_BYTES:
-        raise ControlPlaneError("Служебный файл релиза GitHub слишком большой", status=502)
+        raise ControlPlaneError("Служебный файл GitHub Release слишком большой", status=502)
     try:
         return raw.decode("utf-8").strip()
     except UnicodeDecodeError as exc:
-        raise ControlPlaneError("Служебный файл релиза GitHub не является UTF-8", status=502) from exc
+        raise ControlPlaneError("Служебный файл GitHub Release не является UTF-8", status=502) from exc
 
 
 def _expected_sha256(checksum_text: str, package_name: str) -> str:
     first_line = checksum_text.splitlines()[0].strip() if checksum_text else ""
     match = re.fullmatch(r"([0-9a-f]{64})\s+\*?(.+)", first_line)
     if match is None:
-        raise ControlPlaneError("Некорректный SHA-256 файл релиза GitHub", status=502)
+        raise ControlPlaneError("Некорректный файл SHA-256 в GitHub Release", status=502)
     filename = match.group(2).strip()
     if filename != package_name:
-        raise ControlPlaneError("SHA-256 файл релиза относится к другому ZIP", status=502)
+        raise ControlPlaneError("Файл SHA-256 относится к другому ZIP", status=502)
     return match.group(1)
 
 
 def _source_commit(source_text: str) -> str:
     source = source_text.strip().lower()
     if _SHA_RE.fullmatch(source) is None:
-        raise ControlPlaneError("Некорректный source SHA файл релиза GitHub", status=502)
+        raise ControlPlaneError("Некорректный source SHA в GitHub Release", status=502)
     return source
 
 
@@ -241,11 +241,11 @@ def _resolve_tag_commit(tag: str) -> str:
 def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[BinaryIO, int, str]:
     declared_size = asset.get("size")
     if not isinstance(declared_size, int) or declared_size <= 0:
-        raise ControlPlaneError("GitHub файл релиза не содержит корректный размер", status=502)
+        raise ControlPlaneError("Файл GitHub Release не содержит корректный размер", status=502)
 
     if declared_size > config.NOTES_RELEASE_UPLOAD_MAX_BYTES:
         raise ControlPlaneError(
-            "GitHub файл релиза превышает допустимый размер release storage",
+            "Файл GitHub Release превышает допустимый размер хранилища",
             status=413,
             code="package_too_large",
         )
@@ -274,7 +274,7 @@ def _download_package(asset: dict[str, Any], expected_sha256: str) -> tuple[Bina
                 size += len(chunk)
                 if size > config.NOTES_RELEASE_UPLOAD_MAX_BYTES:
                     raise ControlPlaneError(
-                        "Загрузка GitHub файл релиза превысила допустимый размер",
+                        "Загрузка файла GitHub Release превысила допустимый размер",
                         status=413,
                         code="package_too_large",
                     )
@@ -305,13 +305,13 @@ def _inspect_workspace_zip(stream: BinaryIO) -> dict[str, Any]:
                 if item.filename == "core/Version.php" or item.filename.endswith("/core/Version.php")
             ]
             if len(candidates) != 1:
-                raise ControlPlaneError("В release ZIP не найден единственный core/Version.php")
+                raise ControlPlaneError("В ZIP релиза не найден единственный core/Version.php")
             info = candidates[0]
             if info.file_size <= 0 or info.file_size > _MAX_VERSION_FILE_BYTES:
                 raise ControlPlaneError("core/Version.php имеет недопустимый размер")
             source = archive.read(info).decode("utf-8")
     except (zipfile.BadZipFile, UnicodeDecodeError, OSError) as exc:
-        raise ControlPlaneError("Не удалось прочитать версию из release ZIP") from exc
+        raise ControlPlaneError("Не удалось прочитать версию из ZIP релиза") from exc
     finally:
         stream.seek(0)
 
@@ -467,7 +467,7 @@ class GitHubReleaseAutomation:
 
         if stored["size"] != package_size or stored["sha256"] != package_sha256:
             raise ControlPlaneError(
-                "Release storage изменил содержимое ZIP",
+                "Хранилище релизов изменило содержимое ZIP",
                 status=500,
                 code="release_storage_mismatch",
             )
