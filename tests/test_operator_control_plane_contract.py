@@ -115,6 +115,16 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("release.manifest", template)
         self.assertNotIn("def publish_release_local(", service)
 
+    def test_signed_manifest_is_published_as_json_without_form_normalization(self):
+        template = self.read("templates/dashboard/control_plane/releases.html")
+        views = self.read("views/dashboard/control_plane/views.py")
+        self.assertIn("'Content-Type': 'application/json'", template)
+        self.assertIn("JSON.stringify({", template)
+        self.assertIn("manifest_bytes: release.manifest", template)
+        self.assertNotIn("publishForm.submit()", template)
+        self.assertIn("json_mode = request.is_json", views)
+        self.assertIn('manifest_bytes = str(payload.get("manifest_bytes", ""))', views)
+
 
 if __name__ == "__main__":
     unittest.main()

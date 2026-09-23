@@ -131,6 +131,7 @@
     const statusNode = document.getElementById('release-one-click-status');
     const trustedKeys = {{ update_trusted_keys|tojson }};
     const publishUrl = {{ url_for('admin.releases.index')|tojson }};
+    const registryUrl = {{ url_for('admin.releases.index', tab='registry')|tojson }};
     const domain = 'WorkspaceOrganizerUpdateManifest/v1\n';
     const secretPrefix = 'wo-update-ed25519-secret-v1:';
     const encoder = new TextEncoder();
@@ -381,28 +382,36 @@
         }
     }
 
-    function publishRelease(release, signature) {
-        const publishForm = document.createElement('form');
-        publishForm.method = 'post';
-        publishForm.action = publishUrl;
-        publishForm.hidden = true;
+    async function publishRelease(release, signature) {
+        const csrf = form.querySelector('input[name="_csrf_token"]').value;
+        const response = await fetch(publishUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                manifest_bytes: release.manifest,
+                signature,
+                package_path: release.package_path,
+            }),
+        });
 
-        const fields = {
-            _csrf_token: form.querySelector('input[name="_csrf_token"]').value,
-            manifest_bytes: release.manifest,
-            signature,
-            package_path: release.package_path,
-        };
-        for (const [name, value] of Object.entries(fields)) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = String(value);
-            publishForm.appendChild(input);
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (_) {
+            throw new Error('Сервер вернул неожиданный ответ при публикации релиза.');
         }
 
-        document.body.appendChild(publishForm);
-        publishForm.submit();
+        if (!response.ok || payload.status !== 'ok') {
+            throw new Error(payload.message || ('Ошибка публикации релиза HTTP ' + response.status));
+        }
+
+        window.location.assign(registryUrl);
     }
 
     keyButton.addEventListener('click', () => keyInput.click());
@@ -466,7 +475,7 @@
                 'Проверки пройдены. Публикую ' + release.version + ' (' + release.channel + ')…',
                 'working'
             );
-            publishRelease(release, signature);
+            await publishRelease(release, signature);
         } catch (error) {
             setStatus(error instanceof Error ? error.message : 'Не удалось выпустить релиз.', 'error');
             submitButton.disabled = false;
