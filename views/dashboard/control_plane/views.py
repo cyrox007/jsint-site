@@ -254,7 +254,7 @@ class ReleaseListView(MethodView):
     @with_db_session
     def get(self, db_session: Session):
         tab = request.args.get("tab", "registry").strip()
-        if tab not in {"registry", "publish", "import"}:
+        if tab not in {"registry", "publish"}:
             tab = "registry"
         return render_template(
             "dashboard/control_plane/releases.html",
@@ -281,7 +281,7 @@ class ReleaseListView(MethodView):
             flash(str(exc), "error")
             return render_template(
                 "dashboard/control_plane/releases.html",
-                **_release_context(db_session, tab="import"),
+                **_release_context(db_session, tab="publish"),
             ), exc.status
 
 
