@@ -72,13 +72,20 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("wo-ed25519-secret-v1:", template)
         self.assertIn("crypto.subtle.importKey", template)
         self.assertIn("crypto.subtle.sign", template)
-        self.assertIn("licenseTrustedKeys", template.replace("license_trusted_keys", "licenseTrustedKeys"))
+        self.assertIn("license_trusted_keys|tojson", template)
         self.assertIn('name="signed_license"', template)
-        self.assertIn('name="updates_until"', template)
         self.assertIn("addOneCalendarYear", template)
-        self.assertIn("updatesInput.value = expiresInput.value", template)
+        self.assertIn("standardFeatures", template)
         self.assertNotIn("OperatorSigner.", template)
         self.assertNotIn("signer.js", template)
+
+    def test_normal_license_issue_mirrors_update_access_to_license_expiry(self):
+        views = self.read("views/dashboard/control_plane/views.py")
+        service = self.read("services/notes_control_plane.py")
+        self.assertIn("updates_follow_license_expiry=True", views)
+        self.assertIn("if updates_follow_license_expiry:", service)
+        self.assertIn("updates_until = license_expires_at", service)
+        self.assertIn("max_version=None", views)
 
     def test_machine_api_records_presence_and_has_heartbeat(self):
         api = self.read("views/notes_api.py")
