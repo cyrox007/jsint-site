@@ -15,9 +15,14 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("Выпустить", template)
         self.assertIn("Импорт готовой", template)
         self.assertIn("Новый activation code", template)
-        self.assertIn("Папка с ключами на этом ПК", template)
-        self.assertIn("Выбрать папку…", template)
-        self.assertIn("Проверить ключи", template)
+        self.assertIn('id="license-signing-key-file"', template)
+        self.assertIn("Выбрать ключ и выпустить", template)
+        self.assertIn('id="license-not-before"', template)
+        self.assertIn('id="license-expires-at"', template)
+        self.assertIn("Доступ к обновлениям автоматически действует до даты окончания лицензии", template)
+        self.assertNotIn("Код подключения local signer", template)
+        self.assertNotIn("Выбрать папку…", template)
+        self.assertNotIn("Проверить ключи", template)
         self.assertIn("last_seen", self.read("models/control_plane.py"))
 
     def test_release_ui_uses_single_form_browser_signing(self):
@@ -60,14 +65,20 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertNotIn("/v1/sign-raw", router)
         self.assertIn("Private key не соответствует trust root", router)
 
-    def test_browser_sends_local_path_only_to_loopback_signer(self):
+    def test_license_private_key_is_used_only_in_browser(self):
         template = self.read("templates/dashboard/control_plane/licenses.html")
-        bridge = self.read("templates/dashboard/control_plane/signer.js")
-        self.assertIn('id="operator-signer-directory"', template)
-        self.assertNotIn('name="operator-signer-directory"', template)
-        self.assertIn("credentials: 'omit'", bridge)
-        self.assertIn("directory: directory()", bridge)
-        self.assertIn("submitHidden", bridge)
+        self.assertIn('id="license-signing-key-file"', template)
+        self.assertNotIn('name="license-signing-key-file"', template)
+        self.assertIn("wo-ed25519-secret-v1:", template)
+        self.assertIn("crypto.subtle.importKey", template)
+        self.assertIn("crypto.subtle.sign", template)
+        self.assertIn("licenseTrustedKeys", template.replace("license_trusted_keys", "licenseTrustedKeys"))
+        self.assertIn('name="signed_license"', template)
+        self.assertIn('name="updates_until"', template)
+        self.assertIn("addOneCalendarYear", template)
+        self.assertIn("updatesInput.value = expiresInput.value", template)
+        self.assertNotIn("OperatorSigner.", template)
+        self.assertNotIn("signer.js", template)
 
     def test_machine_api_records_presence_and_has_heartbeat(self):
         api = self.read("views/notes_api.py")
