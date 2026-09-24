@@ -146,14 +146,14 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="license-id" value="{{ suggested_license_id }}">
             <input type="hidden" id="license-signed-token" name="signed_license">
-            <input type="file" id="license-signing-key-file" hidden>
+            <input type="file" id="license-signing-key-file" accept=".license-secret" hidden>
 
             <div class="admin-card__header">
                 <div>
                     <span class="operator-result__eyebrow">Обычный выпуск</span>
                     <h2 class="admin-card__title">Новая лицензия</h2>
                     <p class="admin-card__description">
-                        Укажите установку и параметры клиента. Срок по умолчанию — один год,
+                        Укажите установку и параметры лицензии. Срок по умолчанию — один год,
                         доступ к обновлениям действует до той же даты. Ключ подписи читается
                         только браузером на этом компьютере и на сервер не отправляется.
                     </p>
@@ -176,9 +176,9 @@
                                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
                         </label>
                         <label class="admin-form-grid__wide">
-                            Клиент / организация
+                            Владелец лицензии
                             <input name="customer" maxlength="160" autocomplete="organization"
-                                   placeholder="Название клиента" required>
+                                   placeholder="Организация или ФИО" required>
                         </label>
                         <label>
                             Редакция
@@ -225,19 +225,30 @@
                     <div class="operator-section__heading">
                         <span>3</span>
                         <div>
-                            <strong>Подпись</strong>
-                            <small>Никаких кодов подключения, папок и ручного выбора key ID.</small>
+                            <strong>Приватный ключ лицензирования</strong>
+                            <small>Выберите файл <code>.license-secret</code>. Он читается только этим браузером и на сервер не отправляется.</small>
                         </div>
                     </div>
+
+                    <div class="release-upload-picker">
+                        <button class="btn secondary" id="license-signing-key-pick" type="button">
+                            Выбрать файл ключа…
+                        </button>
+                        <div class="release-upload-picker__info">
+                            <strong id="license-signing-key-name">Ключ ещё не выбран</strong>
+                            <small id="license-signing-key-meta">Например: prod-license-2026-01.license-secret</small>
+                        </div>
+                    </div>
+
                     <div class="local-signer-status" id="license-signing-status" data-state="idle">
-                        Заполните форму и выберите файл license key. Подпись и регистрация выполнятся автоматически.
+                        Выберите приватный ключ лицензирования. После проверки можно выпустить лицензию.
                     </div>
                 </div>
             </div>
 
             <div class="admin-card__footer">
-                <button class="btn primary" id="license-signing-key-pick" type="button">
-                    Выбрать ключ и выпустить
+                <button class="btn primary" id="license-issue-submit" type="submit">
+                    Выпустить лицензию
                 </button>
             </div>
         </form>
