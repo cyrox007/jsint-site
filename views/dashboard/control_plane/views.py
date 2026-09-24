@@ -71,9 +71,7 @@ def _license_context(db_session: Session, *, tab: str = "registry", **extra):
         "activation_code": None,
         "activation_installation": None,
         "issued_license_token": None,
-        "license_key_ids": list(LICENSE_TRUSTED_KEYS.keys()),
         "license_trusted_keys": LICENSE_TRUSTED_KEYS,
-        "operator_signer_url": config.NOTES_OPERATOR_SIGNER_URL,
         "suggested_license_id": _license_id(""),
         "stats": {
             "total": len(records),
@@ -176,20 +174,15 @@ class LicenseIssueView(MethodView):
     @login_required
     @with_db_session
     def post(self, db_session: Session):
-        """Регистрирует токен, который был подписан локальным signer на ПК оператора."""
+        """Регистрирует лицензию, которую браузер оператора подписал выбранным ключом."""
         signed_license = request.form.get("signed_license", "").strip()
         try:
             record, activation_code = NotesControlPlane.register_license(
                 db_session,
                 signed_license,
-                updates_until=_parse_optional_datetime(
-                    request.form.get("updates_until", ""),
-                    "Доступ к обновлениям до",
-                ),
-                max_version=_parse_optional_positive_int(
-                    request.form.get("max_version", ""),
-                    "max_version",
-                ),
+                updates_until=None,
+                max_version=None,
+                updates_follow_license_expiry=True,
             )
         except ControlPlaneError as exc:
             flash(str(exc), "error")

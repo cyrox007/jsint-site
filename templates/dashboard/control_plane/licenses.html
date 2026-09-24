@@ -141,115 +141,109 @@
     </section>
 
     {% elif tab == 'issue' %}
-    <section class="operator-layout">
-        <form class="admin-card operator-form" id="license-issue-form" method="post" action="{{ url_for('admin.licenses.issue') }}">
+    <section class="admin-card operator-form">
+        <form id="license-issue-form" method="post" action="{{ url_for('admin.licenses.issue') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" id="license-id" value="{{ suggested_license_id }}">
+            <input type="hidden" id="license-signed-token" name="signed_license">
+            <input type="file" id="license-signing-key-file" hidden>
+
             <div class="admin-card__header">
                 <div>
-                    <h2 class="admin-card__title">Выпустить новую лицензию</h2>
-                    <p class="admin-card__description">Параметры задаются на сайте, но Ed25519-подпись выполняется локально на вашем компьютере.</p>
+                    <span class="operator-result__eyebrow">Обычный выпуск</span>
+                    <h2 class="admin-card__title">Новая лицензия</h2>
+                    <p class="admin-card__description">
+                        Укажите установку и параметры клиента. Срок по умолчанию — один год,
+                        доступ к обновлениям действует до той же даты. Ключ подписи читается
+                        только браузером на этом компьютере и на сервер не отправляется.
+                    </p>
                 </div>
             </div>
 
             <div class="admin-card__body admin-form">
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>1</span><div><strong>Установка и клиент</strong><small>Installation ID копируется с той установки Workspace Organizer, для которой выпускается лицензия.</small></div></div>
-                    <div class="admin-form-grid">
-                        <label class="admin-form-grid__wide">Installation ID<input name="installation_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required></label>
-                        <label>Клиент / организация<input name="customer" maxlength="160" placeholder="ООО Пример"></label>
-                        <label>License ID<input name="license_id" maxlength="128" value="{{ suggested_license_id }}" required></label>
+                    <div class="operator-section__heading">
+                        <span>1</span>
+                        <div>
+                            <strong>Кому выпускаем</strong>
+                            <small>Нужны только данные установки и параметры лицензии.</small>
+                        </div>
                     </div>
-                </div>
-
-                <div class="operator-section">
-                    <div class="operator-section__heading"><span>2</span><div><strong>Параметры лицензии</strong><small>Эти значения входят в подписанный wo1 token и не меняются без нового выпуска.</small></div></div>
                     <div class="admin-form-grid">
-                        <label>Редакция
-                            <select name="edition">
+                        <label class="admin-form-grid__wide">
+                            Installation ID
+                            <input name="installation_id" autocomplete="off"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
+                        </label>
+                        <label class="admin-form-grid__wide">
+                            Клиент / организация
+                            <input name="customer" maxlength="160" autocomplete="organization"
+                                   placeholder="Название клиента" required>
+                        </label>
+                        <label>
+                            Редакция
+                            <select name="edition" required>
                                 <option value="personal">personal</option>
                                 <option value="team" selected>team</option>
                                 <option value="business">business</option>
                                 <option value="enterprise">enterprise</option>
                             </select>
                         </label>
-                        <label>Максимум пользователей<input type="number" name="max_users" min="1" step="1" placeholder="Пусто = без лимита"></label>
-                        <label>Начало действия, UTC<input type="datetime-local" name="not_before"></label>
-                        <label>Срок лицензии, UTC<input type="datetime-local" name="expires_at"><small>Пусто = бессрочная лицензия.</small></label>
+                        <label>
+                            Максимум пользователей
+                            <input type="number" name="max_users" min="1" max="1000000"
+                                   step="1" inputmode="numeric" required>
+                        </label>
                     </div>
-                    <fieldset class="feature-grid">
-                        <legend>Features</legend>
-                        {% for feature in ['workspace.notes','workspace.tasks','workspace.files','workspace.messenger','workspace.profile','workspace.admin'] %}
-                        <label><input type="checkbox" name="features" value="{{ feature }}" checked><span>{{ feature }}</span></label>
-                        {% endfor %}
-                    </fieldset>
-                    <label>Дополнительные features<input name="features_extra" placeholder="feature.one,feature.two"></label>
                 </div>
 
                 <div class="operator-section">
-                    <div class="operator-section__heading"><span>3</span><div><strong>Доступ к обновлениям</strong><small>Это серверные ограничения control plane; они не изменяют сам локальный license token.</small></div></div>
-                    <div class="admin-form-grid">
-                        <label>Обновления доступны до, UTC<input type="datetime-local" name="updates_until"><small>Пусто = без ограничения по дате.</small></label>
-                        <label>Максимальный version_code<input type="number" name="max_version" min="1" step="1" placeholder="Пусто = без ограничения"></label>
+                    <div class="operator-section__heading">
+                        <span>2</span>
+                        <div>
+                            <strong>Срок</strong>
+                            <small>Значения уже заполнены. При необходимости их можно изменить перед выпуском.</small>
+                        </div>
                     </div>
+                    <div class="admin-form-grid">
+                        <label>
+                            Начало действия, UTC
+                            <input type="datetime-local" id="license-not-before" required>
+                        </label>
+                        <label>
+                            Окончание лицензии, UTC
+                            <input type="datetime-local" id="license-expires-at" required>
+                        </label>
+                    </div>
+                    <p class="admin-form-note">
+                        Доступ к обновлениям автоматически действует до даты окончания лицензии.
+                        Ограничение по <code>version_code</code> для обычного выпуска не задаётся.
+                    </p>
                 </div>
 
                 <div class="operator-section operator-section--security">
-                    <div class="operator-section__heading"><span>4</span><div><strong>Ключи на этом компьютере</strong><small>Вставьте флешку или укажите локальную папку. Web-сервер этот путь не получает.</small></div></div>
-
-                    <div class="local-signer-panel">
-                        <div class="admin-form-grid">
-                            <label>Код подключения local signer
-                                <input id="operator-signer-token" type="password" autocomplete="off" placeholder="Код из окна tools/operator-signer/start.ps1">
-                            </label>
-                            <label>Папка с ключами на этом ПК
-                                <div class="path-picker">
-                                    <input id="operator-signer-directory" type="text" autocomplete="off" readonly placeholder="Папка ещё не выбрана">
-                                    <button class="btn secondary" id="operator-signer-directory-pick" type="button">Выбрать папку…</button>
-                                </div>
-                            </label>
-                            <label>License signing key
-                                <select id="operator-signer-key-id">
-                                    {% for key_id in license_key_ids %}<option value="{{ key_id }}">{{ key_id }}</option>{% endfor %}
-                                </select>
-                            </label>
-                            <div class="local-signer-panel__action">
-                                <button class="btn secondary" id="operator-signer-scan" type="button">Проверить ключи</button>
-                            </div>
+                    <div class="operator-section__heading">
+                        <span>3</span>
+                        <div>
+                            <strong>Подпись</strong>
+                            <small>Никаких кодов подключения, папок и ручного выбора key ID.</small>
                         </div>
-
-                        <div class="local-signer-status" id="operator-signer-status" data-state="idle">
-                            Запустите local signer на этом компьютере, вставьте код подключения и выберите папку с ключами системным диалогом.
-                        </div>
-
-                        <details class="local-signer-help">
-                            <summary>Как запустить local signer</summary>
-                            <p>На компьютере, где физически находится флешка/папка с private keys, запустите <code>tools/operator-signer/start.ps1</code> (Windows) или <code>tools/operator-signer/start.sh</code> (Linux/macOS). Он слушает только <code>127.0.0.1</code> и показывает временный код подключения.</p>
-                        </details>
+                    </div>
+                    <div class="local-signer-status" id="license-signing-status" data-state="idle">
+                        Заполните форму и выберите файл license key. Подпись и регистрация выполнятся автоматически.
                     </div>
                 </div>
             </div>
 
             <div class="admin-card__footer">
-                <button class="btn primary" id="license-issue-submit" type="submit">Подписать на этом ПК и выпустить</button>
+                <button class="btn primary" id="license-signing-key-pick" type="button">
+                    Выбрать ключ и выпустить
+                </button>
             </div>
         </form>
-
-        <aside class="operator-help admin-card">
-            <div class="admin-card__body">
-                <h3>Что происходит при выпуске</h3>
-                <ol class="operator-steps">
-                    <li><strong>Проверяем папку</strong><span>Local signer ищет Workspace Organizer keys и возвращает только public fingerprint.</span></li>
-                    <li><strong>Сверяем trust root</strong><span>Private key должен соответствовать production public key, который знает сайт.</span></li>
-                    <li><strong>Подписываем локально</strong><span>Private key остаётся на вашем ПК/флешке.</span></li>
-                    <li><strong>Регистрируем wo1 token</strong><span>На сервер отправляется только уже подписанная лицензия.</span></li>
-                    <li><strong>Выдаём activation code</strong><span>Отдельный одноразовый код для online updater.</span></li>
-                </ol>
-                <p class="admin-form-note">Браузер сам не имеет права читать <code>D:\</code> или флешку. Доступ к ОС выполняет только локальный helper на <code>127.0.0.1</code>.</p>
-            </div>
-        </aside>
     </section>
 
-    {% else %}
+{% else %}
     <section class="admin-card operator-form operator-form--narrow">
         <div class="admin-card__header">
             <div>
@@ -275,18 +269,16 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-window.operatorSignerConfig = {
-    url: {{ operator_signer_url|tojson }},
-    licenseTrustedKeys: {{ license_trusted_keys|tojson }},
-    updateTrustedKeys: {}
-};
-{% include 'dashboard/control_plane/signer.js' %}
+(() => {
+    'use strict';
 
-document.addEventListener('click', async (event) => {
-    const copyButton = event.target.closest('[data-copy-target]');
-    if (copyButton) {
+    document.addEventListener('click', async (event) => {
+        const copyButton = event.target.closest('[data-copy-target]');
+        if (!copyButton) return;
+
         const target = document.getElementById(copyButton.dataset.copyTarget);
         if (!target) return;
+
         const value = target.value || target.textContent || '';
         try {
             await navigator.clipboard.writeText(value);
@@ -296,78 +288,265 @@ document.addEventListener('click', async (event) => {
         } catch (_) {
             target.select?.();
         }
-        return;
+    });
+
+    const form = document.getElementById('license-issue-form');
+    if (!form) return;
+
+    const keyInput = document.getElementById('license-signing-key-file');
+    const keyButton = document.getElementById('license-signing-key-pick');
+    const statusNode = document.getElementById('license-signing-status');
+    const startInput = document.getElementById('license-not-before');
+    const expiresInput = document.getElementById('license-expires-at');
+    const signedInput = document.getElementById('license-signed-token');
+    const licenseIdInput = document.getElementById('license-id');
+    const trustedKeys = {{ license_trusted_keys|tojson }};
+    const secretPrefix = 'wo-ed25519-secret-v1:';
+    const encoder = new TextEncoder();
+    const standardFeatures = [
+        'workspace.notes',
+        'workspace.tasks',
+        'workspace.files',
+        'workspace.messenger',
+        'workspace.profile',
+        'workspace.admin',
+    ];
+
+    function setStatus(message, state = 'idle') {
+        statusNode.textContent = message;
+        statusNode.dataset.state = state;
     }
 
-    if (event.target.closest('#operator-signer-directory-pick')) {
-        try {
-            await OperatorSigner.selectDirectory();
-        } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
+    function formatUtcMinute(date) {
+        return date.toISOString().slice(0, 16);
+    }
+
+    function addOneCalendarYear(date) {
+        const result = new Date(date.getTime());
+        const targetYear = date.getUTCFullYear() + 1;
+        const month = date.getUTCMonth();
+        const day = date.getUTCDate();
+        const lastDay = new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate();
+
+        result.setUTCDate(1);
+        result.setUTCFullYear(targetYear);
+        result.setUTCMonth(month);
+        result.setUTCDate(Math.min(day, lastDay));
+        return result;
+    }
+
+    function initializeDates() {
+        const now = new Date();
+        if (!startInput.value) {
+            startInput.value = formatUtcMinute(now);
         }
-        return;
-    }
-
-    if (event.target.closest('#operator-signer-scan')) {
-        const keyId = document.getElementById('operator-signer-key-id').value;
-        try {
-            await OperatorSigner.scanAndMatch('license', keyId);
-        } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
+        if (!expiresInput.value) {
+            expiresInput.value = formatUtcMinute(addOneCalendarYear(now));
         }
     }
-});
 
-const issueForm = document.getElementById('license-issue-form');
-if (issueForm) {
-    issueForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        if (!issueForm.reportValidity()) return;
+    function parseUtcInput(input, label) {
+        const value = input.value.trim();
+        if (!value) {
+            throw new Error('Поле «' + label + '» обязательно.');
+        }
 
-        const submit = document.getElementById('license-issue-submit');
-        submit.disabled = true;
-        OperatorSigner.setStatus('Готовлю параметры лицензии…', 'working');
+        const parsed = new Date(value + ':00Z');
+        if (Number.isNaN(parsed.getTime())) {
+            throw new Error('Некорректная дата в поле «' + label + '».');
+        }
+        return Math.floor(parsed.getTime() / 1000);
+    }
 
+    function decodeBase64Url(value) {
+        const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+        return bytes;
+    }
+
+    function encodeBase64Url(value) {
+        const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
+        let binary = '';
+        for (const byte of bytes) {
+            binary += String.fromCharCode(byte);
+        }
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+
+    function concatenate(left, right) {
+        const result = new Uint8Array(left.length + right.length);
+        result.set(left, 0);
+        result.set(right, left.length);
+        return result;
+    }
+
+    async function importPrivateLicenseKey(file) {
+        if (!window.crypto?.subtle) {
+            throw new Error('Этот браузер не поддерживает локальную Ed25519-подпись.');
+        }
+
+        let text = (await file.text()).trim();
+        if (!text.startsWith(secretPrefix)) {
+            text = '';
+            throw new Error('Выбранный файл не является license key Workspace Organizer.');
+        }
+
+        const secret = decodeBase64Url(text.slice(secretPrefix.length));
+        text = '';
+        if (secret.length !== 64) {
+            secret.fill(0);
+            throw new Error('License key имеет некорректный размер.');
+        }
+
+        const seed = secret.slice(0, 32);
+        const prefix = new Uint8Array([
+            0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06,
+            0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
+        ]);
+        const pkcs8 = concatenate(prefix, seed);
+
+        let privateKey;
         try {
-            const features = Array.from(
-                issueForm.querySelectorAll('input[name="features"]:checked')
-            ).map(input => input.value);
-            const extra = issueForm.elements.features_extra.value
-                .split(',')
-                .map(value => value.trim().toLowerCase())
-                .filter(Boolean);
-            for (const feature of extra) {
-                if (!features.includes(feature)) features.push(feature);
+            privateKey = await crypto.subtle.importKey(
+                'pkcs8',
+                pkcs8,
+                {name: 'Ed25519'},
+                false,
+                ['sign']
+            );
+        } catch (_) {
+            throw new Error('Браузер не смог открыть Ed25519 license key.');
+        } finally {
+            secret.fill(0);
+            seed.fill(0);
+            pkcs8.fill(0);
+        }
+
+        const challenge = encoder.encode('WorkspaceOrganizer license key check v1');
+        const proof = await crypto.subtle.sign({name: 'Ed25519'}, privateKey, challenge);
+
+        for (const [keyId, encodedPublic] of Object.entries(trustedKeys)) {
+            const publicBytes = decodeBase64Url(String(encodedPublic));
+            try {
+                const publicKey = await crypto.subtle.importKey(
+                    'raw',
+                    publicBytes,
+                    {name: 'Ed25519'},
+                    false,
+                    ['verify']
+                );
+                const matches = await crypto.subtle.verify(
+                    {name: 'Ed25519'},
+                    publicKey,
+                    proof,
+                    challenge
+                );
+                if (matches) {
+                    return {privateKey, keyId};
+                }
+            } finally {
+                publicBytes.fill(0);
             }
+        }
 
-            const token = await OperatorSigner.signLicense({
-                keyId: document.getElementById('operator-signer-key-id').value,
-                license: {
-                    installation_id: issueForm.elements.installation_id.value.trim().toLowerCase(),
-                    license_id: issueForm.elements.license_id.value.trim(),
-                    edition: issueForm.elements.edition.value,
-                    customer: issueForm.elements.customer.value.trim(),
-                    max_users: OperatorSigner.nullablePositiveInt(
-                        issueForm.elements.max_users.value,
-                        'max_users'
-                    ),
-                    not_before: OperatorSigner.utcTimestamp(issueForm.elements.not_before.value),
-                    expires_at: OperatorSigner.utcTimestamp(issueForm.elements.expires_at.value),
-                    features,
-                },
-            });
+        throw new Error('Выбранный private key не соответствует доверенному license key.');
+    }
 
-            OperatorSigner.submitHidden(issueForm.action, {
-                _csrf_token: issueForm.elements._csrf_token.value,
-                signed_license: token,
-                updates_until: issueForm.elements.updates_until.value,
-                max_version: issueForm.elements.max_version.value,
-            });
+    function buildLicensePayload() {
+        const installationId = String(form.elements.installation_id.value || '').trim().toLowerCase();
+        const customer = String(form.elements.customer.value || '').trim();
+        const edition = String(form.elements.edition.value || '').trim().toLowerCase();
+        const maxUsers = Number.parseInt(String(form.elements.max_users.value || ''), 10);
+        const notBefore = parseUtcInput(startInput, 'Начало действия');
+        const expiresAt = parseUtcInput(expiresInput, 'Окончание лицензии');
+        const issuedAt = Math.floor(Date.now() / 1000);
+
+        if (expiresAt <= issuedAt) {
+            throw new Error('Окончание лицензии должно быть позже текущего времени.');
+        }
+        if (notBefore >= expiresAt) {
+            throw new Error('Начало действия должно быть раньше окончания лицензии.');
+        }
+        if (!Number.isInteger(maxUsers) || maxUsers < 1 || maxUsers > 1000000) {
+            throw new Error('Количество пользователей должно быть от 1 до 1000000.');
+        }
+
+        return {
+            v: 1,
+            license_id: licenseIdInput.value,
+            installation_id: installationId,
+            issued_at: issuedAt,
+            expires_at: expiresAt,
+            edition,
+            not_before: notBefore,
+            max_users: maxUsers,
+            customer,
+            features: standardFeatures,
+        };
+    }
+
+    async function signLicense(privateKey, keyId, payload) {
+        const payloadBytes = encoder.encode(JSON.stringify(payload));
+        const payloadEncoded = encodeBase64Url(payloadBytes);
+        payloadBytes.fill(0);
+
+        const signed = 'wo1.' + keyId + '.' + payloadEncoded;
+        const signature = await crypto.subtle.sign(
+            {name: 'Ed25519'},
+            privateKey,
+            encoder.encode(signed)
+        );
+        return signed + '.' + encodeBase64Url(signature);
+    }
+
+    async function issueWithSelectedKey(file) {
+        keyButton.disabled = true;
+        setStatus('Проверяю ключ и подписываю лицензию локально…', 'working');
+
+        try {
+            const key = await importPrivateLicenseKey(file);
+            const payload = buildLicensePayload();
+            const token = await signLicense(key.privateKey, key.keyId, payload);
+
+            signedInput.value = token;
+            setStatus('Подпись готова. Регистрирую лицензию и доступ к обновлениям…', 'working');
+            HTMLFormElement.prototype.submit.call(form);
         } catch (error) {
-            OperatorSigner.setStatus(error.message, 'error');
-            submit.disabled = false;
+            keyInput.value = '';
+            keyButton.disabled = false;
+            setStatus(
+                error instanceof Error ? error.message : 'Не удалось выпустить лицензию.',
+                'error'
+            );
+        }
+    }
+
+    function chooseKeyAndIssue() {
+        if (!form.reportValidity()) return;
+        keyInput.value = '';
+        keyInput.click();
+    }
+
+    initializeDates();
+
+    keyButton.addEventListener('click', chooseKeyAndIssue);
+
+    keyInput.addEventListener('change', () => {
+        const file = keyInput.files && keyInput.files[0];
+        if (file) {
+            issueWithSelectedKey(file);
         }
     });
-}
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        chooseKeyAndIssue();
+    });
+})();
 </script>
 {% endblock %}

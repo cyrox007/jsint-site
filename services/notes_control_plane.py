@@ -353,8 +353,14 @@ class NotesControlPlane:
         *,
         updates_until: datetime | None,
         max_version: int | None,
+        updates_follow_license_expiry: bool = False,
     ) -> tuple[LicenseRecord, str]:
         payload = verify_license_token(signed_license, allow_not_yet_valid=True)
+        license_expires_at = _datetime_from_timestamp(payload.get("expires_at"))
+        if updates_follow_license_expiry:
+            if license_expires_at is None:
+                raise ControlPlaneError("Для обычного выпуска требуется срок действия лицензии")
+            updates_until = license_expires_at
         if max_version is not None and max_version <= 0:
             raise ControlPlaneError("max_version должен быть положительным")
         if updates_until is not None and updates_until <= datetime.now(timezone.utc):
@@ -382,7 +388,7 @@ class NotesControlPlane:
         record.max_users = payload.get("max_users")
         record.features = list(payload.get("features", []))
         record.license_not_before = _datetime_from_timestamp(payload.get("not_before", payload["issued_at"]))
-        record.license_expires_at = _datetime_from_timestamp(payload.get("expires_at"))
+        record.license_expires_at = license_expires_at
         record.activation_hash = hashlib.sha256(activation_code.encode("ascii")).hexdigest()
         record.credential_hash = None
         record.activated_at = None
