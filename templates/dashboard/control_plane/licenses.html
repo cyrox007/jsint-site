@@ -146,7 +146,6 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="license-id" value="{{ suggested_license_id }}">
             <input type="hidden" id="license-signed-token" name="signed_license">
-            <input type="hidden" id="license-updates-until" name="updates_until">
             <input type="file" id="license-signing-key-file" hidden>
 
             <div class="admin-card__header">
@@ -300,7 +299,6 @@
     const startInput = document.getElementById('license-not-before');
     const expiresInput = document.getElementById('license-expires-at');
     const signedInput = document.getElementById('license-signed-token');
-    const updatesInput = document.getElementById('license-updates-until');
     const licenseIdInput = document.getElementById('license-id');
     const trustedKeys = {{ license_trusted_keys|tojson }};
     const secretPrefix = 'wo-ed25519-secret-v1:';
@@ -345,7 +343,6 @@
         if (!expiresInput.value) {
             expiresInput.value = formatUtcMinute(addOneCalendarYear(now));
         }
-        updatesInput.value = expiresInput.value;
     }
 
     function parseUtcInput(input, label) {
@@ -517,7 +514,6 @@
             const token = await signLicense(key.privateKey, key.keyId, payload);
 
             signedInput.value = token;
-            updatesInput.value = expiresInput.value;
             setStatus('Подпись готова. Регистрирую лицензию и доступ к обновлениям…', 'working');
             HTMLFormElement.prototype.submit.call(form);
         } catch (error) {
@@ -532,16 +528,11 @@
 
     function chooseKeyAndIssue() {
         if (!form.reportValidity()) return;
-        updatesInput.value = expiresInput.value;
         keyInput.value = '';
         keyInput.click();
     }
 
     initializeDates();
-
-    expiresInput.addEventListener('change', () => {
-        updatesInput.value = expiresInput.value;
-    });
 
     keyButton.addEventListener('click', chooseKeyAndIssue);
 
