@@ -107,13 +107,13 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         finally:
             session.close()
 
-        self.package_bytes = self._publish_104()
+        self.package_bytes = self._publish_release("1.0.4", 10004, 10003, "1" * 40)
 
     def tearDown(self):
         session = Database.connect_database()
         try:
             session.query(ReleaseRecord).filter(
-                ReleaseRecord.source_commit == "1" * 40
+                ReleaseRecord.source_commit.in_(["1" * 40, "2" * 40, "3" * 40])
             ).delete(synchronize_session=False)
             session.query(LicenseRecord).filter(
                 LicenseRecord.installation_id == UUID(self.installation_id)
@@ -129,25 +129,31 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         config.NOTES_RELEASE_STORAGE_PATH = self.original_release_root
         self.temp.cleanup()
 
-    def _publish_104(self) -> bytes:
-        package_path = Path(self.temp.name) / "workspace-organizer-v1.0.4.zip"
+    def _publish_release(
+        self,
+        version: str,
+        version_code: int,
+        min_source_version_code: int,
+        source_commit: str,
+    ) -> bytes:
+        package_path = Path(self.temp.name) / f"workspace-organizer-v{version}.zip"
         with zipfile.ZipFile(package_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr(
-                "workspace-organizer-v1.0.4/core/Version.php",
+                f"workspace-organizer-v{version}/core/Version.php",
                 "<?php\nnamespace Core;\nclass Version {\n"
-                "public const VERSION = '1.0.4';\n"
-                "public const VERSION_CODE = 10004;\n"
+                f"public const VERSION = '{version}';\n"
+                f"public const VERSION_CODE = {version_code};\n"
                 "public const STATUS = 'stable';\n"
                 "}\n",
             )
 
         manifest_bytes, resolved = _build_release_manifest(
             package_path=str(package_path),
-            version="1.0.4",
-            version_code=10004,
+            version=version,
+            version_code=version_code,
             channel="stable",
-            source_commit="1" * 40,
-            min_source_version_code=10003,
+            source_commit=source_commit,
+            min_source_version_code=min_source_version_code,
             requires_php="8.1.0",
         )
         domain = b"WorkspaceOrganizerUpdateManifest/v1\n"
@@ -189,11 +195,22 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         self.assertRegex(payload["token"], r"^[0-9a-f]{64}$")
         return payload
 
-    def _headers(self, credential: str) -> dict[str, str]:
-        return {
+    def _headers(
+        self,
+        credential: str,
+        *,
+        version: str | None = None,
+        version_code: int | None = None,
+    ) -> dict[str, str]:
+        headers = {
             "Authorization": "Bearer " + credential,
             "X-Notes-Installation": self.installation_id,
         }
+        if version is not None:
+            headers["X-Notes-Version"] = version
+        if version_code is not None:
+            headers["X-Notes-Version-Code"] = str(version_code)
+        return headers
 
     def test_active_103_license_receives_complete_signed_104_feed(self):
         activation = self._activate_103()
@@ -261,6 +278,53 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
             self.assertEqual(record.last_seen_action, "update-package")
         finally:
             session.close()
+
+    def test_feed_returns_latest_release_compatible_with_reported_client_version(self):
+        activation = self._activate_103()
+        self._publish_release("1.0.5", 10005, 10004, "2" * 40)
+        self._publish_release("1.0.6", 10006, 10005, "3" * 40)
+
+        cases = [
+            ("1.0.3", 10003, "release-10004.json"),
+            ("1.0.4", 10004, "release-10005.json"),
+            ("1.0.5", 10005, "release-10006.json"),
+            ("1.0.6", 10006, "release-10006.json"),
+        ]
+        for version, version_code, expected_manifest in cases:
+            with self.subTest(version=version):
+                response = self.client.get(
+                    "/api/notes/v1/stable/feed.json",
+                    base_url=self.base,
+                    headers=self._headers(
+                        activation["token"],
+                        version=version,
+                        version_code=version_code,
+                    ),
+                )
+                self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+                self.assertEqual(response.get_json()["manifest"], expected_manifest)
+
+        session = Database.connect_database()
+        try:
+            record = session.query(LicenseRecord).filter(
+                LicenseRecord.installation_id == UUID(self.installation_id)
+            ).one()
+            self.assertEqual(record.last_client_version, "1.0.6")
+            self.assertEqual(record.last_client_version_code, 10006)
+        finally:
+            session.close()
+
+    def test_legacy_client_without_version_headers_keeps_previous_latest_behavior(self):
+        activation = self._activate_103()
+        self._publish_release("1.0.5", 10005, 10004, "2" * 40)
+
+        response = self.client.get(
+            "/api/notes/v1/stable/feed.json",
+            base_url=self.base,
+            headers=self._headers(activation["token"]),
+        )
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        self.assertEqual(response.get_json()["manifest"], "release-10005.json")
 
     def test_update_access_stops_immediately_when_entitlement_expires(self):
         activation = self._activate_103()
