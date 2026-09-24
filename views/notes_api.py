@@ -31,6 +31,23 @@ def _require_enabled() -> None:
         )
 
 
+def _client_release_state() -> tuple[str | None, int | None]:
+    version = request.headers.get("X-Notes-Version", "").strip()
+    version_code_raw = request.headers.get("X-Notes-Version-Code", "").strip()
+
+    if version and (len(version) > 64 or re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z._+-]{0,63}", version) is None):
+        raise ControlPlaneError("Invalid client version")
+    if not version_code_raw:
+        return (version or None, None)
+    if re.fullmatch(r"[1-9][0-9]{0,9}", version_code_raw) is None:
+        raise ControlPlaneError("Invalid client version code")
+
+    version_code = int(version_code_raw)
+    if version_code > 2_147_483_647:
+        raise ControlPlaneError("Invalid client version code")
+    return (version or None, version_code)
+
+
 @csrf_exempt
 def health():
     db = _session()
@@ -176,6 +193,7 @@ def artifact(channel: str, name: str):
             )
         installation_id = request.headers.get("X-Notes-Installation", "").strip().lower()
         license_record = NotesControlPlane.authorize(db, installation_id, match.group(1))
+        client_version, client_version_code = _client_release_state()
         if name == "feed.json":
             seen_action = "update-feed"
         elif name.endswith(".json"):
@@ -189,9 +207,17 @@ def artifact(channel: str, name: str):
             license_record,
             action=seen_action,
             remote_addr=request.remote_addr,
+            client_version=client_version,
+            client_version_code=client_version_code,
             channel=channel,
         )
-        release = NotesControlPlane.release_for_artifact(db, license_record, channel, name)
+        release = NotesControlPlane.release_for_artifact(
+            db,
+            license_record,
+            channel,
+            name,
+            client_version_code=client_version_code,
+        )
 
         headers = {
             "Cache-Control": "no-store, private",

@@ -782,6 +782,59 @@ class NotesControlPlane:
         session.refresh(record)
         return record
 
+    @staticmethod
+    def _release_source_floor(record: ReleaseRecord) -> int:
+        try:
+            manifest = json.loads(record.manifest_bytes)
+        except Exception as exc:
+            raise ControlPlaneError(
+                "Хранилище релизов содержит повреждённый manifest",
+                status=503,
+                code="service_unavailable",
+            ) from exc
+
+        if not isinstance(manifest, dict):
+            raise ControlPlaneError(
+                "Хранилище релизов содержит повреждённый manifest",
+                status=503,
+                code="service_unavailable",
+            )
+
+        version_code = manifest.get("version_code")
+        source_floor = manifest.get("min_source_version_code")
+        if (
+            not isinstance(version_code, int)
+            or isinstance(version_code, bool)
+            or version_code != record.version_code
+            or not isinstance(source_floor, int)
+            or isinstance(source_floor, bool)
+            or source_floor < 1
+            or source_floor >= version_code
+        ):
+            raise ControlPlaneError(
+                "Хранилище релизов содержит несогласованный manifest",
+                status=503,
+                code="service_unavailable",
+            )
+        return source_floor
+
+    @classmethod
+    def _release_for_client_version(
+        cls,
+        records: list[ReleaseRecord],
+        client_version_code: int,
+    ) -> ReleaseRecord | None:
+        newer = [record for record in records if record.version_code > client_version_code]
+        for record in newer:
+            if cls._release_source_floor(record) <= client_version_code:
+                return record
+
+        for record in records:
+            if record.version_code <= client_version_code:
+                return record
+
+        return records[-1] if records else None
+
     @classmethod
     def release_for_artifact(
         cls,
@@ -789,6 +842,8 @@ class NotesControlPlane:
         license_record: LicenseRecord,
         channel: str,
         name: str,
+        *,
+        client_version_code: int | None = None,
     ) -> ReleaseRecord:
         if channel not in {"alpha", "beta", "stable"} or _ARTIFACT_RE.fullmatch(name) is None:
             raise ControlPlaneError("Artifact not found", status=404, code="not_found")
@@ -801,7 +856,14 @@ class NotesControlPlane:
             query = query.filter(ReleaseRecord.version_code <= license_record.max_version)
 
         if name == "feed.json":
-            record = query.order_by(ReleaseRecord.version_code.desc()).first()
+            records = query.order_by(ReleaseRecord.version_code.desc()).all()
+            if client_version_code is None:
+                # Старые клиенты до переходной версии не сообщают свою
+                # фактическую версию. Для них сохраняется прежнее поведение
+                # сервера, чтобы не ломать уже опубликованные установки.
+                record = records[0] if records else None
+            else:
+                record = cls._release_for_client_version(records, client_version_code)
         else:
             record = query.filter(
                 (ReleaseRecord.manifest_name == name)
