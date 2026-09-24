@@ -336,9 +336,24 @@ def _inspect_workspace_zip(stream: BinaryIO) -> dict[str, Any]:
     }
 
 
-def _sequential_source_floor(version_code: int) -> int:
+def _source_floor_for_version(version_code: int) -> int:
     if version_code <= 1:
-        raise ControlPlaneError("Нельзя вычислить предыдущий version_code")
+        raise ControlPlaneError("Нельзя вычислить минимальный исходный version_code")
+
+    # 1.0.5 — постоянный мост между старым протоколом обновлений и новым
+    # version-aware клиентом. Он намеренно допускает 1.0.3/1.0.4, поскольку
+    # между 1.0.3 и 1.0.5 нет изменений схемы БД, а 1.0.4 исправляет Windows
+    # CLI resolver для гарантированного браузерного перехода.
+    if version_code == 10005:
+        return 10003
+
+    # После перехода на 1.0.5 любой patch-релиз линии 1.0 должен быть способен
+    # обновить 1.0.5 напрямую. Это не даёт пропущенному patch-релизу превратить
+    # последовательную ленту в тупик. Для следующей minor-линии политика
+    # задаётся отдельно вместе с её runtime/migration contract.
+    if 10006 <= version_code <= 10099:
+        return 10005
+
     return version_code - 1
 
 
@@ -472,7 +487,7 @@ class GitHubReleaseAutomation:
                 code="release_storage_mismatch",
             )
 
-        min_source_version_code = _sequential_source_floor(version_code)
+        min_source_version_code = _source_floor_for_version(version_code)
         manifest, resolved_path = NotesControlPlane.prepare_release_manifest(
             package_path=stored["path"],
             version=version,
