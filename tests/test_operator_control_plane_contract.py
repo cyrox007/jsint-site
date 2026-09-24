@@ -95,6 +95,18 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn("updates_until = license_expires_at", service)
         self.assertIn("max_version=None", views)
 
+    def test_machine_api_can_bootstrap_updates_from_registered_license(self):
+        api = self.read("views/notes_api.py")
+        service = self.read("services/notes_control_plane.py")
+        self.assertIn('license_token = data.get("license_token")', api)
+        self.assertIn("NotesControlPlane.activate_with_license(", api)
+        self.assertIn("def activate_with_license(", service)
+        self.assertIn("hmac.compare_digest(record.signed_license.strip(), token)", service)
+        self.assertIn("verify_license_token(token, str(record.installation_id))", service)
+        self.assertIn('action="license-bootstrap"', service)
+        self.assertIn("activation_code", api)
+        self.assertIn("def activate(", service)
+
     def test_machine_api_records_presence_and_has_heartbeat(self):
         api = self.read("views/notes_api.py")
         service = self.read("services/notes_control_plane.py")
