@@ -146,14 +146,14 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" id="license-id" value="{{ suggested_license_id }}">
             <input type="hidden" id="license-signed-token" name="signed_license">
-            <input type="file" id="license-signing-key-file" hidden>
+            <input type="file" id="license-signing-key-file" accept=".license-secret" hidden>
 
             <div class="admin-card__header">
                 <div>
                     <span class="operator-result__eyebrow">Обычный выпуск</span>
                     <h2 class="admin-card__title">Новая лицензия</h2>
                     <p class="admin-card__description">
-                        Укажите установку и параметры клиента. Срок по умолчанию — один год,
+                        Укажите установку и параметры лицензии. Срок по умолчанию — один год,
                         доступ к обновлениям действует до той же даты. Ключ подписи читается
                         только браузером на этом компьютере и на сервер не отправляется.
                     </p>
@@ -176,9 +176,9 @@
                                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
                         </label>
                         <label class="admin-form-grid__wide">
-                            Клиент / организация
+                            Владелец лицензии
                             <input name="customer" maxlength="160" autocomplete="organization"
-                                   placeholder="Название клиента" required>
+                                   placeholder="Организация или ФИО" required>
                         </label>
                         <label>
                             Редакция
@@ -225,19 +225,30 @@
                     <div class="operator-section__heading">
                         <span>3</span>
                         <div>
-                            <strong>Подпись</strong>
-                            <small>Никаких кодов подключения, папок и ручного выбора key ID.</small>
+                            <strong>Приватный ключ лицензирования</strong>
+                            <small>Выберите файл <code>.license-secret</code>. Он читается только этим браузером и на сервер не отправляется.</small>
                         </div>
                     </div>
+
+                    <div class="release-upload-picker">
+                        <button class="btn secondary" id="license-signing-key-pick" type="button">
+                            Выбрать файл ключа…
+                        </button>
+                        <div class="release-upload-picker__info">
+                            <strong id="license-signing-key-name">Ключ ещё не выбран</strong>
+                            <small id="license-signing-key-meta">Например: prod-license-2026-01.license-secret</small>
+                        </div>
+                    </div>
+
                     <div class="local-signer-status" id="license-signing-status" data-state="idle">
-                        Заполните форму и выберите файл license key. Подпись и регистрация выполнятся автоматически.
+                        Выберите приватный ключ лицензирования. После проверки можно выпустить лицензию.
                     </div>
                 </div>
             </div>
 
             <div class="admin-card__footer">
-                <button class="btn primary" id="license-signing-key-pick" type="button">
-                    Выбрать ключ и выпустить
+                <button class="btn primary" id="license-issue-submit" type="submit">
+                    Выпустить лицензию
                 </button>
             </div>
         </form>
@@ -295,6 +306,9 @@
 
     const keyInput = document.getElementById('license-signing-key-file');
     const keyButton = document.getElementById('license-signing-key-pick');
+    const keyName = document.getElementById('license-signing-key-name');
+    const keyMeta = document.getElementById('license-signing-key-meta');
+    const submitButton = document.getElementById('license-issue-submit');
     const statusNode = document.getElementById('license-signing-status');
     const startInput = document.getElementById('license-not-before');
     const expiresInput = document.getElementById('license-expires-at');
@@ -303,6 +317,9 @@
     const trustedKeys = {{ license_trusted_keys|tojson }};
     const secretPrefix = 'wo-ed25519-secret-v1:';
     const encoder = new TextEncoder();
+    const keyDatabaseName = 'workspace-license-key';
+    const keyStoreName = 'keys';
+    const keyRecordName = 'license-key';
     const standardFeatures = [
         'workspace.notes',
         'workspace.tasks',
@@ -311,6 +328,7 @@
         'workspace.profile',
         'workspace.admin',
     ];
+    let selectedKey = null;
 
     function setStatus(message, state = 'idle') {
         statusNode.textContent = message;
@@ -385,6 +403,111 @@
         return result;
     }
 
+    function openKeyDatabase() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(keyDatabaseName, 1);
+            request.onupgradeneeded = () => {
+                const database = request.result;
+                if (!database.objectStoreNames.contains(keyStoreName)) {
+                    database.createObjectStore(keyStoreName);
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function storeImportedKey(key) {
+        if (!window.indexedDB || !key) return false;
+
+        try {
+            const database = await openKeyDatabase();
+            await new Promise((resolve, reject) => {
+                const transaction = database.transaction(keyStoreName, 'readwrite');
+                transaction.objectStore(keyStoreName).put(
+                    {
+                        privateKey: key.privateKey,
+                        keyId: key.keyId,
+                        fileName: key.fileName || 'приватный ключ лицензирования',
+                    },
+                    keyRecordName
+                );
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+            database.close();
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function loadImportedKey() {
+        if (!window.indexedDB) return null;
+
+        try {
+            const database = await openKeyDatabase();
+            const record = await new Promise((resolve, reject) => {
+                const transaction = database.transaction(keyStoreName, 'readonly');
+                const request = transaction.objectStore(keyStoreName).get(keyRecordName);
+                request.onsuccess = () => resolve(request.result || null);
+                request.onerror = () => reject(request.error);
+            });
+            database.close();
+
+            if (!record || !record.privateKey || !record.keyId) return null;
+            if (record.privateKey.type !== 'private' || !record.privateKey.usages.includes('sign')) {
+                return null;
+            }
+            return record;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function verifyImportedKey(key) {
+        const encodedPublic = trustedKeys[key.keyId];
+        if (!encodedPublic) return false;
+
+        const challenge = encoder.encode('WorkspaceOrganizer license key check v1');
+        const proof = await crypto.subtle.sign({name: 'Ed25519'}, key.privateKey, challenge);
+        const publicBytes = decodeBase64Url(String(encodedPublic));
+
+        try {
+            const publicKey = await crypto.subtle.importKey(
+                'raw',
+                publicBytes,
+                {name: 'Ed25519'},
+                false,
+                ['verify']
+            );
+            return await crypto.subtle.verify(
+                {name: 'Ed25519'},
+                publicKey,
+                proof,
+                challenge
+            );
+        } finally {
+            publicBytes.fill(0);
+        }
+    }
+
+    async function restoreImportedKey() {
+        const record = await loadImportedKey();
+        if (!record) return;
+
+        try {
+            if (!await verifyImportedKey(record)) return;
+
+            selectedKey = record;
+            keyName.textContent = record.fileName || record.keyId;
+            keyMeta.textContent = 'Ключ сохранён локально в браузере · на сервер не загружается';
+            setStatus('Приватный ключ готов. Можно выпускать лицензию.', 'ok');
+        } catch (_) {
+            selectedKey = null;
+        }
+    }
+
     async function importPrivateLicenseKey(file) {
         if (!window.crypto?.subtle) {
             throw new Error('Этот браузер не поддерживает локальную Ed25519-подпись.');
@@ -393,14 +516,14 @@
         let text = (await file.text()).trim();
         if (!text.startsWith(secretPrefix)) {
             text = '';
-            throw new Error('Выбранный файл не является license key Workspace Organizer.');
+            throw new Error('Выбранный файл не является приватным ключом лицензирования Workspace Organizer.');
         }
 
         const secret = decodeBase64Url(text.slice(secretPrefix.length));
         text = '';
         if (secret.length !== 64) {
             secret.fill(0);
-            throw new Error('License key имеет некорректный размер.');
+            throw new Error('Приватный ключ имеет некорректный размер.');
         }
 
         const seed = secret.slice(0, 32);
@@ -420,41 +543,22 @@
                 ['sign']
             );
         } catch (_) {
-            throw new Error('Браузер не смог открыть Ed25519 license key.');
+            throw new Error('Браузер не смог открыть выбранный приватный ключ.');
         } finally {
             secret.fill(0);
             seed.fill(0);
             pkcs8.fill(0);
         }
 
-        const challenge = encoder.encode('WorkspaceOrganizer license key check v1');
-        const proof = await crypto.subtle.sign({name: 'Ed25519'}, privateKey, challenge);
-
-        for (const [keyId, encodedPublic] of Object.entries(trustedKeys)) {
-            const publicBytes = decodeBase64Url(String(encodedPublic));
-            try {
-                const publicKey = await crypto.subtle.importKey(
-                    'raw',
-                    publicBytes,
-                    {name: 'Ed25519'},
-                    false,
-                    ['verify']
-                );
-                const matches = await crypto.subtle.verify(
-                    {name: 'Ed25519'},
-                    publicKey,
-                    proof,
-                    challenge
-                );
-                if (matches) {
-                    return {privateKey, keyId};
-                }
-            } finally {
-                publicBytes.fill(0);
+        const candidate = {privateKey, keyId: ''};
+        for (const keyId of Object.keys(trustedKeys)) {
+            candidate.keyId = keyId;
+            if (await verifyImportedKey(candidate)) {
+                return {privateKey, keyId};
             }
         }
 
-        throw new Error('Выбранный private key не соответствует доверенному license key.');
+        throw new Error('Выбранный приватный ключ не соответствует доверенному ключу лицензирования.');
     }
 
     function buildLicensePayload() {
@@ -504,20 +608,26 @@
         return signed + '.' + encodeBase64Url(signature);
     }
 
-    async function issueWithSelectedKey(file) {
+    async function issueLicense() {
+        if (!form.reportValidity()) return;
+        if (!selectedKey) {
+            setStatus('Сначала выберите файл приватного ключа лицензирования.', 'error');
+            return;
+        }
+
+        submitButton.disabled = true;
         keyButton.disabled = true;
-        setStatus('Проверяю ключ и подписываю лицензию локально…', 'working');
+        setStatus('Подписываю лицензию локально в браузере…', 'working');
 
         try {
-            const key = await importPrivateLicenseKey(file);
             const payload = buildLicensePayload();
-            const token = await signLicense(key.privateKey, key.keyId, payload);
+            const token = await signLicense(selectedKey.privateKey, selectedKey.keyId, payload);
 
             signedInput.value = token;
             setStatus('Подпись готова. Регистрирую лицензию и доступ к обновлениям…', 'working');
             HTMLFormElement.prototype.submit.call(form);
         } catch (error) {
-            keyInput.value = '';
+            submitButton.disabled = false;
             keyButton.disabled = false;
             setStatus(
                 error instanceof Error ? error.message : 'Не удалось выпустить лицензию.',
@@ -526,26 +636,48 @@
         }
     }
 
-    function chooseKeyAndIssue() {
-        if (!form.reportValidity()) return;
+    initializeDates();
+    restoreImportedKey();
+
+    keyButton.addEventListener('click', () => {
         keyInput.value = '';
         keyInput.click();
-    }
+    });
 
-    initializeDates();
-
-    keyButton.addEventListener('click', chooseKeyAndIssue);
-
-    keyInput.addEventListener('change', () => {
+    keyInput.addEventListener('change', async () => {
         const file = keyInput.files && keyInput.files[0];
-        if (file) {
-            issueWithSelectedKey(file);
+        if (!file) return;
+
+        try {
+            keyButton.disabled = true;
+            setStatus('Проверяю выбранный приватный ключ…', 'working');
+            const key = await importPrivateLicenseKey(file);
+            key.fileName = file.name;
+            selectedKey = key;
+
+            const saved = await storeImportedKey(key);
+            keyName.textContent = file.name;
+            keyMeta.textContent = saved
+                ? 'Ключ сохранён локально в браузере · на сервер не загружается'
+                : 'Ключ выбран для этой вкладки · на сервер не загружается';
+            setStatus('Приватный ключ проверен. Можно выпускать лицензию.', 'ok');
+        } catch (error) {
+            selectedKey = null;
+            keyInput.value = '';
+            keyName.textContent = 'Ключ ещё не выбран';
+            keyMeta.textContent = 'Например: prod-license-2026-01.license-secret';
+            setStatus(
+                error instanceof Error ? error.message : 'Не удалось открыть приватный ключ.',
+                'error'
+            );
+        } finally {
+            keyButton.disabled = false;
         }
     });
 
     form.addEventListener('submit', (event) => {
         event.preventDefault();
-        chooseKeyAndIssue();
+        issueLicense();
     });
 })();
 </script>
