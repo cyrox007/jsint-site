@@ -9,7 +9,7 @@ import unittest
 import zipfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from nacl.signing import SigningKey
 
@@ -89,7 +89,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         session = Database.connect_database()
         try:
             record = LicenseRecord(
-                installation_id=self.installation_id,
+                installation_id=UUID(self.installation_id),
                 license_id="lic-update-e2e-" + self.installation_id[:8],
                 signed_license=self.license_token,
                 key_id=self.license_key_id,
@@ -116,7 +116,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
                 ReleaseRecord.source_commit == "1" * 40
             ).delete(synchronize_session=False)
             session.query(LicenseRecord).filter(
-                LicenseRecord.installation_id == self.installation_id
+                LicenseRecord.installation_id == UUID(self.installation_id)
             ).delete(synchronize_session=False)
             session.commit()
         finally:
@@ -253,7 +253,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         session = Database.connect_database()
         try:
             record = session.query(LicenseRecord).filter(
-                LicenseRecord.installation_id == self.installation_id
+                LicenseRecord.installation_id == UUID(self.installation_id)
             ).one()
             self.assertEqual(record.last_client_version, "1.0.3")
             self.assertEqual(record.last_client_version_code, 10003)
@@ -267,7 +267,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         session = Database.connect_database()
         try:
             record = session.query(LicenseRecord).filter(
-                LicenseRecord.installation_id == self.installation_id
+                LicenseRecord.installation_id == UUID(self.installation_id)
             ).one()
             record.updates_until = datetime.now(timezone.utc) - timedelta(seconds=1)
             session.add(record)
@@ -282,7 +282,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
         payload = response.get_json()
-        self.assertEqual(payload["code"], "update_access_denied")
+        self.assertEqual(payload["error"], "update_access_denied")
 
 
 if __name__ == "__main__":
