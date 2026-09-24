@@ -19,9 +19,9 @@
     {% if issued_license_token %}
     <section class="operator-result operator-result--important">
         <div>
-            <span class="operator-result__eyebrow">Шаг 1 · лицензия приложения</span>
-            <h2>Передайте клиенту лицензионный токен</h2>
-            <p>Этот <code>wo1...</code> токен вставляется в Workspace Organizer в разделе лицензии. Private key здесь не сохраняется.</p>
+            <span class="operator-result__eyebrow">Лицензия готова</span>
+            <h2>Лицензионный токен Workspace Organizer</h2>
+            <p>В Workspace Organizer 1.0.2+ достаточно активировать этот <code>wo1...</code> токен: доступ к обновлениям настроится автоматически. Приватный ключ здесь не сохраняется.</p>
         </div>
         <div class="copy-value">
             <textarea id="issued-license-token" readonly rows="4">{{ issued_license_token }}</textarea>
@@ -31,16 +31,19 @@
     {% endif %}
 
     {% if activation_code %}
-    <section class="operator-result operator-result--warning">
+    <section class="operator-result">
         <div>
-            <span class="operator-result__eyebrow">Шаг 2 · доступ к обновлениям</span>
-            <h2>Одноразовый activation code</h2>
-            <p>Установка <code>{{ activation_installation }}</code>. Код нужен команде <code>bin/update_activate.php</code> и показывается только сейчас.</p>
+            <span class="operator-result__eyebrow">Совместимость со старыми версиями</span>
+            <h2>Код доступа для Workspace 1.0.0/1.0.1</h2>
+            <p>Для 1.0.2 и новее этот код не нужен. Он оставлен только для старых установок, где updater ещё активируется вручную.</p>
         </div>
-        <div class="copy-value">
-            <input id="activation-code" value="{{ activation_code }}" readonly>
-            <button class="btn secondary btn-small" type="button" data-copy-target="activation-code">Копировать код</button>
-        </div>
+        <details>
+            <summary>Показать одноразовый код для старой установки</summary>
+            <div class="copy-value">
+                <input id="activation-code" value="{{ activation_code }}" readonly>
+                <button class="btn secondary btn-small" type="button" data-copy-target="activation-code">Копировать код</button>
+            </div>
+        </details>
     </section>
     {% endif %}
 
@@ -115,7 +118,7 @@
                     {% if item.status == 'active' %}
                     <form method="post" action="{{ url_for('admin.licenses.activation', license_row_id=item.id) }}">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                        <button class="btn secondary btn-small" type="submit">Новый activation code</button>
+                        <button class="btn secondary btn-small" type="submit">Код для 1.0.0/1.0.1</button>
                     </form>
                     <form method="post" action="{{ url_for('admin.licenses.status', license_row_id=item.id) }}" onsubmit="return confirm('Отозвать доступ этой установки к обновлениям?')">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">

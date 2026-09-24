@@ -46,23 +46,56 @@ def activate():
     db = _session()
     try:
         _require_enabled()
-        if request.content_length is not None and request.content_length > 1024:
+        if request.content_length is not None and request.content_length > 24576:
             raise ControlPlaneError("Request too large", status=413)
+
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             raise ControlPlaneError("Invalid request")
+
         installation_id = data.get("installation_id")
         activation_code = data.get("activation_code")
-        if not isinstance(installation_id, str) or not isinstance(activation_code, str):
+        license_token = data.get("license_token")
+        version = data.get("version")
+        version_code = data.get("version_code")
+        channel = data.get("channel")
+
+        if not isinstance(installation_id, str):
             raise ControlPlaneError("Invalid request")
-        return jsonify(
-            NotesControlPlane.activate(
+        if version is not None and not isinstance(version, str):
+            raise ControlPlaneError("Invalid request")
+        if version_code is not None and (not isinstance(version_code, int) or isinstance(version_code, bool)):
+            raise ControlPlaneError("Invalid request")
+        if channel is not None and not isinstance(channel, str):
+            raise ControlPlaneError("Invalid request")
+
+        has_code = isinstance(activation_code, str) and activation_code != ""
+        has_license = isinstance(license_token, str) and license_token != ""
+        if has_code == has_license:
+            raise ControlPlaneError("Invalid request")
+
+        if has_license:
+            result = NotesControlPlane.activate_with_license(
+                db,
+                installation_id.lower(),
+                license_token,
+                remote_addr=request.remote_addr,
+                client_version=version,
+                client_version_code=version_code,
+                channel=channel,
+            )
+        else:
+            result = NotesControlPlane.activate(
                 db,
                 installation_id.lower(),
                 activation_code.lower(),
                 remote_addr=request.remote_addr,
+                client_version=version,
+                client_version_code=version_code,
+                channel=channel,
             )
-        )
+
+        return jsonify(result)
     except ControlPlaneError as exc:
         return _error(exc)
     finally:
