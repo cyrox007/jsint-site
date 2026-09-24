@@ -491,24 +491,16 @@ class NotesControlPlane:
             raise ControlPlaneError("Срок доступа к обновлениям истёк", status=403, code="update_access_denied")
         verify_license_token(record.signed_license, str(record.installation_id))
 
-    @classmethod
-    def activate(
-        cls,
-        session: Session,
-        installation_id: str,
-        activation_code: str,
-        *,
-        remote_addr: str | None = None,
-        client_version: str | None = None,
-        client_version_code: int | None = None,
-        channel: str | None = None,
-    ) -> dict[str, Any]:
+    @staticmethod
+    def _activation_record(session: Session, installation_id: str) -> LicenseRecord:
         try:
             installation_uuid = UUID(installation_id)
         except ValueError as exc:
-            raise ControlPlaneError("Authentication required", status=401, code="authentication_required") from exc
-        if re.fullmatch(r"[0-9a-f]{64}", activation_code) is None:
-            raise ControlPlaneError("Authentication required", status=401, code="authentication_required")
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            ) from exc
 
         record = (
             session.query(LicenseRecord)
@@ -516,18 +508,35 @@ class NotesControlPlane:
             .with_for_update()
             .first()
         )
-        expected = hashlib.sha256(activation_code.encode("ascii")).hexdigest()
-        if record is None or record.activation_hash is None or not hmac.compare_digest(record.activation_hash, expected):
+        if record is None:
             session.rollback()
-            raise ControlPlaneError("Authentication required", status=401, code="authentication_required")
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+        return record
 
+    @classmethod
+    def _issue_update_credential(
+        cls,
+        session: Session,
+        record: LicenseRecord,
+        *,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+        action: str = "activation",
+    ) -> dict[str, Any]:
         cls._assert_entitled(record)
+
         credential = secrets.token_hex(32)
         record.activation_hash = None
         record.credential_hash = hashlib.sha256(credential.encode("ascii")).hexdigest()
         record.activated_at = datetime.now(timezone.utc)
         record.last_seen_at = record.activated_at
-        record.last_seen_action = "activation"
+        record.last_seen_action = action
         record.last_seen_ip = remote_addr.strip()[:64] if remote_addr else record.last_seen_ip
         if client_version:
             record.last_client_version = client_version.strip()[:64]
@@ -544,6 +553,83 @@ class NotesControlPlane:
             "token": credential,
             "base_url": config.NOTES_UPDATE_BASE_URL,
         }
+
+    @classmethod
+    def activate(
+        cls,
+        session: Session,
+        installation_id: str,
+        activation_code: str,
+        *,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> dict[str, Any]:
+        if re.fullmatch(r"[0-9a-f]{64}", activation_code) is None:
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+
+        record = cls._activation_record(session, installation_id)
+        expected = hashlib.sha256(activation_code.encode("ascii")).hexdigest()
+        if record.activation_hash is None or not hmac.compare_digest(record.activation_hash, expected):
+            session.rollback()
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+
+        return cls._issue_update_credential(
+            session,
+            record,
+            remote_addr=remote_addr,
+            client_version=client_version,
+            client_version_code=client_version_code,
+            channel=channel,
+            action="activation",
+        )
+
+    @classmethod
+    def activate_with_license(
+        cls,
+        session: Session,
+        installation_id: str,
+        license_token: str,
+        *,
+        remote_addr: str | None = None,
+        client_version: str | None = None,
+        client_version_code: int | None = None,
+        channel: str | None = None,
+    ) -> dict[str, Any]:
+        """Автоматически выдаёт updater credential по уже выпущенной лицензии."""
+        token = license_token.strip()
+        record = cls._activation_record(session, installation_id)
+
+        if not token or len(token) > 16384 or not hmac.compare_digest(record.signed_license.strip(), token):
+            session.rollback()
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+
+        # Повторно проверяем подпись и привязку к installation_id перед ротацией
+        # download credential. Сам приватный ключ лицензирования серверу не нужен.
+        verify_license_token(token, str(record.installation_id))
+
+        return cls._issue_update_credential(
+            session,
+            record,
+            remote_addr=remote_addr,
+            client_version=client_version,
+            client_version_code=client_version_code,
+            channel=channel,
+            action="license-bootstrap",
+        )
 
     @classmethod
     def authorize(cls, session: Session, installation_id: str, credential: str) -> LicenseRecord:
