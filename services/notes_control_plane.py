@@ -860,19 +860,16 @@ class NotesControlPlane:
             records = query.order_by(ReleaseRecord.version_code.desc()).all()
             if client_version_code is None:
                 # Клиенты до 1.0.5 не передают свою фактическую версию.
-                # После публикации 1.0.5 держим для них постоянный мост:
-                # будущие 1.0.6+ не должны перехватить legacy feed и оставить
-                # 1.0.4 без доступного перехода на version-aware протокол.
-                record = next(
-                    (
-                        item
-                        for item in records
-                        if item.version_code == _LEGACY_UPDATE_BRIDGE_VERSION_CODE
-                    ),
-                    None,
-                )
-                if record is None:
-                    record = records[0] if records else None
+                # Никогда не выдаём им 1.0.6+ вслепую: либо возвращаем активный
+                # мост 1.0.5, либо последний активный релиз старого протокола.
+                # Если совместимого legacy-релиза нет, запрос закрывается 404
+                # вместо передачи заведомо несовместимого пакета.
+                legacy_records = [
+                    item
+                    for item in records
+                    if item.version_code <= _LEGACY_UPDATE_BRIDGE_VERSION_CODE
+                ]
+                record = legacy_records[0] if legacy_records else None
             else:
                 record = cls._release_for_client_version(records, client_version_code)
         else:
