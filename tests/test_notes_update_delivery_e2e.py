@@ -113,7 +113,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         session = Database.connect_database()
         try:
             session.query(ReleaseRecord).filter(
-                ReleaseRecord.source_commit.in_(["1" * 40, "2" * 40, "3" * 40])
+                ReleaseRecord.source_commit.in_(["1" * 40, "2" * 40, "3" * 40, "4" * 40])
             ).delete(synchronize_session=False)
             session.query(LicenseRecord).filter(
                 LicenseRecord.installation_id == UUID(self.installation_id)
@@ -281,14 +281,16 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
 
     def test_feed_returns_latest_release_compatible_with_reported_client_version(self):
         activation = self._activate_103()
-        self._publish_release("1.0.5", 10005, 10004, "2" * 40)
+        self._publish_release("1.0.5", 10005, 10003, "2" * 40)
         self._publish_release("1.0.6", 10006, 10005, "3" * 40)
+        self._publish_release("1.0.7", 10007, 10005, "4" * 40)
 
         cases = [
-            ("1.0.3", 10003, "release-10004.json"),
+            ("1.0.3", 10003, "release-10005.json"),
             ("1.0.4", 10004, "release-10005.json"),
-            ("1.0.5", 10005, "release-10006.json"),
-            ("1.0.6", 10006, "release-10006.json"),
+            ("1.0.5", 10005, "release-10007.json"),
+            ("1.0.6", 10006, "release-10007.json"),
+            ("1.0.7", 10007, "release-10007.json"),
         ]
         for version, version_code, expected_manifest in cases:
             with self.subTest(version=version):
@@ -314,9 +316,11 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         finally:
             session.close()
 
-    def test_legacy_client_without_version_headers_keeps_previous_latest_behavior(self):
+    def test_legacy_client_without_version_headers_stays_on_105_bridge(self):
         activation = self._activate_103()
-        self._publish_release("1.0.5", 10005, 10004, "2" * 40)
+        self._publish_release("1.0.5", 10005, 10003, "2" * 40)
+        self._publish_release("1.0.6", 10006, 10005, "3" * 40)
+        self._publish_release("1.0.7", 10007, 10005, "4" * 40)
 
         response = self.client.get(
             "/api/notes/v1/stable/feed.json",
@@ -325,6 +329,59 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
         self.assertEqual(response.get_json()["manifest"], "release-10005.json")
+
+    def test_legacy_client_never_receives_post_bridge_release_without_bridge(self):
+        activation = self._activate_103()
+        self._publish_release("1.0.5", 10005, 10003, "2" * 40)
+        self._publish_release("1.0.6", 10006, 10005, "3" * 40)
+
+        session = Database.connect_database()
+        try:
+            bridge = (
+                session.query(ReleaseRecord)
+                .filter(
+                    ReleaseRecord.channel == "stable",
+                    ReleaseRecord.version_code == 10005,
+                )
+                .one()
+            )
+            bridge.is_active = False
+            session.add(bridge)
+            session.commit()
+        finally:
+            session.close()
+
+        response = self.client.get(
+            "/api/notes/v1/stable/feed.json",
+            base_url=self.base,
+            headers=self._headers(activation["token"]),
+        )
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        self.assertEqual(response.get_json()["manifest"], "release-10004.json")
+
+        session = Database.connect_database()
+        try:
+            legacy = (
+                session.query(ReleaseRecord)
+                .filter(
+                    ReleaseRecord.channel == "stable",
+                    ReleaseRecord.version_code == 10004,
+                )
+                .one()
+            )
+            legacy.is_active = False
+            session.add(legacy)
+            session.commit()
+        finally:
+            session.close()
+
+        response = self.client.get(
+            "/api/notes/v1/stable/feed.json",
+            base_url=self.base,
+            headers=self._headers(activation["token"]),
+        )
+        self.assertEqual(response.status_code, 404, response.get_data(as_text=True))
+        self.assertEqual(response.get_json()["error"], "not_found")
 
     def test_update_access_stops_immediately_when_entitlement_expires(self):
         activation = self._activate_103()

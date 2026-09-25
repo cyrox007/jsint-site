@@ -38,6 +38,7 @@ _MAX_MANIFEST_BYTES = 131072
 _MAX_PACKAGE_BYTES = 536870912
 _PRESENCE_ONLINE_SECONDS = 15 * 60
 _PRESENCE_RECENT_SECONDS = 24 * 60 * 60
+_LEGACY_UPDATE_BRIDGE_VERSION_CODE = 10005
 
 
 class ControlPlaneError(RuntimeError):
@@ -858,10 +859,17 @@ class NotesControlPlane:
         if name == "feed.json":
             records = query.order_by(ReleaseRecord.version_code.desc()).all()
             if client_version_code is None:
-                # Старые клиенты до переходной версии не сообщают свою
-                # фактическую версию. Для них сохраняется прежнее поведение
-                # сервера, чтобы не ломать уже опубликованные установки.
-                record = records[0] if records else None
+                # Клиенты до 1.0.5 не передают свою фактическую версию.
+                # Никогда не выдаём им 1.0.6+ вслепую: либо возвращаем активный
+                # мост 1.0.5, либо последний активный релиз старого протокола.
+                # Если совместимого legacy-релиза нет, запрос закрывается 404
+                # вместо передачи заведомо несовместимого пакета.
+                legacy_records = [
+                    item
+                    for item in records
+                    if item.version_code <= _LEGACY_UPDATE_BRIDGE_VERSION_CODE
+                ]
+                record = legacy_records[0] if legacy_records else None
             else:
                 record = cls._release_for_client_version(records, client_version_code)
         else:

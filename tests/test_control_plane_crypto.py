@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from nacl.signing import SigningKey
 
-from services.github_release_automation import _inspect_workspace_zip, _sequential_source_floor
+from services.github_release_automation import _inspect_workspace_zip, _source_floor_for_version
 from services.notes_control_plane import (
     ControlPlaneError,
     NotesControlPlane,
@@ -166,7 +166,11 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
         self.assertEqual(meta["version"], "1.0.1")
         self.assertEqual(meta["version_code"], 10001)
         self.assertEqual(meta["status"], "stable")
-        self.assertEqual(_sequential_source_floor(meta["version_code"]), 10000)
+        self.assertEqual(_source_floor_for_version(meta["version_code"]), 10000)
+        self.assertEqual(_source_floor_for_version(10005), 10003)
+        self.assertEqual(_source_floor_for_version(10006), 10005)
+        self.assertEqual(_source_floor_for_version(10042), 10005)
+        self.assertEqual(_source_floor_for_version(10100), 10099)
 
     def test_presence_is_based_on_last_outbound_contact(self):
         now = datetime.now(timezone.utc)
