@@ -123,9 +123,8 @@ def set_profile(
     profile: dict[str, Any] | None,
 ) -> dict[str, Any]:
     result = dict(extra_data or {})
-    result.pop("profile", None)
-
     profiles = dict(_profiles(result))
+    result.pop("profile", None)
     normalized = site_key.strip().lower()
     if profile is None:
         profiles.pop(normalized, None)
