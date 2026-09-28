@@ -37,6 +37,9 @@
 
         quill.on('text-change', () => {
             input.value = quill.root.innerHTML;
+            document.dispatchEvent(new CustomEvent('jsint-editor-change', {
+                detail: {fieldId: "{{ fieldId }}"}
+            }));
         });
     });
 </script>
