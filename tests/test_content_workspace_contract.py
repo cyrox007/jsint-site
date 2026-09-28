@@ -45,6 +45,7 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         template = self.read("templates/dashboard/publication/edit.html")
         controller = self.read("views/dashboard/blog/views.py")
         styles = self.read("templates/dashboard/publication/style.css")
+        editor = self.read("templates/dashboard/^elements/UI/Editor/index.html")
 
         self.assertIn("publication-writing__document", template)
         self.assertIn("publication-settings-group", template)
@@ -64,6 +65,19 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn("data-profile-settings", template)
         self.assertIn("profile_schemas_by_site", controller)
         self.assertIn("placement_{{ target_site.id }}_profile_", template)
+        self.assertIn("ql-undo", editor)
+        self.assertIn("ql-redo", editor)
+        self.assertIn("ql-strike", editor)
+        self.assertIn('class="ql-script" value="sub"', editor)
+        self.assertIn('class="ql-script" value="super"', editor)
+        self.assertIn("ql-media", editor)
+        self.assertIn("ql-fullscreen", editor)
+        self.assertIn("getSemanticHTML", editor)
+        self.assertIn("data-editor-count", editor)
+        self.assertIn("history:", editor)
+        self.assertIn("jsint-editor-media-request", editor)
+        self.assertIn("form.requestSubmit()", template)
+        self.assertIn("rich-editor-fullscreen-open", styles)
         self.assertIn("beforeunload", template)
 
     def test_legacy_catalog_redirects_to_content(self):
