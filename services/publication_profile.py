@@ -91,12 +91,52 @@ def schemas_for_site(site_key: str) -> dict[str, PublicationProfileSchema]:
     }
 
 
-def profile_for_editor(extra_data: dict | None) -> dict[str, Any]:
-    profile = (extra_data or {}).get("profile")
+def _profiles(extra_data: dict | None) -> dict[str, dict[str, Any]]:
+    raw = (extra_data or {}).get("profiles")
+    if isinstance(raw, dict):
+        return {
+            str(key).strip().lower(): value
+            for key, value in raw.items()
+            if isinstance(value, dict)
+        }
+
+    legacy = (extra_data or {}).get("profile")
+    if isinstance(legacy, dict):
+        schema = str(legacy.get("schema") or "")
+        site_key = schema.partition(".")[0].strip().lower()
+        if site_key:
+            return {site_key: legacy}
+    return {}
+
+
+def profile_for_editor(extra_data: dict | None, site_key: str) -> dict[str, Any]:
+    profile = _profiles(extra_data).get(site_key.strip().lower())
     if not isinstance(profile, dict):
         return {}
     data = profile.get("data")
     return data if isinstance(data, dict) else {}
+
+
+def set_profile(
+    extra_data: dict | None,
+    site_key: str,
+    profile: dict[str, Any] | None,
+) -> dict[str, Any]:
+    result = dict(extra_data or {})
+    result.pop("profile", None)
+
+    profiles = dict(_profiles(result))
+    normalized = site_key.strip().lower()
+    if profile is None:
+        profiles.pop(normalized, None)
+    else:
+        profiles[normalized] = profile
+
+    if profiles:
+        result["profiles"] = profiles
+    else:
+        result.pop("profiles", None)
+    return result
 
 
 def _clean_tags(value: str, *, max_length: int) -> list[str]:
@@ -143,8 +183,8 @@ def build_profile(
     }
 
 
-def public_profile(extra_data: dict | None) -> dict[str, Any] | None:
-    profile = (extra_data or {}).get("profile")
+def public_profile(extra_data: dict | None, site_key: str) -> dict[str, Any] | None:
+    profile = _profiles(extra_data).get(site_key.strip().lower())
     if not isinstance(profile, dict):
         return None
 
