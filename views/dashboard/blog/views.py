@@ -7,6 +7,7 @@ from flask.views import MethodView
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from components.admin.site_context import resolve_admin_site
 from components.auth.decorator import login_required, with_db_session
 from components.security.html import sanitize_rich_text
 from models.categories import Category
@@ -20,17 +21,7 @@ from utils.validation import validate_slug
 
 
 def _site_from_raw(db_session: Session, raw: str | None, *, fallback: bool = True):
-    value = (raw or "").strip()
-    if value:
-        try:
-            site = SiteService.get_by_id(db_session, UUID(value))
-        except ValueError:
-            site = None
-        if site is not None:
-            return site
-        if not fallback:
-            return None
-    return SiteService.get_default(db_session) if fallback else None
+    return resolve_admin_site(db_session, raw, fallback=fallback)
 
 
 def _publication_payload(schema_cls, site_id: UUID):
