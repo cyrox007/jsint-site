@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from uuid import UUID
 
 from flask import abort, flash, jsonify, redirect, render_template, request, session, url_for
@@ -474,19 +476,7 @@ class UpdatePost(MethodView):
         }
         workspace_site = _site_from_raw(db_session, request.args.get("site_id"))
 
-        preview_url = None
-        if selected_site.is_default and publication_model.is_published and publication_model.category_id:
-            preview_category = Category.get_by_id(
-                db_session,
-                publication_model.category_id,
-                selected_site.id,
-            )
-            if preview_category is not None:
-                preview_url = url_for(
-                    "public.articles.show",
-                    categories_slug=preview_category.slug,
-                    publication_slug=publication_model.slug,
-                )
+        preview_url = url_for("admin.publication.preview", id=publication_model.id)
 
         return render_template(
             "dashboard/publication/edit.html",
@@ -553,6 +543,36 @@ class UpdatePost(MethodView):
 
         flash("Публикация и размещения сохранены", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
+
+
+class PreviewPost(MethodView):
+    @login_required
+    @with_db_session
+    def get(self, db_session: Session, id: UUID):
+        publication = Publication.get_by_id(db_session, id)
+        if publication is None:
+            abort(404)
+
+        site_model = SiteService.get_by_id(db_session, publication.site_id)
+        if site_model is None:
+            abort(404)
+
+        site = SiteService.public_config(site_model)
+        extra = publication.extra_data or {}
+        plain_text = re.sub(r"<[^>]+>", " ", publication.content or "")
+        plain_text = re.sub(r"\s+", " ", plain_text).strip()
+
+        return render_template(
+            "public/articles/detail.html",
+            site=site,
+            publication=publication,
+            seo_title=(extra.get("seo_title") or publication.title).strip(),
+            seo_description=(extra.get("seo_description") or plain_text[:180]).strip(),
+            canonical_url=None,
+            og_type="article",
+            preview_mode=True,
+            preview_edit_url=url_for("admin.publication.edit", id=publication.id),
+        )
 
 
 class DeletePost(MethodView):
