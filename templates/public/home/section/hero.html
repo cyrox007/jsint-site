@@ -20,11 +20,11 @@
 
                 <div class="hero-actions">
                     {% if site.settings.contact.github_url %}
-                    <a href="{{ site.settings.contact.github_url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+                    <a href="{{ site.settings.contact.github_url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">{{ hero.github_label or 'GitHub' }} <span aria-hidden="true">↗</span></a>
                     {% endif %}
-                    <a href="#systems" class="btn btn-secondary">Смотреть материалы</a>
+                    <a href="#systems" class="btn btn-secondary">{{ hero.materials_label or 'Смотреть материалы' }}</a>
                     {% if site.settings.contact.email %}
-                    <a href="mailto:{{ site.settings.contact.email }}" class="btn btn-secondary">Связаться</a>
+                    <a href="mailto:{{ site.settings.contact.email }}" class="btn btn-secondary">{{ hero.contact_label or 'Связаться' }}</a>
                     {% endif %}
                 </div>
 
@@ -40,10 +40,10 @@
             <aside class="hero-console" aria-label="Направления работы">
                 <div class="hero-console__top">
                     <div>
-                        <span class="hero-console__eyebrow">system / overview</span>
-                        <strong>Рабочий контур</strong>
+                        <span class="hero-console__eyebrow">{{ hero.console_eyebrow or 'system / overview' }}</span>
+                        <strong>{{ hero.console_title or 'Рабочий контур' }}</strong>
                     </div>
-                    <span class="hero-console__status">online</span>
+                    <span class="hero-console__status">{{ hero.console_status or 'online' }}</span>
                 </div>
 
                 {% if hero.terminal_lines %}
