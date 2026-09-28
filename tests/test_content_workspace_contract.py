@@ -40,11 +40,17 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('elif key == "category_ids" and value:', model)
         self.assertIn("cls.category_id.in_(value)", model)
 
-    def test_publication_editor_shows_status_and_public_preview(self):
+    def test_publication_editor_is_focused_on_writing(self):
         template = self.read("templates/dashboard/publication/edit.html")
         controller = self.read("views/dashboard/blog/views.py")
-        self.assertIn("publication-editor-status", template)
-        self.assertIn("Открыть на сайте", template)
+        styles = self.read("templates/dashboard/publication/style.css")
+
+        self.assertIn("publication-writing__document", template)
+        self.assertIn("publication-settings-group", template)
+        self.assertIn("publication-state-pill", template)
+        self.assertIn("Предпросмотр", template)
+        self.assertIn("<details class=\"publication-settings-group\" open>", template)
+        self.assertIn("publication-body-field .ql-toolbar.ql-snow", styles)
         self.assertIn("preview_url = None", controller)
         self.assertIn('"public.articles.show"', controller)
 
