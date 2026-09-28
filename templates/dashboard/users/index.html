@@ -1,0 +1,102 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Пользователи | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page users-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Управление</span>
+            <h1 class="admin-page__title">Пользователи</h1>
+            <p class="admin-page__description">
+                Учётные записи авторов и администраторов. Доступ в административную часть дополнительно ограничивается ADMIN_EMAILS.
+            </p>
+        </div>
+    </header>
+
+    <section class="admin-card users-create">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Новый пользователь</h2>
+                <p class="admin-card__description">Для входа администратора email также должен быть разрешён в конфигурации сервера.</p>
+            </div>
+        </div>
+        <form method="post" class="admin-card__body admin-form-grid">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="create">
+            <label>Email<input type="email" name="email" maxlength="320" required></label>
+            <label>Пароль<input type="password" name="password" minlength="12" autocomplete="new-password" required></label>
+            <label>Имя<input name="firstname" maxlength="255"></label>
+            <label>Фамилия<input name="lastname" maxlength="255"></label>
+            <div class="admin-form-grid__wide users-create__actions">
+                <button class="btn primary" type="submit">Создать пользователя</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="users-list">
+        {% for user in users %}
+        <article class="admin-card user-card">
+            <div class="user-card__summary">
+                <div class="user-card__identity">
+                    <span class="user-card__avatar">{{ (user.firstname or user.email)[0]|upper }}</span>
+                    <div>
+                        <div class="user-card__title">
+                            <strong>{{ ((user.firstname or '') ~ ' ' ~ (user.lastname or ''))|trim or user.email }}</strong>
+                            {% if user.email.lower() in admin_emails or not admin_emails %}
+                            <span class="status-badge status-badge--info">Администратор</span>
+                            {% else %}
+                            <span class="status-badge">Автор</span>
+                            {% endif %}
+                            {% if user.id == current_user_id %}
+                            <span class="status-badge status-badge--success">Вы</span>
+                            {% endif %}
+                        </div>
+                        <span>{{ user.email }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="user-card__body">
+                <form method="post" class="admin-form user-card__form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <div class="admin-form-grid">
+                        <label>Имя<input name="firstname" value="{{ user.firstname or '' }}" maxlength="255"></label>
+                        <label>Фамилия<input name="lastname" value="{{ user.lastname or '' }}" maxlength="255"></label>
+                    </div>
+                    <div class="user-card__actions">
+                        <button class="btn secondary btn-small" type="submit">Сохранить профиль</button>
+                    </div>
+                </form>
+
+                <form method="post" class="admin-form user-card__password">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="password">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <label>Новый пароль
+                        <div class="user-card__password-row">
+                            <input type="password" name="password" minlength="12" autocomplete="new-password" placeholder="Не менее 12 символов" required>
+                            <button class="btn secondary btn-small" type="submit">Сменить пароль</button>
+                        </div>
+                    </label>
+                </form>
+
+                {% if user.id != current_user_id %}
+                <form method="post" class="user-card__danger" onsubmit="return confirm('Удалить пользователя «{{ user.email|e }}»?')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <button class="btn danger btn-small" type="submit">Удалить пользователя</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% else %}
+        <div class="admin-empty">
+            <strong>Пользователей нет</strong>
+            <span>Создайте первую учётную запись.</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
