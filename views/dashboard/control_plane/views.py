@@ -29,10 +29,7 @@ def _actor_user_id() -> UUID | None:
 def _release_preflight(db_session: Session, prepared: dict) -> dict:
     head = (
         db_session.query(ReleaseRecord)
-        .filter(
-            ReleaseRecord.channel == prepared["channel"],
-            ReleaseRecord.is_active.is_(True),
-        )
+        .filter(ReleaseRecord.channel == prepared["channel"])
         .order_by(ReleaseRecord.version_code.desc())
         .first()
     )
