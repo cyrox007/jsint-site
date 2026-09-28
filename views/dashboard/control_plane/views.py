@@ -195,6 +195,16 @@ class LicenseListView(MethodView):
                 **_license_context(db_session, tab="import"),
             ), exc.status
 
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.import",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+            details={"edition": record.edition},
+        )
         flash("Лицензия импортирована в реестр.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
@@ -228,6 +238,16 @@ class LicenseIssueView(MethodView):
                 **_license_context(db_session, tab="issue"),
             ), exc.status
 
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.issue",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+            details={"edition": record.edition},
+        )
         flash("Лицензия подписана на ПК оператора, проверена сервером и добавлена в реестр.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
@@ -249,7 +269,18 @@ class LicenseStatusView(MethodView):
         if record is None:
             abort(404)
         try:
-            NotesControlPlane.set_status(db_session, record, request.form.get("status", ""))
+            new_status = request.form.get("status", "")
+            NotesControlPlane.set_status(db_session, record, new_status)
+            ControlPlaneAuditService.operator(
+                db_session,
+                actor_user_id=_actor_user_id(),
+                action="license.status",
+                target_type="license",
+                target_id=record.license_id,
+                installation_id=record.installation_id,
+                license_id=record.license_id,
+                details={"status": new_status},
+            )
             flash("Статус лицензии обновлён", "success")
         except ControlPlaneError as exc:
             flash(str(exc), "error")
@@ -267,6 +298,15 @@ class LicenseActivationView(MethodView):
             flash("Нельзя выпустить activation code для отозванной лицензии", "error")
             return redirect(url_for("admin.licenses.index", tab="registry"))
         activation_code = NotesControlPlane.reissue_activation(db_session, record)
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.activation_reissued",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+        )
         flash("Новый activation code создан. Предыдущий больше не действует.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
