@@ -4,12 +4,13 @@
 <div class="admin-page">
     <header class="admin-page__header">
         <div class="admin-page__heading">
-            <span class="admin-page__eyebrow">JSInteractive</span>
-            <h1 class="admin-page__title">Центр управления</h1>
-            <p class="admin-page__description">Одна админка для публичных сайтов, контента и сервисного контура Workspace Organizer.</p>
+            <span class="admin-page__eyebrow">JSInteractive · единый центр</span>
+            <h1 class="admin-page__title">{{ selected_site.name }}</h1>
+            <p class="admin-page__description">Рабочая витрина: контент, рубрики, страницы и медиатека. Системные сервисы и остальные сайты управляются из этой же панели.</p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('index') }}" target="_blank" rel="noopener">Открыть основной сайт ↗</a>
+            <a class="btn primary" href="{{ url_for('admin.publication.create', site_id=selected_site.id) }}">Новая публикация</a>
+            <a class="btn secondary" href="{{ selected_site.base_url or url_for('index') }}" target="_blank" rel="noopener">Открыть {{ selected_site.name }} ↗</a>
         </div>
     </header>
 
@@ -19,16 +20,24 @@
         <div class="admin-card metric-card"><div class="metric-card__label">Redis</div><div class="metric-card__value metric-status {{ 'is-ok' if redis_ok else 'is-error' }}">{{ 'Работает' if redis_ok else 'Недоступен' }}</div></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Фоновые задачи</div><div class="metric-card__value metric-status {{ 'is-ok' if background.ok else 'is-error' }}">{{ 'Работают' if background.ok else 'Нет heartbeat' }}</div><small class="metric-card__meta">{% if background.ok %}Beat → Worker · {{ background.age_seconds }} сек. назад{% else %}{{ background.reason }}{% endif %}</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Сайты</div><div class="metric-card__value">{{ active_site_count }} / {{ site_count }}</div><small class="metric-card__meta">активных / всего</small></div>
-        <div class="admin-card metric-card"><div class="metric-card__label">Публикации</div><div class="metric-card__value">{{ total_publications }}</div><small class="metric-card__meta">{{ published_count }} опубликовано · {{ draft_count }} черновиков</small></div>
-        <div class="admin-card metric-card"><div class="metric-card__label">Рубрики</div><div class="metric-card__value">{{ category_count }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Публикации · {{ selected_site.name }}</div><div class="metric-card__value">{{ total_publications }}</div><small class="metric-card__meta">{{ published_count }} опубликовано · {{ draft_count }} черновиков</small></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Рубрики · {{ selected_site.name }}</div><div class="metric-card__value">{{ category_count }}</div><small class="metric-card__meta">только текущая витрина</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Лицензии</div><div class="metric-card__value">{{ active_license_count }} / {{ license_count }}</div><small class="metric-card__meta">active / всего</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Релизы Workspace</div><div class="metric-card__value">{{ release_count }}</div></div>
     </section>
 
     <section class="admin-grid admin-grid--2">
         <article class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Публичные сайты</h2><p class="admin-card__description">Витрины, их бренд, SEO, API и привязанный контент.</p></div></div>
-            <div class="admin-card__body"><div class="admin-actions"><a class="btn primary" href="{{ url_for('admin.sites.index') }}">Управление сайтами</a><a class="btn secondary" href="{{ url_for('admin.publication.index') }}">Контент</a></div></div>
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Рабочая витрина</h2><p class="admin-card__description">{{ selected_site.name }} · {{ selected_site.key }}{% if selected_site.base_url %} · {{ selected_site.base_url }}{% endif %}</p></div></div>
+            <div class="admin-card__body">
+                <div class="admin-actions">
+                    <a class="btn primary" href="{{ url_for('admin.publication.index', site_id=selected_site.id) }}">Публикации</a>
+                    <a class="btn secondary" href="{{ url_for('admin.catalog.index', site_id=selected_site.id) }}">Рубрики</a>
+                    <a class="btn secondary" href="{{ url_for('admin.pages.index', site_id=selected_site.id) }}">Страницы</a>
+                    <a class="btn secondary" href="{{ url_for('admin.media.index', site_id=selected_site.id) }}">Медиатека</a>
+                </div>
+                <p class="admin-form-note">Переключатель рабочего сайта в шапке меняет контекст всех разделов контента.</p>
+            </div>
         </article>
         <article class="admin-card">
             <div class="admin-card__header"><div><h2 class="admin-card__title">Workspace Organizer</h2><p class="admin-card__description">Установки, права на обновления и immutable release artifacts.</p></div></div>
