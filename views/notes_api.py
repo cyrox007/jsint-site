@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+from uuid import UUID
 
 from flask import Flask, Response, jsonify, request
 from sqlalchemy.orm import Session
 
 from components.security.csrf import csrf_exempt
 from database import Database
+from services.control_plane_audit import ControlPlaneAuditService
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
@@ -46,6 +48,35 @@ def _client_release_state() -> tuple[str | None, int | None]:
     if version_code > 2_147_483_647:
         raise ControlPlaneError("Invalid client version code")
     return (version or None, version_code)
+
+
+
+
+def _audit_machine_failure(
+    db: Session,
+    *,
+    action: str,
+    target_id: str | None,
+    exc: ControlPlaneError,
+) -> None:
+    raw_installation = request.headers.get("X-Notes-Installation", "").strip().lower()
+    try:
+        installation_id = UUID(raw_installation)
+    except ValueError:
+        installation_id = None
+
+    try:
+        db.rollback()
+        ControlPlaneAuditService.machine_failure(
+            db,
+            action=action,
+            installation_id=installation_id,
+            target_id=target_id,
+            error_code=exc.code,
+            http_status=exc.status,
+        )
+    except Exception:
+        db.rollback()
 
 
 @csrf_exempt
@@ -279,6 +310,12 @@ def artifact(channel: str, name: str):
         )
         return response
     except ControlPlaneError as exc:
+        _audit_machine_failure(
+            db,
+            action="machine.artifact_denied",
+            target_id=name,
+            exc=exc,
+        )
         if handle is not None:
             handle.close()
         return _error(exc)
