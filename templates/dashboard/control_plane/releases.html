@@ -10,6 +10,21 @@
         </div>
     </header>
 
+    <section class="channel-state-grid" aria-label="Текущее состояние update feed">
+        {% for state in channel_state %}
+        <article class="channel-state-card">
+            <span class="channel-state-card__label">{{ state.channel }}</span>
+            {% if state.record %}
+            <strong>{{ state.record.version }} · {{ state.record.version_code }}</strong>
+            <small>{{ state.record.manifest_name }} · {{ state.record.signature_name }}</small>
+            {% else %}
+            <strong>Нет активного релиза</strong>
+            <small>Канал пока ничего не выдаёт.</small>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </section>
+
     <nav class="control-tabs" aria-label="Разделы релизов">
         <a class="{{ 'is-active' if tab == 'registry' }}" href="{{ url_for('admin.releases.index', tab='registry') }}">Реестр <span>{{ releases|length }}</span></a>
         <a class="{{ 'is-active' if tab == 'publish' }}" href="{{ url_for('admin.releases.index', tab='publish') }}">Выпустить</a>
@@ -467,6 +482,24 @@
 
             setStatus('Скачиваю официальный GitHub Release и проверяю ZIP…', 'working');
             const release = await prepareRelease();
+            const preflight = release.preflight || {ready: true, warnings: []};
+            if (!preflight.ready) {
+                const warnings = Array.isArray(preflight.warnings) ? preflight.warnings : [];
+                setStatus(
+                    'Предрелизная проверка остановила выпуск: ' + warnings.join(' '),
+                    'error'
+                );
+                submitButton.disabled = false;
+                return;
+            }
+
+            const head = preflight.channel_head_version_code
+                ? ' Текущая голова канала: ' + preflight.channel_head_version + ' / ' + preflight.channel_head_version_code + '.'
+                : ' Канал пока пуст.';
+            setStatus(
+                'Preflight пройден. Версия ' + release.version + ' / ' + release.version_code + '.' + head,
+                'working'
+            );
 
             setStatus('Подписываю manifest локально в браузере…', 'working');
             const signature = await signManifest(key.privateKey, key.keyId, release.manifest);
