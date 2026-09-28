@@ -21,6 +21,7 @@ from services.publication import PublicationService
 from services.publication_profile import (
     build_profile,
     profile_for_editor,
+    public_profile,
     schemas_for_site,
 )
 from services.publication_channel import PublicationChannelService
@@ -557,11 +558,21 @@ class PreviewPost(MethodView):
         if site_model is None:
             abort(404)
 
-        site = SiteService.public_config(site_model)
         extra = publication.extra_data or {}
+        edit_url = url_for("admin.publication.edit", id=publication.id)
+
+        if not site_model.is_default:
+            return render_template(
+                "dashboard/publication/preview.html",
+                publication=publication,
+                selected_site=site_model,
+                profile=public_profile(extra),
+                preview_edit_url=edit_url,
+            )
+
+        site = SiteService.public_config(site_model)
         plain_text = re.sub(r"<[^>]+>", " ", publication.content or "")
         plain_text = re.sub(r"\s+", " ", plain_text).strip()
-
         return render_template(
             "public/articles/detail.html",
             site=site,
@@ -571,7 +582,7 @@ class PreviewPost(MethodView):
             canonical_url=None,
             og_type="article",
             preview_mode=True,
-            preview_edit_url=url_for("admin.publication.edit", id=publication.id),
+            preview_edit_url=edit_url,
         )
 
 
