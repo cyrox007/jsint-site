@@ -6,6 +6,7 @@
 {% block content %}
 {% set current_category_id = publication.category_id|string if publication else selected_category_id %}
 {% set return_site = workspace_site if workspace_site is defined and workspace_site else selected_site %}
+{% set current_source_type = publication.source_type if publication else 'article' %}
 
 <form class="publication-editor-shell" method="post">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -57,10 +58,16 @@
                 <div class="publication-writing__separator"></div>
 
                 <div class="publication-body-field">
+                    <div class="publication-body-tools">
+                        <span>Текст публикации</span>
+                        <button class="btn secondary btn-small" type="button" data-open-media>
+                            Вставить из медиатеки
+                        </button>
+                    </div>
                     {{ editor.Editor(
                         fieldName="content",
                         fieldId="publication-content",
-                        labelText="Текст публикации",
+                        labelText="Редактор",
                         value=publication.content if publication else ''
                     ) }}
                 </div>
@@ -96,10 +103,13 @@
                     <label for="source-type">
                         Тип материала
                         <select name="source-type" id="source-type">
-                            <option value="article" {% if publication and publication.source_type == 'article' %}selected{% endif %}>Статья</option>
-                            <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчёт</option>
-                            <option value="case" {% if publication and publication.source_type == 'case' %}selected{% endif %}>Кейс</option>
-                            <option value="changelog" {% if publication and publication.source_type == 'changelog' %}selected{% endif %}>Журнал изменений</option>
+                            <option value="article" {% if current_source_type == 'article' %}selected{% endif %}>Статья</option>
+                            {% if profile_schemas.get('lecture') %}
+                            <option value="lecture" {% if current_source_type == 'lecture' %}selected{% endif %}>Лекция</option>
+                            {% endif %}
+                            <option value="task" {% if current_source_type == 'task' %}selected{% endif %}>Отчёт</option>
+                            <option value="case" {% if current_source_type == 'case' %}selected{% endif %}>Кейс</option>
+                            <option value="changelog" {% if current_source_type == 'changelog' %}selected{% endif %}>Журнал изменений</option>
                         </select>
                     </label>
 
@@ -130,6 +140,70 @@
                     </div>
                 </div>
             </details>
+
+            {% if profile_schemas %}
+            <details class="publication-settings-group" data-profile-settings>
+                <summary>
+                    <span>
+                        <strong>Структура материала</strong>
+                        <small>Дополнительные данные выбранного сайта</small>
+                    </span>
+                    <span class="publication-settings-group__chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="publication-settings-group__body">
+                    {% for source_type, schema in profile_schemas.items() %}
+                    <div
+                        class="publication-profile-fields"
+                        data-profile-source="{{ source_type }}"
+                        {% if source_type != current_source_type %}hidden{% endif %}
+                    >
+                        <div class="publication-profile-schema">
+                            <strong>{{ schema.label }}</strong>
+                            <span>{{ schema.key }}@{{ schema.version }}</span>
+                        </div>
+                        <div class="admin-form">
+                            {% for field in schema.fields %}
+                            <label>
+                                {{ field.label }}
+                                {% if field.kind == 'textarea' %}
+                                <textarea
+                                    name="profile_{{ field.name }}"
+                                    rows="5"
+                                    maxlength="{{ field.max_length }}"
+                                    {% if source_type != current_source_type %}disabled{% endif %}
+                                >{{ profile_data.get(field.name, '') if source_type == current_source_type else '' }}</textarea>
+                                {% elif field.kind == 'tags' %}
+                                <input
+                                    name="profile_{{ field.name }}"
+                                    value="{{ profile_data.get(field.name, [])|join(', ') if source_type == current_source_type else '' }}"
+                                    {% if source_type != current_source_type %}disabled{% endif %}
+                                >
+                                {% elif field.kind == 'lines' %}
+                                <textarea
+                                    name="profile_{{ field.name }}"
+                                    rows="6"
+                                    {% if source_type != current_source_type %}disabled{% endif %}
+                                >{{ profile_data.get(field.name, [])|join('\n') if source_type == current_source_type else '' }}</textarea>
+                                {% else %}
+                                <input
+                                    name="profile_{{ field.name }}"
+                                    maxlength="{{ field.max_length }}"
+                                    value="{{ profile_data.get(field.name, '') if source_type == current_source_type else '' }}"
+                                    {% if source_type != current_source_type %}disabled{% endif %}
+                                >
+                                {% endif %}
+                                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <p class="publication-settings-note" data-profile-empty {% if current_source_type in profile_schemas %}hidden{% endif %}>
+                        Для этого типа материала дополнительных структурных полей нет.
+                    </p>
+                </div>
+            </details>
+            {% endif %}
 
             <details class="publication-settings-group">
                 <summary>
@@ -220,6 +294,61 @@
                                     <p class="publication-placement__hint">Для {{ target_site.name }} пока нет рубрик.</p>
                                     {% endif %}
 
+                                    {% set target_profile_schemas = profile_schemas_by_site.get(target_site.id|string, {}) %}
+                                    {% set target_profile_data = profile_data_by_site.get(target_site.id|string, {}) %}
+                                    {% if target_profile_schemas %}
+                                    <div class="publication-placement-profile">
+                                        {% for target_source_type, target_schema in target_profile_schemas.items() %}
+                                        <div
+                                            class="publication-profile-fields"
+                                            data-profile-source="{{ target_source_type }}"
+                                            data-profile-site="{{ target_site.key }}"
+                                            {% if target_source_type != current_source_type %}hidden{% endif %}
+                                        >
+                                            <div class="publication-profile-schema">
+                                                <strong>{{ target_schema.label }}</strong>
+                                                <span>{{ target_schema.key }}@{{ target_schema.version }}</span>
+                                            </div>
+                                            <div class="admin-form">
+                                                {% for field in target_schema.fields %}
+                                                <label>
+                                                    {{ field.label }}
+                                                    {% if field.kind == 'textarea' %}
+                                                    <textarea
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        rows="4"
+                                                        maxlength="{{ field.max_length }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >{{ target_profile_data.get(field.name, '') if target_source_type == current_source_type else '' }}</textarea>
+                                                    {% elif field.kind == 'tags' %}
+                                                    <input
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        value="{{ target_profile_data.get(field.name, [])|join(', ') if target_source_type == current_source_type else '' }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >
+                                                    {% elif field.kind == 'lines' %}
+                                                    <textarea
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        rows="5"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >{{ target_profile_data.get(field.name, [])|join('\n') if target_source_type == current_source_type else '' }}</textarea>
+                                                    {% else %}
+                                                    <input
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        maxlength="{{ field.max_length }}"
+                                                        value="{{ target_profile_data.get(field.name, '') if target_source_type == current_source_type else '' }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >
+                                                    {% endif %}
+                                                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                                                </label>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+
                                     <label class="switch switch--compact">
                                         <input type="checkbox" name="placement_{{ target_site.id }}_published" {% if placement and placement.is_published %}checked{% endif %}>
                                         <span class="slider"></span>
@@ -235,6 +364,41 @@
         </aside>
     </div>
 </form>
+
+<dialog class="publication-media-dialog" data-media-dialog>
+    <div class="publication-media-dialog__header">
+        <div>
+            <strong>Медиатека · {{ selected_site.name }}</strong>
+            <span>Выберите изображение для вставки в текст.</span>
+        </div>
+        <button type="button" class="btn secondary btn-small" data-close-media>Закрыть</button>
+    </div>
+    <div class="publication-media-dialog__grid">
+        {% for asset in media_assets %}
+        <button
+            class="publication-media-choice"
+            type="button"
+            data-media-url="{{ url_for('public.media.file', asset_id=asset.id, filename=media_service.public_filename(asset)) }}"
+            data-media-alt="{{ asset.alt_text or '' }}"
+        >
+            <img
+                loading="lazy"
+                src="{{ url_for('public.media.file', asset_id=asset.id, filename=media_service.public_filename(asset)) }}"
+                alt="{{ asset.alt_text or '' }}"
+            >
+            <span>
+                <strong>{{ asset.original_name }}</strong>
+                <small>{{ asset.alt_text or 'Без alt-текста' }}</small>
+            </span>
+        </button>
+        {% else %}
+        <div class="publication-media-dialog__empty">
+            <strong>Медиатека пуста</strong>
+            <span>Сначала загрузите изображение в разделе «Медиатека».</span>
+        </div>
+        {% endfor %}
+    </div>
+</dialog>
 {% endblock %}
 
 {% block extra_js %}
@@ -296,6 +460,88 @@ document.addEventListener('DOMContentLoaded', () => {
             checkSlug(slug);
         });
     }
+
+    const form = document.querySelector('.publication-editor-shell');
+    const sourceTypeField = document.getElementById('source-type');
+    const mediaDialog = document.querySelector('[data-media-dialog]');
+    const mediaOpen = document.querySelector('[data-open-media]');
+    const mediaClose = document.querySelector('[data-close-media]');
+    let dirty = false;
+
+    const markDirty = () => {
+        dirty = true;
+    };
+
+    const syncProfileFields = () => {
+        if (!sourceTypeField) {
+            return;
+        }
+        const selected = sourceTypeField.value;
+        let hasProfile = false;
+
+        document.querySelectorAll('[data-profile-source]').forEach(group => {
+            const active = group.dataset.profileSource === selected;
+            group.hidden = !active;
+            group.querySelectorAll('input, textarea, select').forEach(field => {
+                field.disabled = !active;
+            });
+            if (active) {
+                hasProfile = true;
+            }
+        });
+
+        const empty = document.querySelector('[data-profile-empty]');
+        if (empty) {
+            empty.hidden = hasProfile;
+        }
+    };
+
+    if (sourceTypeField) {
+        sourceTypeField.addEventListener('change', syncProfileFields);
+        syncProfileFields();
+    }
+
+    if (mediaOpen && mediaDialog) {
+        mediaOpen.addEventListener('click', () => mediaDialog.showModal());
+    }
+    if (mediaClose && mediaDialog) {
+        mediaClose.addEventListener('click', () => mediaDialog.close());
+    }
+
+    document.querySelectorAll('[data-media-url]').forEach(button => {
+        button.addEventListener('click', () => {
+            const quill = window.jsintEditors && window.jsintEditors['publication-content'];
+            if (!quill) {
+                return;
+            }
+            const range = quill.getSelection(true) || {index: Math.max(0, quill.getLength() - 1)};
+            quill.insertEmbed(range.index, 'image', button.dataset.mediaUrl, 'user');
+            const [leaf] = quill.getLeaf(range.index);
+            if (leaf && leaf.domNode && button.dataset.mediaAlt) {
+                leaf.domNode.setAttribute('alt', button.dataset.mediaAlt);
+            }
+            quill.setSelection(range.index + 1, 0, 'silent');
+            mediaDialog.close();
+            markDirty();
+        });
+    });
+
+    if (form) {
+        form.addEventListener('input', markDirty);
+        form.addEventListener('change', markDirty);
+        form.addEventListener('submit', () => {
+            dirty = false;
+        });
+    }
+
+    document.addEventListener('jsint-editor-change', markDirty);
+    window.addEventListener('beforeunload', event => {
+        if (!dirty) {
+            return;
+        }
+        event.preventDefault();
+        event.returnValue = '';
+    });
 });
 </script>
 {% endblock %}

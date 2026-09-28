@@ -43,12 +43,47 @@ def _safe_http_url(value: str) -> str:
     return value
 
 
-def _parse_navigation(value: str) -> list[dict[str, str]]:
+def _dynamic_rows(prefix: str, fields: tuple[str, ...], *, limit: int) -> list[dict[str, str]]:
+    columns = {
+        field: request.form.getlist(f"{prefix}_{field}")
+        for field in fields
+    }
+    row_count = max((len(values) for values in columns.values()), default=0)
+    rows: list[dict[str, str]] = []
+    for index in range(min(row_count, limit)):
+        row = {
+            field: (columns[field][index] if index < len(columns[field]) else "").strip()
+            for field in fields
+        }
+        if any(row.values()):
+            rows.append(row)
+    return rows
+
+
+def _navigation_from_form() -> list[dict[str, str]]:
+    rows = _dynamic_rows("navigation", ("label", "href"), limit=24)
+    if rows:
+        result: list[dict[str, str]] = []
+        for row in rows:
+            if not row["label"] or not row["href"]:
+                raise ValueError("У каждого пункта навигации должны быть название и ссылка")
+            result.append(
+                {
+                    "label": row["label"][:80],
+                    "href": _safe_href(row["href"]),
+                }
+            )
+        return result
+
+    if request.form.get("dynamic_site_lists") == "1":
+        return []
+
+    legacy = request.form.get("navigation", "")
     items: list[dict[str, str]] = []
-    for line in _lines(value):
+    for line in _lines(legacy):
         label, separator, href = line.partition("|")
         if not separator or not label.strip() or not href.strip():
-            raise ValueError("Навигация: используйте формат «Название|ссылка», одна ссылка на строку")
+            raise ValueError("Навигация: укажите название и ссылку")
         items.append({"label": label.strip()[:80], "href": _safe_href(href)})
     return items
 
@@ -92,7 +127,7 @@ def _settings_from_form(current: dict) -> dict:
         if request.form.get("github_url", "").strip()
         else "",
     }
-    settings["navigation"] = _parse_navigation(request.form.get("navigation", ""))
+    settings["navigation"] = _navigation_from_form()
     settings.pop("hero", None)
     settings.pop("home", None)
 
@@ -123,30 +158,55 @@ def _block_states_from_form() -> dict[str, dict]:
 
 
 def _resume_settings_from_form() -> dict:
+    rows = _dynamic_rows(
+        "resume",
+        ("company", "period", "position", "description", "achievements", "technologies"),
+        limit=40,
+    )
     items: list[dict] = []
-    for index in range(8):
-        company = request.form.get(f"resume_{index}_company", "").strip()
-        if not company:
+    for row in rows:
+        if not row["company"]:
             continue
         items.append(
             {
-                "company": company[:200],
-                "period": request.form.get(f"resume_{index}_period", "").strip()[:200],
-                "position": request.form.get(f"resume_{index}_position", "").strip()[:240],
-                "description": request.form.get(f"resume_{index}_description", "").strip()[:4000],
-                "achievements": _lines(
-                    request.form.get(f"resume_{index}_achievements", "")
-                )[:20],
+                "company": row["company"][:200],
+                "period": row["period"][:200],
+                "position": row["position"][:240],
+                "description": row["description"][:4000],
+                "achievements": _lines(row["achievements"])[:20],
                 "technologies": [
                     item.strip()[:80]
-                    for item in request.form.get(
-                        f"resume_{index}_technologies",
-                        "",
-                    ).split(",")
+                    for item in row["technologies"].split(",")
                     if item.strip()
                 ][:30],
             }
         )
+
+    if not rows and request.form.get("dynamic_site_lists") != "1":
+        for index in range(8):
+            company = request.form.get(f"resume_{index}_company", "").strip()
+            if not company:
+                continue
+            items.append(
+                {
+                    "company": company[:200],
+                    "period": request.form.get(f"resume_{index}_period", "").strip()[:200],
+                    "position": request.form.get(f"resume_{index}_position", "").strip()[:240],
+                    "description": request.form.get(f"resume_{index}_description", "").strip()[:4000],
+                    "achievements": _lines(
+                        request.form.get(f"resume_{index}_achievements", "")
+                    )[:20],
+                    "technologies": [
+                        item.strip()[:80]
+                        for item in request.form.get(
+                            f"resume_{index}_technologies",
+                            "",
+                        ).split(",")
+                        if item.strip()
+                    ][:30],
+                }
+            )
+
     return {
         "kicker": request.form.get("resume_kicker", "").strip()[:120] or "04 / Практика",
         "title": request.form.get("resume_title", "").strip()[:160] or "Опыт работы",
@@ -156,11 +216,28 @@ def _resume_settings_from_form() -> dict:
 
 
 def _hero_metrics_from_form() -> list[dict[str, str]]:
+    rows = _dynamic_rows("hero_metric", ("label", "value"), limit=12)
+    if rows:
+        metrics: list[dict[str, str]] = []
+        for row in rows:
+            if not row["label"] or not row["value"]:
+                raise ValueError("У каждой метрики должны быть название и значение")
+            metrics.append(
+                {
+                    "label": row["label"][:80],
+                    "value": row["value"][:120],
+                }
+            )
+        return metrics
+
+    if request.form.get("dynamic_site_lists") == "1":
+        return []
+
     metrics: list[dict[str, str]] = []
     for line in _lines(request.form.get("hero_metrics", "")):
         label, separator, value = line.partition("|")
         if not separator or not label.strip() or not value.strip():
-            raise ValueError("Метрики первого экрана: используйте формат «Название|Значение»")
+            raise ValueError("Метрики первого экрана: укажите название и значение")
         metrics.append(
             {
                 "label": label.strip()[:80],
@@ -171,16 +248,27 @@ def _hero_metrics_from_form() -> list[dict[str, str]]:
 
 
 def _home_block_settings_from_form() -> dict[str, dict]:
+    about_rows = _dynamic_rows("about_card", ("title", "text"), limit=20)
     about_cards = [
         {
-            "title": request.form.get("about_card_1_title", "").strip()[:160],
-            "text": request.form.get("about_card_1_text", "").strip()[:1500],
-        },
-        {
-            "title": request.form.get("about_card_2_title", "").strip()[:160],
-            "text": request.form.get("about_card_2_text", "").strip()[:1500],
-        },
+            "title": row["title"][:160],
+            "text": row["text"][:1500],
+        }
+        for row in about_rows
+        if row["title"] or row["text"]
     ]
+
+    if not about_rows and request.form.get("dynamic_site_lists") != "1":
+        about_cards = [
+            {
+                "title": request.form.get("about_card_1_title", "").strip()[:160],
+                "text": request.form.get("about_card_1_text", "").strip()[:1500],
+            },
+            {
+                "title": request.form.get("about_card_2_title", "").strip()[:160],
+                "text": request.form.get("about_card_2_text", "").strip()[:1500],
+            },
+        ]
     return {
         "hero": {
             "badge": request.form.get("hero_badge", "").strip()[:200],

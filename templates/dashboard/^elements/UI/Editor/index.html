@@ -28,12 +28,18 @@
             }
         });
 
+        window.jsintEditors = window.jsintEditors || {};
+        window.jsintEditors["{{ fieldId }}"] = quill;
+
         if (input.value) {
             quill.clipboard.dangerouslyPasteHTML(input.value);
         }
 
         quill.on('text-change', () => {
             input.value = quill.root.innerHTML;
+            document.dispatchEvent(new CustomEvent('jsint-editor-change', {
+                detail: {fieldId: "{{ fieldId }}"}
+            }));
         });
     });
 </script>

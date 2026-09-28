@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from uuid import UUID
 
 from flask import abort, flash, jsonify, redirect, render_template, request, session, url_for
@@ -14,7 +16,15 @@ from models.categories import Category
 from models.publication import Publication
 from schemas.publication import PublicationCreate, PublicationUpdate
 from services.catalog import CatalogService
+from services.media import MediaService
 from services.publication import PublicationService
+from services.publication_profile import (
+    build_profile,
+    profile_for_editor,
+    public_profile,
+    schemas_for_site,
+    set_profile,
+)
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 from utils.validation import validate_slug
@@ -24,18 +34,31 @@ def _site_from_raw(db_session: Session, raw: str | None, *, fallback: bool = Tru
     return resolve_admin_site(db_session, raw, fallback=fallback)
 
 
-def _publication_payload(schema_cls, site_id: UUID):
+def _publication_payload(schema_cls, site, existing_extra_data: dict | None = None):
     content = sanitize_rich_text(request.form.get("content", "").strip())
+    source_type = request.form.get("source-type", "article").strip()
+    profile_schemas = schemas_for_site(site.key)
+    selected_schema = profile_schemas.get(source_type)
+    profile_values = {}
+    if selected_schema is not None:
+        profile_values = {
+            field.name: request.form.get(f"profile_{field.name}", "")
+            for field in selected_schema.fields
+        }
+
+    extra_data = dict(existing_extra_data or {})
+    extra_data["seo_title"] = request.form.get("seo_title", "").strip()[:255]
+    extra_data["seo_description"] = request.form.get("seo_description", "").strip()[:320]
+    profile = build_profile(site.key, source_type, profile_values)
+    extra_data = set_profile(extra_data, site.key, profile)
+
     return schema_cls(
-        site_id=site_id,
+        site_id=site.id,
         title=request.form.get("title", "").strip(),
         slug=request.form.get("slug", "").strip(),
         content=content,
-        source_type=request.form.get("source-type", "article").strip(),
-        extra_data={
-            "seo_title": request.form.get("seo_title", "").strip()[:255],
-            "seo_description": request.form.get("seo_description", "").strip()[:320],
-        },
+        source_type=source_type,
+        extra_data=extra_data,
         category_id=request.form.get("category_id", ""),
         author_id=session.get("user_id"),
         is_published=request.form.get("is_published") == "on",
@@ -107,6 +130,12 @@ def _sync_additional_placements(
                 publication_id=publication.id,
                 site_id=site.id,
             )
+            publication.extra_data = set_profile(
+                publication.extra_data,
+                site.key,
+                None,
+            )
+            db_session.add(publication)
             continue
 
         category_raw = request.form.get(f"{prefix}_category_id", "").strip()
@@ -124,6 +153,24 @@ def _sync_additional_placements(
             category_id=category_id,
             is_published=request.form.get(f"{prefix}_published") == "on",
         )
+
+        schema = schemas_for_site(site.key).get(publication.source_type)
+        profile = None
+        if schema is not None:
+            values = {
+                field.name: request.form.get(
+                    f"{prefix}_profile_{field.name}",
+                    "",
+                )
+                for field in schema.fields
+            }
+            profile = build_profile(site.key, publication.source_type, values)
+        publication.extra_data = set_profile(
+            publication.extra_data,
+            site.key,
+            profile,
+        )
+        db_session.add(publication)
 
 
 class PublicationListPage(MethodView):
@@ -359,6 +406,10 @@ class CreatePost(MethodView):
             categories=categories,
             selected_category_id=selected_category_id,
             selected_site=selected_site,
+            media_assets=MediaService.list_for_site(db_session, selected_site.id),
+            media_service=MediaService,
+            profile_schemas=schemas_for_site(selected_site.key),
+            profile_data={},
         )
 
     @login_required
@@ -373,7 +424,7 @@ class CreatePost(MethodView):
             abort(400)
 
         try:
-            data = _publication_payload(PublicationCreate, selected_site.id)
+            data = _publication_payload(PublicationCreate, selected_site)
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
@@ -449,19 +500,7 @@ class UpdatePost(MethodView):
         }
         workspace_site = _site_from_raw(db_session, request.args.get("site_id"))
 
-        preview_url = None
-        if selected_site.is_default and publication_model.is_published and publication_model.category_id:
-            preview_category = Category.get_by_id(
-                db_session,
-                publication_model.category_id,
-                selected_site.id,
-            )
-            if preview_category is not None:
-                preview_url = url_for(
-                    "public.articles.show",
-                    categories_slug=preview_category.slug,
-                    publication_slug=publication_model.slug,
-                )
+        preview_url = url_for("admin.publication.preview", id=publication_model.id)
 
         return render_template(
             "dashboard/publication/edit.html",
@@ -474,6 +513,24 @@ class UpdatePost(MethodView):
             placements_by_site=placements_by_site,
             categories_by_site=categories_by_site,
             preview_url=preview_url,
+            media_assets=MediaService.list_for_site(db_session, selected_site.id),
+            media_service=MediaService,
+            profile_schemas=schemas_for_site(selected_site.key),
+            profile_data=profile_for_editor(
+                publication_model.extra_data,
+                selected_site.key,
+            ),
+            profile_schemas_by_site={
+                str(site.id): schemas_for_site(site.key)
+                for site in sites
+            },
+            profile_data_by_site={
+                str(site.id): profile_for_editor(
+                    publication_model.extra_data,
+                    site.key,
+                )
+                for site in sites
+            },
         )
 
     @login_required
@@ -487,7 +544,11 @@ class UpdatePost(MethodView):
             abort(404)
 
         try:
-            data = _publication_payload(PublicationUpdate, selected_site.id)
+            data = _publication_payload(
+                PublicationUpdate,
+                selected_site,
+                publication_model.extra_data,
+            )
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
@@ -524,6 +585,46 @@ class UpdatePost(MethodView):
 
         flash("Публикация и размещения сохранены", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
+
+
+class PreviewPost(MethodView):
+    @login_required
+    @with_db_session
+    def get(self, db_session: Session, id: UUID):
+        publication = Publication.get_by_id(db_session, id)
+        if publication is None:
+            abort(404)
+
+        site_model = SiteService.get_by_id(db_session, publication.site_id)
+        if site_model is None:
+            abort(404)
+
+        extra = publication.extra_data or {}
+        edit_url = url_for("admin.publication.edit", id=publication.id)
+
+        if not site_model.is_default:
+            return render_template(
+                "dashboard/publication/preview.html",
+                publication=publication,
+                selected_site=site_model,
+                profile=public_profile(extra, site_model.key),
+                preview_edit_url=edit_url,
+            )
+
+        site = SiteService.public_config(site_model)
+        plain_text = re.sub(r"<[^>]+>", " ", publication.content or "")
+        plain_text = re.sub(r"\s+", " ", plain_text).strip()
+        return render_template(
+            "public/articles/detail.html",
+            site=site,
+            publication=publication,
+            seo_title=(extra.get("seo_title") or publication.title).strip(),
+            seo_description=(extra.get("seo_description") or plain_text[:180]).strip(),
+            canonical_url=None,
+            og_type="article",
+            preview_mode=True,
+            preview_edit_url=edit_url,
+        )
 
 
 class DeletePost(MethodView):

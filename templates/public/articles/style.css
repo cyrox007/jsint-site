@@ -179,3 +179,8 @@
         flex-direction: column;
     }
 }
+
+.article-preview-banner{position:sticky;top:0;z-index:50;background:#fff4cf;border-bottom:1px solid rgba(115,95,40,.22)}
+.article-preview-banner .container{display:flex;align-items:center;gap:12px;min-height:46px;padding-top:8px;padding-bottom:8px;color:#735f28;font-size:.82rem}
+.article-preview-banner strong{color:#5c4b1f}.article-preview-banner span{flex:1}.article-preview-banner a{font-weight:750;color:#735f28}
+@media(max-width:640px){.article-preview-banner .container{align-items:flex-start;flex-direction:column;gap:4px}}

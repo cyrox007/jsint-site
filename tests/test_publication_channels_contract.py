@@ -45,7 +45,8 @@ class PublicationChannelsContractTests(unittest.TestCase):
         template = self.read("templates/dashboard/publication/edit.html")
         self.assertIn("PublicationChannelService.list_for_admin", views)
         self.assertIn("_sync_additional_placements", views)
-        self.assertIn("Размещение по сайтам", template)
+        self.assertIn("<strong>Размещение</strong>", template)
+        self.assertIn("Публикация на других сайтах", template)
         self.assertIn("placement_{{ target_site.id }}_enabled", template)
 
 

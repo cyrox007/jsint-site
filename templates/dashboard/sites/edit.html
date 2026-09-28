@@ -1,5 +1,42 @@
 {% extends '/dashboard/^core/base.html' %}
 {% block title %}{{ site.name }} | Сайты{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const bindRemove = root => {
+        root.querySelectorAll('[data-remove-row]').forEach(button => {
+            if (button.dataset.bound === '1') {
+                return;
+            }
+            button.dataset.bound = '1';
+            button.addEventListener('click', () => {
+                const row = button.closest('.site-repeat-row, .site-repeat-card, .resume-editor-item');
+                if (row) {
+                    row.remove();
+                }
+            });
+        });
+    };
+
+    document.querySelectorAll('[data-add-row]').forEach(button => {
+        button.addEventListener('click', () => {
+            const listId = button.dataset.addRow;
+            const list = document.getElementById(listId);
+            const template = document.querySelector(`template[data-row-template="${listId}"]`);
+            if (!list || !template) {
+                return;
+            }
+            const fragment = template.content.cloneNode(true);
+            bindRemove(fragment);
+            list.appendChild(fragment);
+        });
+    });
+
+    bindRemove(document);
+});
+</script>
+{% endblock %}
 {% block content %}
 {% set brand = site_settings.brand %}
 {% set seo = site_settings.seo %}
@@ -27,6 +64,7 @@
 
     <form method="post" class="site-editor__form">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="dynamic_site_lists" value="1">
 
         <section class="admin-card">
             <div class="admin-card__header">
@@ -64,8 +102,31 @@
                 <label class="switch"><input type="checkbox" name="seo_robots_index" {% if seo.robots_index %}checked{% endif %}><span class="slider"></span><span class="label">Разрешать индексацию сайта</span></label>
                 <label>Email<input name="contact_email" type="email" value="{{ contact.email }}"></label>
                 <label>GitHub / внешняя ссылка<input name="github_url" value="{{ contact.github_url }}"></label>
-                <label class="site-field-wide">Навигация<textarea name="navigation" rows="4">{% for item in site_settings.navigation %}{{ item.label }}|{{ item.href }}{% if not loop.last %}
-{% endif %}{% endfor %}</textarea><small>Одна строка: Название|ссылка</small></label>
+                <div class="site-field-wide">
+                    <div class="site-list-heading">
+                        <div>
+                            <strong>Навигация</strong>
+                            <small>Ссылки в шапке публичного сайта.</small>
+                        </div>
+                        <button class="btn secondary btn-small" type="button" data-add-row="navigation-list">+ Добавить ссылку</button>
+                    </div>
+                    <div class="site-repeat-list" id="navigation-list">
+                        {% for item in site_settings.navigation %}
+                        <div class="site-repeat-row site-repeat-row--navigation">
+                            <input name="navigation_label" value="{{ item.label }}" placeholder="Название">
+                            <input name="navigation_href" value="{{ item.href }}" placeholder="/articles или https://...">
+                            <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-row-template="navigation-list">
+                        <div class="site-repeat-row site-repeat-row--navigation">
+                            <input name="navigation_label" placeholder="Название">
+                            <input name="navigation_href" placeholder="/articles или https://...">
+                            <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                        </div>
+                    </template>
+                </div>
             </div>
         </section>
 
@@ -88,8 +149,31 @@
                 <label>Заголовок консоли<input name="hero_console_title" value="{{ hero.console_title }}"></label>
                 <label>Статус консоли<input name="hero_console_status" value="{{ hero.console_status }}"></label>
                 <label class="site-field-wide">Строки терминала<textarea name="hero_terminal_lines" rows="6">{{ hero.terminal_lines|join('\n') }}</textarea></label>
-                <label class="site-field-wide">Метрики<textarea name="hero_metrics" rows="5">{% for metric in hero.get('metrics', []) %}{{ metric.label }}|{{ metric.value }}{% if not loop.last %}
-{% endif %}{% endfor %}</textarea><small>Одна строка: Название|Значение</small></label>
+                <div class="site-field-wide">
+                    <div class="site-list-heading">
+                        <div>
+                            <strong>Метрики</strong>
+                            <small>Короткие показатели первого экрана.</small>
+                        </div>
+                        <button class="btn secondary btn-small" type="button" data-add-row="hero-metrics-list">+ Добавить метрику</button>
+                    </div>
+                    <div class="site-repeat-list" id="hero-metrics-list">
+                        {% for metric in hero.get('metrics', []) %}
+                        <div class="site-repeat-row site-repeat-row--metric">
+                            <input name="hero_metric_label" value="{{ metric.label }}" placeholder="Название">
+                            <input name="hero_metric_value" value="{{ metric.value }}" placeholder="Значение">
+                            <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-row-template="hero-metrics-list">
+                        <div class="site-repeat-row site-repeat-row--metric">
+                            <input name="hero_metric_label" placeholder="Название">
+                            <input name="hero_metric_value" placeholder="Значение">
+                            <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                        </div>
+                    </template>
+                </div>
                 <label class="site-field-wide">Теги<input name="hero_tags" value="{{ hero.tags|join(', ') }}"><small>Через запятую.</small></label>
                 <label class="site-field-wide">Подпись<input name="hero_note" value="{{ hero.note }}"></label>
             </div>
@@ -114,10 +198,37 @@
                 <label>Текст пустой ленты<input name="systems_empty_text" value="{{ systems.empty_text }}"></label>
                 <label>Маркер блока «О проекте»<input name="about_kicker" value="{{ about.kicker }}"></label>
                 <label class="site-field-wide">Заголовок блока «О студии»<input name="about_title" value="{{ about.title }}"></label>
-                <label>Карточка 1 — заголовок<input name="about_card_1_title" value="{{ about.cards[0].title if about.cards else '' }}"></label>
-                <label>Карточка 2 — заголовок<input name="about_card_2_title" value="{{ about.cards[1].title if about.cards|length > 1 else '' }}"></label>
-                <label>Карточка 1 — текст<textarea name="about_card_1_text" rows="5">{{ about.cards[0].text if about.cards else '' }}</textarea></label>
-                <label>Карточка 2 — текст<textarea name="about_card_2_text" rows="5">{{ about.cards[1].text if about.cards|length > 1 else '' }}</textarea></label>
+                <div class="site-field-wide">
+                    <div class="site-list-heading">
+                        <div>
+                            <strong>Карточки «О проекте»</strong>
+                            <small>Количество карточек не ограничено двумя.</small>
+                        </div>
+                        <button class="btn secondary btn-small" type="button" data-add-row="about-cards-list">+ Добавить карточку</button>
+                    </div>
+                    <div class="site-repeat-list" id="about-cards-list">
+                        {% for card in about.cards %}
+                        <div class="site-repeat-card">
+                            <div class="site-repeat-card__head">
+                                <strong>Карточка</strong>
+                                <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                            </div>
+                            <label>Заголовок<input name="about_card_title" value="{{ card.title }}"></label>
+                            <label>Текст<textarea name="about_card_text" rows="4">{{ card.text }}</textarea></label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-row-template="about-cards-list">
+                        <div class="site-repeat-card">
+                            <div class="site-repeat-card__head">
+                                <strong>Новая карточка</strong>
+                                <button class="btn danger btn-small" type="button" data-remove-row>Удалить</button>
+                            </div>
+                            <label>Заголовок<input name="about_card_title"></label>
+                            <label>Текст<textarea name="about_card_text" rows="4"></textarea></label>
+                        </div>
+                    </template>
+                </div>
             </div>
         </section>
 
@@ -169,25 +280,50 @@
                     <label class="site-field-wide">Подзаголовок<input name="resume_subtitle" value="{{ resume_settings.subtitle or '' }}"></label>
                 </div>
 
-                <div class="resume-editor-list">
-                    {% for index in range(8) %}
-                        {% set item = resume_items[index] if index < resume_items|length else {} %}
-                        <details class="resume-editor-item" {% if item %}open{% endif %}>
-                            <summary>
-                                <span>Позиция {{ index + 1 }}</span>
-                                <strong>{{ item.company if item else 'Новая позиция' }}</strong>
-                            </summary>
-                            <div class="resume-editor-item__body site-form-grid">
-                                <label>Компания<input name="resume_{{ index }}_company" value="{{ item.company if item else '' }}"></label>
-                                <label>Период<input name="resume_{{ index }}_period" value="{{ item.period if item else '' }}"></label>
-                                <label class="site-field-wide">Должность<input name="resume_{{ index }}_position" value="{{ item.position if item else '' }}"></label>
-                                <label class="site-field-wide">Описание<textarea name="resume_{{ index }}_description" rows="4">{{ item.description if item else '' }}</textarea></label>
-                                <label class="site-field-wide">Достижения<textarea name="resume_{{ index }}_achievements" rows="6">{% if item and item.achievements %}{{ item.achievements|join('\n') }}{% endif %}</textarea><small>Одно достижение на строку.</small></label>
-                                <label class="site-field-wide">Технологии<input name="resume_{{ index }}_technologies" value="{% if item and item.technologies %}{{ item.technologies|join(', ') }}{% endif %}"><small>Через запятую.</small></label>
+                <div class="site-list-heading">
+                    <div>
+                        <strong>Позиции</strong>
+                        <small>Добавляйте столько записей, сколько действительно нужно.</small>
+                    </div>
+                    <button class="btn secondary btn-small" type="button" data-add-row="resume-editor-list">+ Добавить позицию</button>
+                </div>
+                <div class="resume-editor-list" id="resume-editor-list">
+                    {% for item in resume_items %}
+                    <details class="resume-editor-item" open>
+                        <summary>
+                            <span>Позиция</span>
+                            <strong>{{ item.company }}</strong>
+                        </summary>
+                        <div class="resume-editor-item__body site-form-grid">
+                            <label>Компания<input name="resume_company" value="{{ item.company }}"></label>
+                            <label>Период<input name="resume_period" value="{{ item.period }}"></label>
+                            <label class="site-field-wide">Должность<input name="resume_position" value="{{ item.position }}"></label>
+                            <label class="site-field-wide">Описание<textarea name="resume_description" rows="4">{{ item.description }}</textarea></label>
+                            <label class="site-field-wide">Достижения<textarea name="resume_achievements" rows="6">{% if item.achievements %}{{ item.achievements|join('\n') }}{% endif %}</textarea><small>Одно достижение на строку.</small></label>
+                            <label class="site-field-wide">Технологии<input name="resume_technologies" value="{% if item.technologies %}{{ item.technologies|join(', ') }}{% endif %}"><small>Через запятую.</small></label>
+                            <div class="site-field-wide site-repeat-actions">
+                                <button class="btn danger btn-small" type="button" data-remove-row>Удалить позицию</button>
                             </div>
-                        </details>
+                        </div>
+                    </details>
                     {% endfor %}
                 </div>
+                <template data-row-template="resume-editor-list">
+                    <details class="resume-editor-item" open>
+                        <summary><span>Позиция</span><strong>Новая позиция</strong></summary>
+                        <div class="resume-editor-item__body site-form-grid">
+                            <label>Компания<input name="resume_company"></label>
+                            <label>Период<input name="resume_period"></label>
+                            <label class="site-field-wide">Должность<input name="resume_position"></label>
+                            <label class="site-field-wide">Описание<textarea name="resume_description" rows="4"></textarea></label>
+                            <label class="site-field-wide">Достижения<textarea name="resume_achievements" rows="6"></textarea><small>Одно достижение на строку.</small></label>
+                            <label class="site-field-wide">Технологии<input name="resume_technologies"><small>Через запятую.</small></label>
+                            <div class="site-field-wide site-repeat-actions">
+                                <button class="btn danger btn-small" type="button" data-remove-row>Удалить позицию</button>
+                            </div>
+                        </div>
+                    </details>
+                </template>
             </div>
         </section>
 

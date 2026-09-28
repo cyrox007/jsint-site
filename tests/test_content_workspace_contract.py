@@ -25,7 +25,8 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         template = self.read("templates/dashboard/publication/index.html")
         controller = self.read("views/dashboard/blog/views.py")
         self.assertIn('name="site_id"', template)
-        self.assertIn('filters: dict = {"site_id": selected_site.id', controller)
+        self.assertIn("PublicationChannelService.list_for_admin", controller)
+        self.assertIn("site_id=selected_site.id", controller)
         self.assertIn("Category.site_id == selected_site.id", controller)
 
     def test_publication_controller_handles_category_crud(self):
@@ -33,7 +34,7 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('if action == "create_category"', controller)
         self.assertIn('if action == "update_category"', controller)
         self.assertIn('if action == "delete_category"', controller)
-        self.assertIn('filters["category_ids"]', controller)
+        self.assertIn("category_ids=category_ids", controller)
 
     def test_parent_category_filter_includes_descendants(self):
         model = self.read("models/publication.py")
@@ -51,8 +52,12 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn("Предпросмотр", template)
         self.assertIn("<details class=\"publication-settings-group\" open>", template)
         self.assertIn("publication-body-field .ql-toolbar.ql-snow", styles)
-        self.assertIn("preview_url = None", controller)
-        self.assertIn('"public.articles.show"', controller)
+        self.assertIn('url_for("admin.publication.preview"', controller)
+        self.assertIn("data-open-media", template)
+        self.assertIn("data-profile-settings", template)
+        self.assertIn("profile_schemas_by_site", controller)
+        self.assertIn("placement_{{ target_site.id }}_profile_", template)
+        self.assertIn("beforeunload", template)
 
     def test_legacy_catalog_redirects_to_content(self):
         legacy = self.read("views/dashboard/catalog/views.py")

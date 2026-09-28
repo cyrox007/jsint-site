@@ -311,8 +311,8 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
             record = session.query(LicenseRecord).filter(
                 LicenseRecord.installation_id == UUID(self.installation_id)
             ).one()
-            self.assertEqual(record.last_client_version, "1.0.6")
-            self.assertEqual(record.last_client_version_code, 10006)
+            self.assertEqual(record.last_client_version, "1.0.7")
+            self.assertEqual(record.last_client_version_code, 10007)
         finally:
             session.close()
 

@@ -22,6 +22,10 @@ def install(app: Flask):
         view_func=views.UpdatePost.as_view("admin.publication.edit"),
     )
     app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/publications/preview/<uuid:id>",
+        view_func=views.PreviewPost.as_view("admin.publication.preview"),
+    )
+    app.add_url_rule(
         f"{config.ADMIN_ROUTE_PREFIX}/publications/delete/<uuid:id>",
         view_func=views.DeletePost.as_view("admin.publication.delete"),
     )

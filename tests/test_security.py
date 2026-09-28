@@ -20,6 +20,16 @@ class RichTextSecurityTests(unittest.TestCase):
         self.assertIn('href="https://example.com/path"', clean)
         self.assertIn("noopener noreferrer nofollow", clean)
 
+    def test_allows_safe_image_and_blocks_data_url(self):
+        clean = sanitize_rich_text(
+            '<img src="/media/123/image.png" alt="Схема">'
+            '<img src="data:image/png;base64,AAAA" alt="bad">'
+        )
+        self.assertIn('src="/media/123/image.png"', clean)
+        self.assertIn('alt="Схема"', clean)
+        self.assertIn('loading="lazy"', clean)
+        self.assertNotIn("data:image", clean)
+
 
 class SlugValidationTests(unittest.TestCase):
     def test_accepts_normal_slug(self):

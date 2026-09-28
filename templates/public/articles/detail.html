@@ -3,8 +3,21 @@
 {% block title %}{{ publication.title }}{% endblock %}
 
 {% block content %}
+{% if preview_mode %}
+<div class="article-preview-banner">
+    <div class="container">
+        <strong>Предпросмотр черновика</strong>
+        <span>Страница видна только в административной сессии.</span>
+        <a href="{{ preview_edit_url }}">← Вернуться в редактор</a>
+    </div>
+</div>
+{% endif %}
 <article class="article-detail container">
+    {% if preview_mode %}
+    <a class="article-back" href="{{ preview_edit_url }}">← В редактор</a>
+    {% else %}
     <a class="article-back" href="{{ url_for('index') }}#systems">← Все материалы</a>
+    {% endif %}
 
     <header class="article-header">
         <div class="article-header__top">

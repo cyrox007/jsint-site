@@ -41,7 +41,8 @@ class MultisiteContractTests(unittest.TestCase):
         self.assertIn("/api/public/v1/sites/<string:site_key>", api)
         self.assertIn("/categories", api)
         self.assertIn("/publications", api)
-        self.assertIn("Publication.site_id == site.id", api)
+        self.assertIn("PublicationChannelService.list_public", api)
+        self.assertIn("site_id=site.id", api)
         self.assertIn("allowed_origins", api)
 
     def test_builtin_frontend_uses_site_settings(self):
@@ -49,7 +50,8 @@ class MultisiteContractTests(unittest.TestCase):
         hero = self.read("templates/public/home/section/hero.html")
         footer = self.read("templates/public/^shared/footer/index.html")
         self.assertIn("site.settings", header)
-        self.assertIn("site.settings.hero", hero)
+        self.assertIn("block.settings", hero)
+        self.assertNotIn("site.settings.hero", hero)
         self.assertIn("site.settings", footer)
         self.assertNotIn("cyrox007@gmail.com", header)
         self.assertNotIn("cyrox007@gmail.com", footer)
