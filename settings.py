@@ -62,6 +62,7 @@ class Config:
     AUTH_RATE_LIMIT_WINDOW_SECONDS = max(30, int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300")))
 
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
+    PUBLIC_SITE_SLUG = os.getenv("PUBLIC_SITE_SLUG", "jsinteractive").strip()
     SITE_BASE_URL = os.getenv(
         "SITE_BASE_URL",
         "https://jsinteractive.ru" if IS_PRODUCTION else "http://localhost:5000",

@@ -28,6 +28,7 @@ def create_app() -> Flask:
     from views.dashboard.blog import routers as d_blog_router
     from views.dashboard.catalog import routers as d_catalog_router
     from views.dashboard.control_plane import router as d_control_plane_router
+    from views.dashboard.sites import router as d_sites_router
     from views import notes_api
 
     app = Flask(__name__, static_folder="static")
@@ -66,6 +67,7 @@ def create_app() -> Flask:
     d_blog_router.install(app)
     d_catalog_router.install(app)
     d_control_plane_router.install(app)
+    d_sites_router.install(app)
     notes_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])

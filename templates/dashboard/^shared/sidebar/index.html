@@ -1,6 +1,7 @@
 {% set publication_active = request.endpoint and request.endpoint.startswith('admin.publication.') %}
 {% set catalog_active = request.endpoint and request.endpoint.startswith('admin.catalog.') %}
 {% set content_active = publication_active or catalog_active %}
+{% set sites_active = request.endpoint and request.endpoint.startswith('admin.sites.') %}
 {% set licenses_active = request.endpoint and request.endpoint.startswith('admin.licenses.') %}
 {% set releases_active = request.endpoint and request.endpoint.startswith('admin.releases.') %}
 <aside class="admin-sidebar" aria-label="Навигация админ-панели">
@@ -9,6 +10,7 @@
         <ul>
             <li class="{{ 'active' if request.endpoint == 'admin.index' }}"><a href="{{ url_for('admin.index') }}"><span class="sidebar-icon">⌂</span><span>Обзор</span></a></li>
             <li class="{{ 'active' if content_active }}"><a href="{{ url_for('admin.publication.index') }}"><span class="sidebar-icon">▤</span><span>Контент</span></a><a class="link-add" href="{{ url_for('admin.publication.create') }}" title="Создать публикацию">+</a></li>
+            <li class="{{ 'active' if sites_active }}"><a href="{{ url_for('admin.sites.index') }}"><span class="sidebar-icon">◎</span><span>Сайты</span></a></li>
         </ul>
         <div class="sidebar-section-label sidebar-section-label--secondary">Workspace Organizer</div>
         <ul>

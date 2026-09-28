@@ -2,17 +2,17 @@
     <div class="container">
         <div class="navbar-inner">
             <a href="{{ url_for('index') }}" class="logo">
-                <div class="logo-main">+УЛЬТРА</div>
-                <div class="logo-sub">на базе jsinteractive</div>
+                <div class="logo-main">{{ site.name }}</div>
+                {% if site.brand_subtitle %}<div class="logo-sub">{{ site.brand_subtitle }}</div>{% endif %}
             </a>
             <nav class="nav-links" aria-label="Основная навигация">
-                <a href="{{ url_for('index') }}#systems">Системы</a>
+                <a href="{{ url_for('index') }}#systems">Материалы</a>
                 <a href="{{ url_for('index') }}#philosophy">Подход</a>
-                <a href="{{ url_for('index') }}#about">О студии</a>
+                <a href="{{ url_for('index') }}#about">О проекте</a>
             </nav>
-            <div class="nav-actions">
-                <a href="mailto:cyrox007@gmail.com" class="nav-cta">Связаться</a>
-            </div>
+            {% if site.contact_email %}
+            <div class="nav-actions"><a href="mailto:{{ site.contact_email }}" class="nav-cta">Связаться</a></div>
+            {% endif %}
         </div>
     </div>
 </header>

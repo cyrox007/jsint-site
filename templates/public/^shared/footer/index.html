@@ -1,26 +1,14 @@
 <footer>
     <div class="footer-brand">
-        <h3>
-            +УЛЬТРА
-        </h3>
-        <p>
-            Инженерная мини-студия
-            на базе jsinteractive.
-        </p>
+        <h3>{{ site.name }}</h3>
+        {% if site.brand_subtitle %}<p>{{ site.brand_subtitle }}</p>{% endif %}
     </div>
-
     <div class="footer-links">
-        <a href="https://github.com/cyrox007" target="_blank" rel="noopener noreferrer">
-            GitHub
-        </a>
-        <a href="mailto:cyrox007@gmail.com">
-            Email
-        </a>
+        {% if site.github_url %}<a href="{{ site.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>{% endif %}
+        {% if site.contact_email %}<a href="mailto:{{ site.contact_email }}">Email</a>{% endif %}
     </div>
-
     <div class="footer-bottom">
-        <span>© 2026</span>
-        <span>Удалённая работа</span>
-        <span>backend systems · realtime infrastructure · аудит систем</span>
+        <span>© {{ site.name }}</span>
+        {% if site.footer_note %}<span>{{ site.footer_note }}</span>{% endif %}
     </div>
 </footer>

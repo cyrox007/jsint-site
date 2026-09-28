@@ -1,0 +1,69 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Сайты | JSInteractive{% endblock %}
+{% block extra_head %}<style>{% include 'dashboard/sites/style.css' %}</style>{% endblock %}
+{% block content %}
+<div class="admin-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Публичные витрины</span>
+            <h1 class="admin-page__title">Сайты</h1>
+            <p class="admin-page__description">Один backend и одна админка могут обслуживать несколько независимых frontend-витрин.</p>
+        </div>
+    </header>
+
+    <div class="admin-grid admin-grid--2">
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Подключённые сайты</h2><p class="admin-card__description">Конфигурация бренда и публичной главной страницы.</p></div></div>
+            <div class="admin-card__body sites-list">
+                {% for site in sites %}
+                <a class="site-row" href="{{ url_for('admin.sites.index', edit=site.id) }}">
+                    <strong>{{ site.name }}</strong>
+                    <span>{{ site.slug }} · {{ 'активен' if site.is_active else 'выключен' }}{% if site.is_default %} · основной{% endif %}</span>
+                </a>
+                {% else %}
+                <div class="admin-empty">Сайтов пока нет.</div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'Редактирование' if selected_site else 'Новый сайт' }}</h2><p class="admin-card__description">Меняемые данные публичной части хранятся в БД, а не в шаблонах.</p></div></div>
+            <div class="admin-card__body">
+                <form method="post" class="site-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="{{ 'update' if selected_site else 'create' }}">
+                    {% if selected_site %}<input type="hidden" name="site_id" value="{{ selected_site.id }}">{% endif %}
+                    {% set s = selected_site %}
+                    <label>Идентификатор<input name="slug" required maxlength="80" value="{{ s.slug if s else '' }}" placeholder="jsinteractive"></label>
+                    <label>Название<input name="name" required maxlength="160" value="{{ s.name if s else '' }}"></label>
+                    <label>Подпись бренда<input name="brand_subtitle" maxlength="160" value="{{ s.brand_subtitle if s else '' }}"></label>
+                    <label>Базовый URL<input name="base_url" required value="{{ s.base_url if s else '' }}" placeholder="https://example.ru"></label>
+                    <label>Email<input name="contact_email" type="email" value="{{ s.contact_email if s else '' }}"></label>
+                    <label>GitHub<input name="github_url" value="{{ s.github_url if s else '' }}"></label>
+                    <label>SEO-заголовок<input name="seo_title" maxlength="255" value="{{ s.seo_title if s else '' }}"></label>
+                    <label>SEO-описание<textarea name="seo_description" rows="3">{{ s.seo_description if s else '' }}</textarea></label>
+                    <label>Метка первого экрана<input name="hero_badge" value="{{ s.hero_badge if s else '' }}"></label>
+                    <label>Главный заголовок<input name="hero_title" value="{{ s.hero_title if s else '' }}"></label>
+                    <label>Акцент заголовка<input name="hero_accent" value="{{ s.hero_accent if s else '' }}"></label>
+                    <label>Описание первого экрана<textarea name="hero_description" rows="5">{{ s.hero_description if s else '' }}</textarea></label>
+                    <label>Заголовок подхода<input name="philosophy_title" value="{{ s.philosophy_title if s else '' }}"></label>
+                    <label>Подзаголовок подхода<input name="philosophy_subtitle" value="{{ s.philosophy_subtitle if s else '' }}"></label>
+                    <label>Текст подхода<textarea name="philosophy_body" rows="6">{{ s.philosophy_body if s else '' }}</textarea></label>
+                    <label>Заголовок блока «О проекте»<input name="about_title" value="{{ s.about_title if s else '' }}"></label>
+                    <label>Карточка 1 — заголовок<input name="about_primary_title" value="{{ s.about_primary_title if s else '' }}"></label>
+                    <label>Карточка 1 — текст<textarea name="about_primary_body" rows="4">{{ s.about_primary_body if s else '' }}</textarea></label>
+                    <label>Карточка 2 — заголовок<input name="about_secondary_title" value="{{ s.about_secondary_title if s else '' }}"></label>
+                    <label>Карточка 2 — текст<textarea name="about_secondary_body" rows="4">{{ s.about_secondary_body if s else '' }}</textarea></label>
+                    <label>Подпись подвала<input name="footer_note" value="{{ s.footer_note if s else '' }}"></label>
+                    <label><input type="checkbox" name="is_active" {% if not s or s.is_active %}checked{% endif %}> Активен</label>
+                    <label><input type="checkbox" name="is_default" {% if s and s.is_default %}checked{% endif %}> Основной сайт</label>
+                    <div class="admin-actions">
+                        <button class="btn primary" type="submit">{{ 'Сохранить' if s else 'Создать сайт' }}</button>
+                        {% if s %}<a class="btn secondary" href="{{ url_for('admin.sites.index') }}">Новый сайт</a>{% endif %}
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
