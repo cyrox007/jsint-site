@@ -1,0 +1,53 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Страницы | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page pages-admin">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Публичные сайты · {{ selected_site.name }}</span>
+            <h1 class="admin-page__title">Страницы</h1>
+            <p class="admin-page__description">Страницы и независимые блоки для встроенного и внешних frontend.</p>
+        </div>
+    </header>
+
+    <section class="admin-grid admin-grid--2 pages-grid">
+        {% for page in pages %}
+        <article class="admin-card page-card">
+            <div class="admin-card__body">
+                <div class="page-card__head">
+                    <div>
+                        <h2 class="admin-card__title">{{ page.title }}</h2>
+                        <p class="admin-card__description">/{{ page.slug }} · {{ page.blocks|length }} блоков</p>
+                    </div>
+                    <span class="status-badge {{ 'status-badge--success' if page.is_published else 'status-badge--warning' }}">
+                        {{ 'Опубликована' if page.is_published else 'Черновик' }}
+                    </span>
+                </div>
+                <a class="btn secondary" href="{{ url_for('admin.pages.edit', page_id=page.id) }}">Редактировать</a>
+            </div>
+        </article>
+        {% else %}
+        <div class="admin-empty"><strong>Страниц пока нет</strong><span>Создайте первую страницу для этой витрины.</span></div>
+        {% endfor %}
+    </section>
+
+    <section class="admin-card page-create">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Новая страница</h2>
+                <p class="admin-card__description">URL уникален только внутри выбранного сайта.</p>
+            </div>
+        </div>
+        <form method="post" class="admin-card__body admin-form page-create__form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+            <label>Название<input name="title" maxlength="200" required></label>
+            <label>URL<input name="slug" maxlength="120" placeholder="about" required></label>
+            <label class="page-field-wide">SEO title<input name="seo_title" maxlength="255"></label>
+            <label class="page-field-wide">SEO description<textarea name="seo_description" rows="3" maxlength="1000"></textarea></label>
+            <label class="switch"><input type="checkbox" name="is_published"><span class="slider"></span><span class="label">Опубликовать сразу</span></label>
+            <div><button class="btn primary" type="submit">Создать страницу</button></div>
+        </form>
+    </section>
+</div>
+{% endblock %}
