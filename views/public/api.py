@@ -44,6 +44,16 @@ def _api_response(site, payload, status: int = 200):
     return response
 
 
+def _site_payload(site) -> dict:
+    """Публичная идентичность витрины без навязывания её UI/SEO-контракта."""
+    return {
+        "id": str(site.id),
+        "key": site.key,
+        "name": site.name,
+        "base_url": site.base_url,
+    }
+
+
 def _category_payload(category: Category) -> dict:
     return {
         "id": str(category.id),
@@ -101,7 +111,7 @@ def _publication_payload(publication, *, include_content: bool) -> dict:
 @with_db_session
 def site_config(db_session: Session, site_key: str):
     site = _site_or_404(db_session, site_key)
-    return _api_response(site, {"site": SiteService.public_config(site)})
+    return _api_response(site, {"site": _site_payload(site)})
 
 
 @with_db_session
@@ -262,7 +272,7 @@ def site_bootstrap(db_session: Session, site_key: str):
         site,
         {
             "contract": PUBLIC_API_CONTRACT,
-            "site": SiteService.public_config(site),
+            "site": _site_payload(site),
             "categories": [_category_payload(item) for item in categories],
             "latest_publications": [
                 _publication_payload(item, include_content=False)
