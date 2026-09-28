@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from components.security.csrf import init_app as init_csrf
@@ -61,6 +61,26 @@ def create_app() -> Flask:
     init_csrf(app)
     app.after_request(apply_security_headers)
     app.jinja_env.filters["safe_rich_text"] = safe_rich_text
+
+    @app.context_processor
+    def inject_admin_site_workspace():
+        if not session.get("user_id") or not request.path.startswith(config.ADMIN_ROUTE_PREFIX):
+            return {}
+
+        from components.admin.site_context import resolve_admin_site
+        from database import Database
+        from services.site import SiteService
+
+        db_session = Database.connect_database()
+        try:
+            sites = SiteService.list_sites(db_session)
+            selected_site = resolve_admin_site(db_session)
+            return {
+                "admin_sites": sites,
+                "admin_selected_site": selected_site,
+            }
+        finally:
+            db_session.close()
 
     home_router.install(app)
     article_router.install(app)
