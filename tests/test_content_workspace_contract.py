@@ -51,8 +51,10 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn("Предпросмотр", template)
         self.assertIn("<details class=\"publication-settings-group\" open>", template)
         self.assertIn("publication-body-field .ql-toolbar.ql-snow", styles)
-        self.assertIn("preview_url = None", controller)
-        self.assertIn('"public.articles.show"', controller)
+        self.assertIn('url_for("admin.publication.preview"', controller)
+        self.assertIn("data-open-media", template)
+        self.assertIn("data-profile-settings", template)
+        self.assertIn("beforeunload", template)
 
     def test_legacy_catalog_redirects_to_content(self):
         legacy = self.read("views/dashboard/catalog/views.py")
