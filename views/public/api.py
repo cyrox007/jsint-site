@@ -11,6 +11,7 @@ from models.categories import Category
 from services.media import MediaService
 from services.page import PageService
 from services.publication_channel import PublicationChannelService
+from services.publication_profile import public_profile
 from services.site import SiteService
 
 
@@ -97,7 +98,7 @@ def _publication_payload(publication, *, include_content: bool) -> dict:
         "slug": publication.slug,
         "source_type": publication.source_type,
         "excerpt": plain_text[:240],
-        "extra_data": extra,
+        "data": public_profile(extra),
         "category": _category_payload(publication.category) if publication.category else None,
         "published_at": publication.published_at.isoformat() if publication.published_at else None,
         "created_at": publication.created_at.isoformat() if publication.created_at else None,
