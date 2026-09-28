@@ -117,6 +117,19 @@
                     <div class="local-signer-status" id="release-one-click-status" data-state="idle">
                         Выберите update key и нажмите «Выпустить релиз».
                     </div>
+                    <div class="release-preflight" id="release-preflight" hidden>
+                        <div class="release-preflight__title">
+                            <strong>Предрелизная проверка</strong>
+                            <span id="release-preflight-result">Ожидание</span>
+                        </div>
+                        <div class="release-preflight__facts">
+                            <div><span>Версия</span><strong id="release-preflight-version">—</strong></div>
+                            <div><span>Канал / head</span><strong id="release-preflight-head">—</strong></div>
+                            <div><span>Source SHA</span><code id="release-preflight-source">—</code></div>
+                            <div><span>Package SHA-256</span><code id="release-preflight-package">—</code></div>
+                        </div>
+                        <ul id="release-preflight-warnings" hidden></ul>
+                    </div>
                 </div>
             </div>
 
@@ -144,6 +157,13 @@
     const keyMeta = document.getElementById('release-update-key-meta');
     const submitButton = document.getElementById('release-one-click-submit');
     const statusNode = document.getElementById('release-one-click-status');
+    const preflightNode = document.getElementById('release-preflight');
+    const preflightResult = document.getElementById('release-preflight-result');
+    const preflightVersion = document.getElementById('release-preflight-version');
+    const preflightHead = document.getElementById('release-preflight-head');
+    const preflightSource = document.getElementById('release-preflight-source');
+    const preflightPackage = document.getElementById('release-preflight-package');
+    const preflightWarnings = document.getElementById('release-preflight-warnings');
     const trustedKeys = {{ update_trusted_keys|tojson }};
     const publishUrl = {{ url_for('admin.releases.index')|tojson }};
     const registryUrl = {{ url_for('admin.releases.index', tab='registry')|tojson }};
@@ -383,6 +403,32 @@
         return payload.release;
     }
 
+    function renderPreflight(release) {
+        if (!preflightNode) {
+            return;
+        }
+
+        const preflight = release.preflight || {ready: true, warnings: []};
+        const warnings = Array.isArray(preflight.warnings) ? preflight.warnings : [];
+        preflightNode.hidden = false;
+        preflightNode.classList.toggle('has-warnings', !preflight.ready);
+        preflightResult.textContent = preflight.ready ? 'Готово к подписи' : 'Требует внимания';
+        preflightVersion.textContent = release.version + ' / ' + release.version_code;
+        preflightHead.textContent = preflight.channel_head_version_code
+            ? release.channel + ' · ' + preflight.channel_head_version + ' / ' + preflight.channel_head_version_code
+            : release.channel + ' · канал пуст';
+        preflightSource.textContent = release.source_commit || '—';
+        preflightPackage.textContent = release.package_sha256 || '—';
+        preflightWarnings.replaceChildren();
+        preflightWarnings.hidden = warnings.length === 0;
+
+        for (const warning of warnings) {
+            const item = document.createElement('li');
+            item.textContent = warning;
+            preflightWarnings.appendChild(item);
+        }
+    }
+
     async function signManifest(privateKey, keyId, manifest) {
         const bytes = concatenate(encoder.encode(domain), encoder.encode(manifest));
         try {
@@ -482,6 +528,7 @@
 
             setStatus('Скачиваю официальный GitHub Release и проверяю ZIP…', 'working');
             const release = await prepareRelease();
+            renderPreflight(release);
             const preflight = release.preflight || {ready: true, warnings: []};
             if (!preflight.ready) {
                 const warnings = Array.isArray(preflight.warnings) ? preflight.warnings : [];
