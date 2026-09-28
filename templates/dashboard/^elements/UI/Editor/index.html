@@ -4,54 +4,84 @@
     <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value }}</textarea>
 
     <div id="{{ fieldId }}-toolbar" class="jsint-rich-editor__toolbar" role="toolbar" aria-label="Форматирование текста">
-        <span class="ql-formats jsint-rich-editor__history">
-            <button class="ql-undo" type="button" title="Отменить (Ctrl+Z)" aria-label="Отменить">↶</button>
-            <button class="ql-redo" type="button" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить">↷</button>
-        </span>
+        <div class="jsint-rich-editor__toolbar-main">
+            <span class="jsint-editor-group" aria-label="История">
+                <button class="ql-undo jsint-editor-button" type="button" title="Отменить (Ctrl+Z)" aria-label="Отменить">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M5 12h8a6 6 0 0 1 6 6"/></svg>
+                </button>
+                <button class="ql-redo jsint-editor-button" type="button" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5"/><path d="M19 12h-8a6 6 0 0 0-6 6"/></svg>
+                </button>
+            </span>
 
-        <span class="ql-formats">
-            <select class="ql-header" title="Стиль абзаца" aria-label="Стиль абзаца">
-                <option value="2">Заголовок 2</option>
-                <option value="3">Заголовок 3</option>
-                <option value="4">Заголовок 4</option>
-                <option selected>Обычный текст</option>
-            </select>
-        </span>
+            <span class="jsint-editor-separator" aria-hidden="true"></span>
 
-        <span class="ql-formats">
-            <button class="ql-bold" type="button" title="Жирный (Ctrl+B)" aria-label="Жирный"></button>
-            <button class="ql-italic" type="button" title="Курсив (Ctrl+I)" aria-label="Курсив"></button>
-            <button class="ql-underline" type="button" title="Подчёркнутый (Ctrl+U)" aria-label="Подчёркнутый"></button>
-            <button class="ql-strike" type="button" title="Зачёркнутый" aria-label="Зачёркнутый"></button>
-        </span>
+            <span class="jsint-editor-group jsint-editor-group--style">
+                <select class="ql-header" title="Стиль абзаца" aria-label="Стиль абзаца">
+                    <option value="2">Заголовок 2</option>
+                    <option value="3">Заголовок 3</option>
+                    <option value="4">Заголовок 4</option>
+                    <option selected>Обычный текст</option>
+                </select>
+            </span>
 
-        <span class="ql-formats">
-            <button class="ql-blockquote" type="button" title="Цитата" aria-label="Цитата"></button>
-            <button class="ql-code-block" type="button" title="Блок кода" aria-label="Блок кода"></button>
-        </span>
+            <span class="jsint-editor-separator" aria-hidden="true"></span>
 
-        <span class="ql-formats">
-            <button class="ql-list" value="ordered" type="button" title="Нумерованный список" aria-label="Нумерованный список"></button>
-            <button class="ql-list" value="bullet" type="button" title="Маркированный список" aria-label="Маркированный список"></button>
-        </span>
+            <span class="jsint-editor-group" aria-label="Начертание">
+                <button class="ql-bold jsint-editor-button" type="button" title="Жирный (Ctrl+B)" aria-label="Жирный"></button>
+                <button class="ql-italic jsint-editor-button" type="button" title="Курсив (Ctrl+I)" aria-label="Курсив"></button>
+            </span>
 
-        <span class="ql-formats">
-            <button class="ql-script" value="sub" type="button" title="Нижний индекс" aria-label="Нижний индекс"></button>
-            <button class="ql-script" value="super" type="button" title="Верхний индекс" aria-label="Верхний индекс"></button>
-        </span>
+            <span class="jsint-editor-separator" aria-hidden="true"></span>
 
-        <span class="ql-formats">
-            <button class="ql-link" type="button" title="Ссылка (Ctrl+K)" aria-label="Ссылка"></button>
-            <button class="ql-media" type="button" title="Изображение из медиатеки" aria-label="Изображение из медиатеки">▧</button>
-            <button class="ql-clean" type="button" title="Очистить форматирование" aria-label="Очистить форматирование"></button>
-        </span>
+            <span class="jsint-editor-group" aria-label="Списки">
+                <button class="ql-list jsint-editor-button" value="bullet" type="button" title="Маркированный список" aria-label="Маркированный список"></button>
+                <button class="ql-list jsint-editor-button" value="ordered" type="button" title="Нумерованный список" aria-label="Нумерованный список"></button>
+            </span>
 
-        <span class="ql-formats jsint-rich-editor__view">
-            <button class="ql-fullscreen" type="button" title="Полноэкранный режим" aria-label="Полноэкранный режим" aria-pressed="false">⛶</button>
-        </span>
+            <span class="jsint-editor-separator" aria-hidden="true"></span>
+
+            <span class="jsint-editor-group" aria-label="Вставка">
+                <button class="ql-link jsint-editor-button" type="button" title="Ссылка (Ctrl+K)" aria-label="Ссылка"></button>
+                <button class="ql-media jsint-editor-button" type="button" title="Изображение из медиатеки" aria-label="Изображение из медиатеки">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m5.5 17 4.5-4 3.2 2.8 2.4-2 2.9 3.2"/></svg>
+                </button>
+            </span>
+        </div>
+
+        <div class="jsint-rich-editor__toolbar-side">
+            <details class="jsint-editor-more">
+                <summary class="jsint-editor-button" title="Дополнительное форматирование" aria-label="Дополнительное форматирование">•••</summary>
+                <div class="jsint-editor-more__menu">
+                    <button class="ql-underline jsint-editor-more__item" type="button"><span>U</span>Подчёркивание</button>
+                    <button class="ql-strike jsint-editor-more__item" type="button"><span>S</span>Зачёркивание</button>
+                    <button class="ql-blockquote jsint-editor-more__item" type="button"><span>❝</span>Цитата</button>
+                    <button class="ql-code-block jsint-editor-more__item" type="button"><span>&lt;/&gt;</span>Блок кода</button>
+                    <button class="ql-script jsint-editor-more__item" value="sub" type="button"><span>x₂</span>Нижний индекс</button>
+                    <button class="ql-script jsint-editor-more__item" value="super" type="button"><span>x²</span>Верхний индекс</button>
+                    <button class="ql-clean jsint-editor-more__item" type="button"><span>Tx</span>Очистить форматирование</button>
+                </div>
+            </details>
+
+            <span class="jsint-editor-separator" aria-hidden="true"></span>
+
+            <button class="ql-fullscreen jsint-editor-button" type="button" title="Полноэкранный режим" aria-label="Полноэкранный режим" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4"/><path d="m4 4 5 5"/><path d="M16 4h4v4"/><path d="m20 4-5 5"/><path d="M8 20H4v-4"/><path d="m4 20 5-5"/><path d="M16 20h4v-4"/><path d="m20 20-5-5"/></svg>
+            </button>
+        </div>
     </div>
 
     <div id="{{ fieldId }}-editor" class="quill-editor-container"></div>
+    <div id="{{ fieldId }}-bubble" class="jsint-editor-bubble" hidden role="toolbar" aria-label="Форматирование выделенного текста">
+        <button type="button" data-bubble-format="bold" aria-label="Жирный"><strong>B</strong></button>
+        <button type="button" data-bubble-format="italic" aria-label="Курсив"><em>I</em></button>
+        <button type="button" data-bubble-format="underline" aria-label="Подчёркнутый"><u>U</u></button>
+        <button type="button" data-bubble-format="strike" aria-label="Зачёркнутый"><s>S</s></button>
+        <span aria-hidden="true"></span>
+        <button type="button" data-bubble-link aria-label="Ссылка">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/></svg>
+        </button>
+    </div>
 
     <footer class="jsint-rich-editor__footer" aria-live="polite">
         <span data-editor-count="{{ fieldId }}">0 слов · 0 знаков</span>
@@ -66,6 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("{{ fieldId }}-input");
     const toolbar = document.getElementById("{{ fieldId }}-toolbar");
     const counter = document.querySelector('[data-editor-count="{{ fieldId }}"]');
+    const bubble = document.getElementById("{{ fieldId }}-bubble");
 
     if (!root || !editor || !input || !toolbar) {
         return;
@@ -194,6 +225,74 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     );
 
+    const hideBubble = () => {
+        if (bubble) {
+            bubble.hidden = true;
+        }
+    };
+
+    const showBubble = range => {
+        if (!bubble || !range || range.length < 1) {
+            hideBubble();
+            return;
+        }
+
+        const bounds = quill.getBounds(range.index, range.length);
+        const editorRect = editor.getBoundingClientRect();
+        const rootRect = root.getBoundingClientRect();
+
+        bubble.hidden = false;
+        const width = bubble.offsetWidth;
+        const left = editorRect.left - rootRect.left + bounds.left + (bounds.width / 2) - (width / 2);
+        const top = editorRect.top - rootRect.top + bounds.top - bubble.offsetHeight - 8;
+
+        bubble.style.left = Math.max(8, Math.min(left, root.clientWidth - width - 8)) + "px";
+        bubble.style.top = Math.max(8, top) + "px";
+
+        const format = quill.getFormat(range);
+        bubble.querySelectorAll("[data-bubble-format]").forEach(button => {
+            button.classList.toggle("is-active", Boolean(format[button.dataset.bubbleFormat]));
+        });
+    };
+
+    if (bubble) {
+        bubble.querySelectorAll("[data-bubble-format]").forEach(button => {
+            button.addEventListener("mousedown", event => event.preventDefault());
+            button.addEventListener("click", () => {
+                const range = quill.getSelection();
+                if (!range) {
+                    return;
+                }
+                const name = button.dataset.bubbleFormat;
+                const active = Boolean(quill.getFormat(range)[name]);
+                quill.format(name, !active, "user");
+                showBubble(range);
+            });
+        });
+
+        const linkButton = bubble.querySelector("[data-bubble-link]");
+        if (linkButton) {
+            linkButton.addEventListener("mousedown", event => event.preventDefault());
+            linkButton.addEventListener("click", () => {
+                const range = quill.getSelection();
+                if (!range) {
+                    return;
+                }
+                const current = quill.getFormat(range).link || "";
+                const value = window.prompt("Адрес ссылки", current || "https://");
+                if (value === null) {
+                    return;
+                }
+                quill.format("link", value.trim() || false, "user");
+                showBubble(range);
+            });
+        }
+    }
+
+    quill.on("selection-change", range => {
+        showBubble(range);
+    });
+
     window.jsintEditors = window.jsintEditors || {};
     window.jsintEditors["{{ fieldId }}"] = quill;
 
@@ -203,6 +302,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     syncInput(quill);
     updateCounter(quill);
+
+    toolbar.querySelectorAll(".jsint-editor-more").forEach(menu => {
+        menu.addEventListener("click", event => {
+            if (event.target.closest("button")) {
+                window.setTimeout(() => {
+                    menu.removeAttribute("open");
+                    quill.focus();
+                }, 0);
+            }
+        });
+    });
 
     quill.on("text-change", () => {
         syncInput(quill);
