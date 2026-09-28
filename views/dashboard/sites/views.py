@@ -75,6 +75,9 @@ def _navigation_from_form() -> list[dict[str, str]]:
             )
         return result
 
+    if request.form.get("dynamic_site_lists") == "1":
+        return []
+
     legacy = request.form.get("navigation", "")
     items: list[dict[str, str]] = []
     for line in _lines(legacy):
@@ -179,7 +182,7 @@ def _resume_settings_from_form() -> dict:
             }
         )
 
-    if not rows:
+    if not rows and request.form.get("dynamic_site_lists") != "1":
         for index in range(8):
             company = request.form.get(f"resume_{index}_company", "").strip()
             if not company:
@@ -227,6 +230,9 @@ def _hero_metrics_from_form() -> list[dict[str, str]]:
             )
         return metrics
 
+    if request.form.get("dynamic_site_lists") == "1":
+        return []
+
     metrics: list[dict[str, str]] = []
     for line in _lines(request.form.get("hero_metrics", "")):
         label, separator, value = line.partition("|")
@@ -252,7 +258,7 @@ def _home_block_settings_from_form() -> dict[str, dict]:
         if row["title"] or row["text"]
     ]
 
-    if not about_rows:
+    if not about_rows and request.form.get("dynamic_site_lists") != "1":
         about_cards = [
             {
                 "title": request.form.get("about_card_1_title", "").strip()[:160],
