@@ -1,22 +1,27 @@
 {% set settings = site.settings %}
-<footer>
-    <div class="footer-brand">
-        <h3>{{ settings.brand.name }}</h3>
-        {% if settings.footer.description %}<p>{{ settings.footer.description }}</p>{% endif %}
-    </div>
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-panel">
+            <div class="footer-brand">
+                <span class="footer-kicker">JSInteractive / Public</span>
+                <h3>{{ settings.brand.name }}</h3>
+                {% if settings.footer.description %}<p>{{ settings.footer.description }}</p>{% endif %}
+            </div>
 
-    <div class="footer-links">
-        {% if settings.contact.github_url %}
-        <a href="{{ settings.contact.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
-        {% endif %}
-        {% if settings.contact.email %}
-        <a href="mailto:{{ settings.contact.email }}">Email</a>
-        {% endif %}
-    </div>
+            <div class="footer-links">
+                {% if settings.contact.github_url %}
+                <a href="{{ settings.contact.github_url }}" target="_blank" rel="noopener noreferrer">GitHub <span>↗</span></a>
+                {% endif %}
+                {% if settings.contact.email %}
+                <a href="mailto:{{ settings.contact.email }}">Email <span>↗</span></a>
+                {% endif %}
+            </div>
 
-    <div class="footer-bottom">
-        <span>© {{ now_year if now_year else 2026 }}</span>
-        {% if settings.footer.location %}<span>{{ settings.footer.location }}</span>{% endif %}
-        {% if settings.footer.note %}<span>{{ settings.footer.note }}</span>{% endif %}
+            <div class="footer-bottom">
+                <span>© {{ now_year if now_year else 2026 }}</span>
+                {% if settings.footer.location %}<span>{{ settings.footer.location }}</span>{% endif %}
+                {% if settings.footer.note %}<span>{{ settings.footer.note }}</span>{% endif %}
+            </div>
+        </div>
     </div>
 </footer>
