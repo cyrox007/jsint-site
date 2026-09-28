@@ -77,9 +77,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const syncInput = quill => {
-        input.value = typeof quill.getSemanticHTML === "function"
-            ? quill.getSemanticHTML()
-            : quill.root.innerHTML;
+        if (typeof quill.getSemanticHTML !== "function") {
+            input.value = quill.root.innerHTML;
+            return;
+        }
+
+        const holder = document.createElement("div");
+        holder.innerHTML = quill.getSemanticHTML();
+
+        const sourceImages = Array.from(quill.root.querySelectorAll("img"));
+        holder.querySelectorAll("img").forEach((image, index) => {
+            const source = sourceImages[index];
+            const alt = source ? source.getAttribute("alt") : null;
+            if (alt !== null) {
+                image.setAttribute("alt", alt);
+            }
+        });
+
+        const walker = document.createTreeWalker(holder, NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+            node.nodeValue = node.nodeValue.replace(/\u00a0/g, " ");
+            node = walker.nextNode();
+        }
+
+        input.value = holder.innerHTML;
     };
 
     const updateCounter = quill => {
