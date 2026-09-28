@@ -15,7 +15,7 @@ class PublicationCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     slug: str = Field(min_length=1, max_length=255)
     content: str = Field(min_length=1, max_length=500_000)
-    source_type: Literal["article", "task", "case", "changelog"] = "article"
+    source_type: Literal["article", "lecture", "task", "case", "changelog"] = "article"
     source_uid: Optional[UUID] = None
     extra_data: Optional[dict] = Field(default_factory=dict)
     category_id: Optional[UUID] = None
