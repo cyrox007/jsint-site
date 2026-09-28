@@ -40,6 +40,14 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('elif key == "category_ids" and value:', model)
         self.assertIn("cls.category_id.in_(value)", model)
 
+    def test_publication_editor_shows_status_and_public_preview(self):
+        template = self.read("templates/dashboard/publication/edit.html")
+        controller = self.read("views/dashboard/blog/views.py")
+        self.assertIn("publication-editor-status", template)
+        self.assertIn("Открыть на сайте", template)
+        self.assertIn("preview_url = None", controller)
+        self.assertIn('"public.articles.show"', controller)
+
     def test_legacy_catalog_redirects_to_content(self):
         legacy = self.read("views/dashboard/catalog/views.py")
         self.assertIn('url_for("admin.publication.index"', legacy)
