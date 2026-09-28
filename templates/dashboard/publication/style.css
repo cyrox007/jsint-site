@@ -64,3 +64,10 @@
 .publication-placement__body{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--admin-border)}
 .publication-placement__hint{margin:0;color:var(--admin-muted);font-size:.74rem;line-height:1.45}
 @media(max-width:640px){.publication-placement__header{align-items:flex-start;flex-direction:column}}
+
+
+.publication-editor-status{display:grid;gap:2px;margin-bottom:16px;padding:10px 12px;border:1px solid var(--admin-border);border-radius:10px;background:var(--admin-surface-subtle)}
+.publication-editor-status span,.publication-editor-status small{color:var(--admin-muted);font-size:.72rem}
+.publication-editor-status strong{color:var(--admin-text)}
+.publication-editor-status.is-published{border-color:rgba(46,139,87,.24);background:rgba(46,139,87,.07)}
+.publication-editor-status.is-published strong{color:#27734a}
