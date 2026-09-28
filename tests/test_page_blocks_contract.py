@@ -54,6 +54,20 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertIn("PageService.update_home", controller)
         self.assertIn("block_{{ block.block_type }}_position", template)
         self.assertIn("resume_{{ index }}_company", template)
+        self.assertIn('name="hero_console_title"', template)
+        self.assertIn('name="systems_article_label"', template)
+        self.assertIn('name="philosophy_kicker"', template)
+
+    def test_home_visual_copy_is_configurable(self):
+        service = self.read("services/page.py")
+        controller = self.read("views/dashboard/sites/views.py")
+        hero = self.read("templates/public/home/section/hero.html")
+        systems = self.read("templates/public/home/section/systems.html")
+        self.assertIn('"console_title": "Рабочий контур"', service)
+        self.assertIn('"article_label": "Открыть материал"', service)
+        self.assertIn('request.form.get("hero_console_title"', controller)
+        self.assertIn("hero.console_title", hero)
+        self.assertIn("systems.article_label", systems)
 
     def test_public_seo_has_robots_opengraph_and_structured_data(self):
         base = self.read("templates/public/^core/base.html")
