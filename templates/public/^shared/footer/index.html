@@ -3,7 +3,7 @@
     <div class="container">
         <div class="footer-panel">
             <div class="footer-brand">
-                <span class="footer-kicker">JSInteractive / Public</span>
+                <span class="footer-kicker">{{ settings.brand.subtitle or site.name }}</span>
                 <h3>{{ settings.brand.name }}</h3>
                 {% if settings.footer.description %}<p>{{ settings.footer.description }}</p>{% endif %}
             </div>
