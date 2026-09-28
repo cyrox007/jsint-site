@@ -88,6 +88,14 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertNotIn("OperatorSigner.", template)
         self.assertNotIn("signer.js", template)
 
+    def test_control_plane_docs_match_browser_license_signing(self):
+        docs = self.read("docs/CONTROL_PLANE.md")
+        self.assertIn(".license-secret", docs)
+        self.assertIn("Web Crypto", docs)
+        self.assertIn("Обычный web-интерфейс выпуска лицензий и релизов от него не зависит", docs)
+        self.assertNotIn("Для лицензий пока сохраняется отдельный локальный signer", docs)
+        self.assertNotIn("нажимает «Выбрать папку…»", docs)
+
     def test_normal_license_issue_mirrors_update_access_to_license_expiry(self):
         views = self.read("views/dashboard/control_plane/views.py")
         service = self.read("services/notes_control_plane.py")
