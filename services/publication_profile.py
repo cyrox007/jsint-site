@@ -82,6 +82,15 @@ def schema_for(site_key: str, source_type: str) -> PublicationProfileSchema | No
     return _SCHEMAS.get((site_key.strip().lower(), source_type.strip().lower()))
 
 
+def schemas_for_site(site_key: str) -> dict[str, PublicationProfileSchema]:
+    normalized = site_key.strip().lower()
+    return {
+        source_type: schema
+        for (schema_site, source_type), schema in _SCHEMAS.items()
+        if schema_site == normalized
+    }
+
+
 def profile_for_editor(extra_data: dict | None) -> dict[str, Any]:
     profile = (extra_data or {}).get("profile")
     if not isinstance(profile, dict):
