@@ -41,44 +41,44 @@
 
     <div class="publication-editor-layout">
         <main class="publication-writing">
-            <div class="publication-writing__document">
+            <section class="publication-writing__document" aria-label="Редактор публикации">
                 <div class="publication-title-field">
-                    <label for="title">Название публикации</label>
+                    <label for="title">Название</label>
                     <input
                         id="title"
                         name="title"
                         type="text"
                         value="{{ publication.title if publication else '' }}"
-                        placeholder="Название материала"
+                        placeholder="Введите название публикации"
                         maxlength="255"
                         required
                     >
                 </div>
 
-                <div class="publication-writing__separator"></div>
-
                 <div class="publication-body-field">
                     <div class="publication-body-tools">
-                        <span>Текст публикации</span>
+                        <div>
+                            <strong>Содержание</strong>
+                            <span>Основной текст публикации</span>
+                        </div>
                         <button class="btn secondary btn-small" type="button" data-open-media>
-                            Вставить из медиатеки
+                            Вставить изображение
                         </button>
                     </div>
                     {{ editor.Editor(
                         fieldName="content",
                         fieldId="publication-content",
-                        labelText="Редактор",
+                        labelText="",
                         value=publication.content if publication else ''
                     ) }}
                 </div>
-            </div>
+            </section>
         </main>
 
         <aside class="publication-settings" aria-label="Параметры публикации">
             <div class="publication-settings__intro">
-                <span class="publication-settings__eyebrow">Параметры</span>
-                <strong>{{ 'Настройка материала' if publication else 'Новая публикация' }}</strong>
-                <p>Основные поля находятся здесь, чтобы не отвлекать от текста.</p>
+                <strong>Параметры</strong>
+                <span>{{ 'Опубликованный материал' if publication and publication.is_published else 'Черновик' }}</span>
             </div>
 
             <details class="publication-settings-group" open>
