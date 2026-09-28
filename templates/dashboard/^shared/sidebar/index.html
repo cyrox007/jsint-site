@@ -7,6 +7,7 @@
 {% set licenses_active = request.endpoint and request.endpoint.startswith('admin.licenses.') %}
 {% set releases_active = request.endpoint and request.endpoint.startswith('admin.releases.') %}
 {% set users_active = request.endpoint and request.endpoint.startswith('admin.users.') %}
+{% set audit_active = request.endpoint == 'admin.control-plane.audit' %}
 <aside class="admin-sidebar" aria-label="Навигация админ-панели">
     <nav>
         <div class="sidebar-section-label">Управление</div>
@@ -27,6 +28,7 @@
         <ul>
             <li class="{{ 'active' if licenses_active }}"><a href="{{ url_for('admin.licenses.index') }}"><span class="sidebar-icon">◇</span><span>Лицензии</span></a></li>
             <li class="{{ 'active' if releases_active }}"><a href="{{ url_for('admin.releases.index') }}"><span class="sidebar-icon">⇧</span><span>Релизы</span></a></li>
+            <li class="{{ 'active' if audit_active }}"><a href="{{ url_for('admin.control-plane.audit') }}"><span class="sidebar-icon">≡</span><span>Журнал</span></a></li>
         </ul>
     </nav>
 </aside>
