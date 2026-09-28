@@ -1,131 +1,301 @@
 {% extends '/dashboard/^core/base.html' %}
 {% import '/dashboard/^elements/UI/Editor/index.html' as editor %}
-{% from '/dashboard/^elements/UI/Fields/index.html' import text_input %}
 {% block title %}{{ 'Редактирование публикации' if publication else 'Новая публикация' }} | {{ selected_site.name }}{% endblock %}
 {% block extra_head %}<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">{% endblock %}
+
 {% block content %}
 {% set current_category_id = publication.category_id|string if publication else selected_category_id %}
 {% set return_site = workspace_site if workspace_site is defined and workspace_site else selected_site %}
-<form class="admin-page publication-editor" method="post">
+
+<form class="publication-editor-shell" method="post">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="site_id" value="{{ selected_site.id }}">
-    <header class="admin-page__header page-title">
-        <div class="admin-page__heading">
-            <span class="admin-page__eyebrow">{{ return_site.name }} · Публикации</span>
-            <h1 class="admin-page__title">{{ 'Редактирование публикации' if publication else 'Новая публикация' }}</h1>
-            <p class="admin-page__description">{{ 'Измените материал и параметры публикации.' if publication else 'Создайте новый материал выбранного публичного сайта.' }}</p>
+
+    <header class="publication-editor-header">
+        <div class="publication-editor-header__main">
+            <a class="publication-editor-back" href="{{ url_for('admin.publication.index', site_id=return_site.id) }}">
+                <span aria-hidden="true">←</span>
+                <span>Публикации</span>
+            </a>
+            <span class="publication-editor-header__divider" aria-hidden="true"></span>
+            <div class="publication-editor-header__site">
+                <strong>{{ selected_site.name }}</strong>
+                <span>{{ selected_site.key }}</span>
+            </div>
         </div>
-        <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=return_site.id) }}">К публикациям</a>
+
+        <div class="publication-editor-header__actions">
+            <span class="publication-state-pill {{ 'is-published' if publication and publication.is_published else 'is-draft' }}">
+                <span class="publication-state-pill__dot" aria-hidden="true"></span>
+                {{ 'Опубликовано' if publication and publication.is_published else 'Черновик' }}
+            </span>
             {% if preview_url is defined and preview_url %}
-            <a class="btn secondary" href="{{ preview_url }}" target="_blank" rel="noopener noreferrer">Открыть на сайте ↗</a>
+            <a class="btn secondary" href="{{ preview_url }}" target="_blank" rel="noopener noreferrer">
+                Предпросмотр <span aria-hidden="true">↗</span>
+            </a>
             {% endif %}
             <button type="submit" class="btn primary">Сохранить</button>
         </div>
     </header>
 
-    <div class="editor-left">
-        <div class="admin-card card"><div class="admin-card__body">
-            {{ text_input(name="title", label="Название", value=publication.title if publication else '') }}
-            {{ editor.Editor(fieldName="content", fieldId="publication-content", labelText="Содержание", value=publication.content if publication else '') }}
-        </div></div>
-    </div>
+    <div class="publication-editor-layout">
+        <main class="publication-writing">
+            <div class="publication-writing__document">
+                <div class="publication-title-field">
+                    <label for="title">Название публикации</label>
+                    <input
+                        id="title"
+                        name="title"
+                        type="text"
+                        value="{{ publication.title if publication else '' }}"
+                        placeholder="Название материала"
+                        maxlength="200"
+                        required
+                    >
+                </div>
 
-    <aside class="editor-right">
-        <div class="admin-card card"><div class="admin-card__body">
-            <div class="publication-site-lock"><span>Сайт</span><strong>{{ selected_site.name }}</strong><small>{{ selected_site.key }}</small></div>
-            <div class="publication-editor-status {{ 'is-published' if publication and publication.is_published else 'is-draft' }}">
-                <span>Статус</span>
-                <strong>{{ 'Опубликовано' if publication and publication.is_published else 'Черновик' }}</strong>
-                <small>{{ 'Материал доступен читателям.' if publication and publication.is_published else 'Материал виден только в админке.' }}</small>
-            </div>
-            {{ text_input(name="slug", label="Slug (URL)", value=publication.slug if publication else '') }}
-            <label class="switch"><input type="checkbox" name="is_published" {% if publication and publication.is_published %}checked{% endif %}><span class="slider"></span><span class="label">Опубликовать материал</span></label>
-        </div></div>
+                <div class="publication-writing__separator"></div>
 
-        <div class="admin-card card"><div class="admin-card__body admin-form">
-            <label for="category_id">Рубрика
-                <select name="category_id" id="category_id">
-                    <option value="">Без рубрики</option>
-                    {% for cat in categories %}<option value="{{ cat.id }}" {% if current_category_id == cat.id|string %}selected{% endif %}>{{ cat.title }}</option>{% endfor %}
-                </select>
-            </label>
-            <label for="source-type">Тип материала
-                <select name="source-type" id="source-type">
-                    <option value="article" {% if publication and publication.source_type == 'article' %}selected{% endif %}>Статья</option>
-                    <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчёт</option>
-                    <option value="case" {% if publication and publication.source_type == 'case' %}selected{% endif %}>Кейс</option>
-                    <option value="changelog" {% if publication and publication.source_type == 'changelog' %}selected{% endif %}>Changelog</option>
-                </select>
-            </label>
-        </div></div>
-
-        <div class="admin-card card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">SEO</h2><p class="admin-card__description">Если оставить пустым, используются заголовок и начало текста.</p></div></div>
-            <div class="admin-card__body admin-form">
-                <label for="seo_title">SEO title<input type="text" id="seo_title" name="seo_title" maxlength="255" value="{{ (publication.extra_data or {}).get('seo_title', '') if publication else '' }}" placeholder="До ~60 символов"></label>
-                <label for="seo_description">Meta description<textarea id="seo_description" name="seo_description" rows="4" maxlength="320" placeholder="Краткое описание страницы">{{ (publication.extra_data or {}).get('seo_description', '') if publication else '' }}</textarea></label>
-            </div>
-        </div>
-
-        {% if publication and sites is defined and sites|length > 1 %}
-        <div class="admin-card card publication-placement-card">
-            <div class="admin-card__header">
-                <div>
-                    <h2 class="admin-card__title">Размещение по сайтам</h2>
-                    <p class="admin-card__description">Один материал можно публиковать на нескольких витринах с отдельным URL и рубрикой.</p>
+                <div class="publication-body-field">
+                    {{ editor.Editor(
+                        fieldName="content",
+                        fieldId="publication-content",
+                        labelText="Текст публикации",
+                        value=publication.content if publication else ''
+                    ) }}
                 </div>
             </div>
-            <div class="admin-card__body publication-placement-list">
-                {% for target_site in sites %}
-                    {% if target_site.id != selected_site.id %}
-                        {% set placement = placements_by_site.get(target_site.id|string) %}
-                        {% set target_categories = categories_by_site.get(target_site.id|string, []) %}
-                        <section class="publication-placement">
-                            <div class="publication-placement__header">
-                                <div>
-                                    <strong>{{ target_site.name }}</strong>
-                                    <span>{{ target_site.key }}</span>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" name="placement_{{ target_site.id }}_enabled" {% if placement %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                    <span class="label">Размещать</span>
-                                </label>
-                            </div>
-                            <div class="publication-placement__body admin-form">
-                                <label>Slug
-                                    <input type="text" name="placement_{{ target_site.id }}_slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ placement.slug if placement else publication.slug }}">
-                                </label>
-                                <label>Рубрика
-                                    <select name="placement_{{ target_site.id }}_category_id">
-                                        <option value="">Без рубрики</option>
-                                        {% for category in target_categories %}
-                                        <option value="{{ category.id }}" {% if placement and placement.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                {% if not target_categories %}
-                                <p class="publication-placement__hint">Сначала создайте рубрику для {{ target_site.name }}, если материал должен быть опубликован.</p>
-                                {% endif %}
-                                <label class="switch">
-                                    <input type="checkbox" name="placement_{{ target_site.id }}_published" {% if placement and placement.is_published %}checked{% endif %}>
-                                    <span class="slider"></span>
-                                    <span class="label">Опубликовано на {{ target_site.name }}</span>
-                                </label>
-                            </div>
-                        </section>
-                    {% endif %}
-                {% endfor %}
+        </main>
+
+        <aside class="publication-settings" aria-label="Параметры публикации">
+            <div class="publication-settings__intro">
+                <span class="publication-settings__eyebrow">Параметры</span>
+                <strong>{{ 'Настройка материала' if publication else 'Новая публикация' }}</strong>
+                <p>Основные поля находятся здесь, чтобы не отвлекать от текста.</p>
             </div>
-        </div>
-        {% endif %}
-    </aside>
+
+            <details class="publication-settings-group" open>
+                <summary>
+                    <span>
+                        <strong>Публикация</strong>
+                        <small>Статус, рубрика, тип и адрес</small>
+                    </span>
+                    <span class="publication-settings-group__chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="publication-settings-group__body admin-form">
+                    <label for="category_id">
+                        Рубрика
+                        <select name="category_id" id="category_id">
+                            <option value="">Без рубрики</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if current_category_id == cat.id|string %}selected{% endif %}>{{ cat.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label for="source-type">
+                        Тип материала
+                        <select name="source-type" id="source-type">
+                            <option value="article" {% if publication and publication.source_type == 'article' %}selected{% endif %}>Статья</option>
+                            <option value="task" {% if publication and publication.source_type == 'task' %}selected{% endif %}>Отчёт</option>
+                            <option value="case" {% if publication and publication.source_type == 'case' %}selected{% endif %}>Кейс</option>
+                            <option value="changelog" {% if publication and publication.source_type == 'changelog' %}selected{% endif %}>Журнал изменений</option>
+                        </select>
+                    </label>
+
+                    <label for="slug">
+                        URL
+                        <input
+                            id="slug"
+                            name="slug"
+                            type="text"
+                            value="{{ publication.slug if publication else '' }}"
+                            placeholder="nazvanie-materiala"
+                            maxlength="255"
+                            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                        >
+                        <small>Формируется автоматически из названия, но его можно изменить.</small>
+                    </label>
+
+                    <div class="publication-publish-row">
+                        <div>
+                            <strong>Доступ читателям</strong>
+                            <small>{{ 'Материал сейчас опубликован.' if publication and publication.is_published else 'Материал сохранится как черновик.' }}</small>
+                        </div>
+                        <label class="switch switch--compact">
+                            <input type="checkbox" name="is_published" {% if publication and publication.is_published %}checked{% endif %}>
+                            <span class="slider"></span>
+                            <span class="label">Опубликовать</span>
+                        </label>
+                    </div>
+                </div>
+            </details>
+
+            <details class="publication-settings-group">
+                <summary>
+                    <span>
+                        <strong>SEO</strong>
+                        <small>Заголовок и описание для поиска</small>
+                    </span>
+                    <span class="publication-settings-group__chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="publication-settings-group__body admin-form">
+                    <p class="publication-settings-note">Если поля пустые, используются название публикации и начало текста.</p>
+
+                    <label for="seo_title">
+                        Заголовок страницы
+                        <input
+                            type="text"
+                            id="seo_title"
+                            name="seo_title"
+                            maxlength="255"
+                            value="{{ (publication.extra_data or {}).get('seo_title', '') if publication else '' }}"
+                            placeholder="До ~60 символов"
+                        >
+                    </label>
+
+                    <label for="seo_description">
+                        Описание
+                        <textarea
+                            id="seo_description"
+                            name="seo_description"
+                            rows="4"
+                            maxlength="320"
+                            placeholder="Краткое описание страницы"
+                        >{{ (publication.extra_data or {}).get('seo_description', '') if publication else '' }}</textarea>
+                    </label>
+                </div>
+            </details>
+
+            {% if publication and sites is defined and sites|length > 1 %}
+            <details class="publication-settings-group">
+                <summary>
+                    <span>
+                        <strong>Размещение</strong>
+                        <small>Публикация на других сайтах</small>
+                    </span>
+                    <span class="publication-settings-group__chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="publication-settings-group__body publication-placement-list">
+                    {% for target_site in sites %}
+                        {% if target_site.id != selected_site.id %}
+                            {% set placement = placements_by_site.get(target_site.id|string) %}
+                            {% set target_categories = categories_by_site.get(target_site.id|string, []) %}
+                            <section class="publication-placement">
+                                <div class="publication-placement__header">
+                                    <div>
+                                        <strong>{{ target_site.name }}</strong>
+                                        <span>{{ target_site.key }}</span>
+                                    </div>
+                                    <label class="switch switch--compact">
+                                        <input type="checkbox" name="placement_{{ target_site.id }}_enabled" {% if placement %}checked{% endif %}>
+                                        <span class="slider"></span>
+                                        <span class="label">Размещать</span>
+                                    </label>
+                                </div>
+
+                                <div class="publication-placement__body admin-form">
+                                    <label>
+                                        URL
+                                        <input
+                                            type="text"
+                                            name="placement_{{ target_site.id }}_slug"
+                                            maxlength="255"
+                                            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                                            value="{{ placement.slug if placement else publication.slug }}"
+                                        >
+                                    </label>
+
+                                    <label>
+                                        Рубрика
+                                        <select name="placement_{{ target_site.id }}_category_id">
+                                            <option value="">Без рубрики</option>
+                                            {% for category in target_categories %}
+                                            <option value="{{ category.id }}" {% if placement and placement.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </label>
+
+                                    {% if not target_categories %}
+                                    <p class="publication-placement__hint">Для {{ target_site.name }} пока нет рубрик.</p>
+                                    {% endif %}
+
+                                    <label class="switch switch--compact">
+                                        <input type="checkbox" name="placement_{{ target_site.id }}_published" {% if placement and placement.is_published %}checked{% endif %}>
+                                        <span class="slider"></span>
+                                        <span class="label">Опубликовано на {{ target_site.name }}</span>
+                                    </label>
+                                </div>
+                            </section>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+        </aside>
+    </div>
 </form>
 {% endblock %}
+
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{const ruToEnMap={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};const isNew={{ 'true' if not publication else 'false' }};const titleField=document.getElementById('title');const slugInput=document.getElementById('slug');const checkUrlTemplate={{ url_for('admin.publication.check-slug', slug='__SLUG__', site_id=selected_site.id)|tojson }};const transliterate=text=>text.split('').map(char=>ruToEnMap[char.toLowerCase()]??char).join('');const normalizeSlug=text=>transliterate(text).toLowerCase().trim().replace(/[\s\u00A0]+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-').replace(/^-+|-+$/g,'');async function checkSlug(slug){if(!slug)return;try{const response=await fetch(checkUrlTemplate.replace('__SLUG__',encodeURIComponent(slug)),{credentials:'same-origin'});if(!response.ok)return;const data=await response.json();if(data.slug)slugInput.value=data.slug;}catch(_error){/* Сервер повторно проверит slug при сохранении. */}}if(isNew&&titleField&&slugInput){titleField.addEventListener('change',()=>{const slug=normalizeSlug(titleField.value)||'material';slugInput.value=slug;checkSlug(slug);});}});
+document.addEventListener('DOMContentLoaded', () => {
+    const ruToEnMap = {
+        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z',
+        'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+        'с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh',
+        'щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'
+    };
+
+    const isNew = {{ 'true' if not publication else 'false' }};
+    const titleField = document.getElementById('title');
+    const slugInput = document.getElementById('slug');
+    const checkUrlTemplate = {{ url_for('admin.publication.check-slug', slug='__SLUG__', site_id=selected_site.id)|tojson }};
+
+    const transliterate = text => text
+        .split('')
+        .map(char => ruToEnMap[char.toLowerCase()] ?? char)
+        .join('');
+
+    const normalizeSlug = text => transliterate(text)
+        .toLowerCase()
+        .trim()
+        .replace(/[\s\u00A0]+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+    async function checkSlug(slug) {
+        if (!slug) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                checkUrlTemplate.replace('__SLUG__', encodeURIComponent(slug)),
+                {credentials: 'same-origin'}
+            );
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            if (data.slug) {
+                slugInput.value = data.slug;
+            }
+        } catch (_error) {
+            /* Сервер повторно проверит URL при сохранении. */
+        }
+    }
+
+    if (isNew && titleField && slugInput) {
+        titleField.addEventListener('change', () => {
+            const slug = normalizeSlug(titleField.value) || 'material';
+            slugInput.value = slug;
+            checkSlug(slug);
+        });
+    }
+});
 </script>
 {% endblock %}
