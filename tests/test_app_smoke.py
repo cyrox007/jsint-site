@@ -86,6 +86,7 @@ class ApplicationSmokeTests(unittest.TestCase):
             "dashboard/publication/edit.html",
             "dashboard/publication/preview.html",
             "dashboard/users/index.html",
+            "dashboard/control_plane/audit.html",
             "dashboard/catalog/index.html",
             "dashboard/catalog/edit.html",
             "dashboard/sites/index.html",
