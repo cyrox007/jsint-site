@@ -10,7 +10,7 @@ from components.admin.site_context import resolve_admin_site
 from components.background.status import get_background_status
 from models.categories import Category
 from models.control_plane import LicenseRecord, ReleaseRecord
-from models.publication import Publication
+from models.publication import PublicationSite
 from models.site import Site
 from settings import config
 from version import application_version
@@ -44,13 +44,25 @@ class DashboardMain(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
-        total_publications = db_session.query(Publication).count()
-        published_count = (
-            db_session.query(Publication)
-            .filter(Publication.is_published.is_(True))
+        selected_site = resolve_admin_site(db_session)
+        total_publications = (
+            db_session.query(PublicationSite)
+            .filter(PublicationSite.site_id == selected_site.id)
             .count()
         )
-        category_count = db_session.query(Category).count()
+        published_count = (
+            db_session.query(PublicationSite)
+            .filter(
+                PublicationSite.site_id == selected_site.id,
+                PublicationSite.is_published.is_(True),
+            )
+            .count()
+        )
+        category_count = (
+            db_session.query(Category)
+            .filter(Category.site_id == selected_site.id)
+            .count()
+        )
         site_count = db_session.query(Site).count()
         active_site_count = db_session.query(Site).filter(Site.is_active.is_(True)).count()
         license_count = db_session.query(LicenseRecord).count()
@@ -65,6 +77,7 @@ class DashboardMain(MethodView):
         return render_template(
             "dashboard/main/index.html",
             application_version=application_version(),
+            selected_site=selected_site,
             database_ok=True,
             redis_ok=redis_client.ping(),
             background=background,
