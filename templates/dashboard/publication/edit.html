@@ -5,17 +5,18 @@
 {% block extra_head %}<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">{% endblock %}
 {% block content %}
 {% set current_category_id = publication.category_id|string if publication else selected_category_id %}
+{% set return_site = workspace_site if workspace_site is defined and workspace_site else selected_site %}
 <form class="admin-page publication-editor" method="post">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="site_id" value="{{ selected_site.id }}">
     <header class="admin-page__header page-title">
         <div class="admin-page__heading">
-            <span class="admin-page__eyebrow">{{ selected_site.name }} · Публикации</span>
+            <span class="admin-page__eyebrow">{{ return_site.name }} · Публикации</span>
             <h1 class="admin-page__title">{{ 'Редактирование публикации' if publication else 'Новая публикация' }}</h1>
             <p class="admin-page__description">{{ 'Измените материал и параметры публикации.' if publication else 'Создайте новый материал выбранного публичного сайта.' }}</p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=selected_site.id) }}">Отмена</a>
+            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=return_site.id) }}">Отмена</a>
             <button type="submit" class="btn primary">Сохранить</button>
         </div>
     </header>
@@ -58,6 +59,59 @@
                 <label for="seo_description">Meta description<textarea id="seo_description" name="seo_description" rows="4" maxlength="320" placeholder="Краткое описание страницы">{{ (publication.extra_data or {}).get('seo_description', '') if publication else '' }}</textarea></label>
             </div>
         </div>
+
+        {% if publication and sites is defined and sites|length > 1 %}
+        <div class="admin-card card publication-placement-card">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Размещение по сайтам</h2>
+                    <p class="admin-card__description">Один материал можно публиковать на нескольких витринах с отдельным URL и рубрикой.</p>
+                </div>
+            </div>
+            <div class="admin-card__body publication-placement-list">
+                {% for target_site in sites %}
+                    {% if target_site.id != selected_site.id %}
+                        {% set placement = placements_by_site.get(target_site.id|string) %}
+                        {% set target_categories = categories_by_site.get(target_site.id|string, []) %}
+                        <section class="publication-placement">
+                            <div class="publication-placement__header">
+                                <div>
+                                    <strong>{{ target_site.name }}</strong>
+                                    <span>{{ target_site.key }}</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" name="placement_{{ target_site.id }}_enabled" {% if placement %}checked{% endif %}>
+                                    <span class="slider"></span>
+                                    <span class="label">Размещать</span>
+                                </label>
+                            </div>
+                            <div class="publication-placement__body admin-form">
+                                <label>Slug
+                                    <input type="text" name="placement_{{ target_site.id }}_slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ placement.slug if placement else publication.slug }}">
+                                </label>
+                                <label>Рубрика
+                                    <select name="placement_{{ target_site.id }}_category_id">
+                                        <option value="">Без рубрики</option>
+                                        {% for category in target_categories %}
+                                        <option value="{{ category.id }}" {% if placement and placement.category_id == category.id %}selected{% endif %}>{{ category.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                {% if not target_categories %}
+                                <p class="publication-placement__hint">Сначала создайте рубрику для {{ target_site.name }}, если материал должен быть опубликован.</p>
+                                {% endif %}
+                                <label class="switch">
+                                    <input type="checkbox" name="placement_{{ target_site.id }}_published" {% if placement and placement.is_published %}checked{% endif %}>
+                                    <span class="slider"></span>
+                                    <span class="label">Опубликовано на {{ target_site.name }}</span>
+                                </label>
+                            </div>
+                        </section>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </aside>
 </form>
 {% endblock %}

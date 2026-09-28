@@ -94,6 +94,8 @@ class PublicationService:
         session: Session,
         pub_id: UUID,
         data: PublicationUpdate,
+        *,
+        commit: bool = True,
     ) -> Optional[PublicationOut]:
         publication = Publication.get_by_id(session, pub_id)
         if publication is None:
@@ -117,7 +119,9 @@ class PublicationService:
             return None
 
         PublicationChannelService.sync_owner(session, publication)
-        session.commit()
+        session.flush()
+        if commit:
+            session.commit()
         session.refresh(publication)
         cache.invalidate("publications")
         return PublicationOut.model_validate(publication)

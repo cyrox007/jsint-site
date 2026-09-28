@@ -5,7 +5,6 @@ from uuid import UUID
 from flask import abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask.views import MethodView
 from pydantic import ValidationError
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
@@ -15,6 +14,7 @@ from models.publication import Publication
 from schemas.publication import PublicationCreate, PublicationUpdate
 from services.catalog import CatalogService
 from services.publication import PublicationService
+from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 from utils.validation import validate_slug
 
@@ -100,23 +100,56 @@ def _tree_with_counts(items: list[dict], direct_counts: dict[str, int]) -> list[
     return result
 
 
+def _sync_additional_placements(
+    db_session: Session,
+    publication: Publication,
+) -> None:
+    for site in SiteService.list_sites(db_session):
+        if site.id == publication.site_id:
+            continue
+
+        prefix = f"placement_{site.id}"
+        enabled = request.form.get(f"{prefix}_enabled") == "on"
+        if not enabled:
+            PublicationChannelService.remove_placement(
+                db_session,
+                publication_id=publication.id,
+                site_id=site.id,
+            )
+            continue
+
+        category_raw = request.form.get(f"{prefix}_category_id", "").strip()
+        try:
+            category_id = UUID(category_raw) if category_raw else None
+        except ValueError as exc:
+            raise ValueError(f"{site.name}: некорректная рубрика") from exc
+
+        slug = request.form.get(f"{prefix}_slug", "").strip() or publication.slug
+        PublicationChannelService.set_placement(
+            db_session,
+            publication_id=publication.id,
+            site_id=site.id,
+            slug=slug,
+            category_id=category_id,
+            is_published=request.form.get(f"{prefix}_published") == "on",
+        )
+
+
 class PublicationListPage(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
         selected_site = _site_from_raw(db_session, request.args.get("site_id"))
-        filters: dict = {"site_id": selected_site.id, "is_published": None}
         selected_category_id = ""
-
-        search = request.args.get("search", "").strip()
-        if search:
-            filters["search"] = search[:200]
+        category_ids: list[UUID] | None = None
+        search = request.args.get("search", "").strip()[:200] or None
 
         status = request.args.get("status", "").strip()
+        publication_status: bool | None = None
         if status == "published":
-            filters["is_published"] = True
+            publication_status = True
         elif status == "draft":
-            filters["is_published"] = False
+            publication_status = False
 
         category_raw = request.args.get("category_id", "").strip()
         if category_raw:
@@ -127,12 +160,18 @@ class PublicationListPage(MethodView):
                     flash("Выбранная рубрика не найдена на этом сайте", "error")
                 else:
                     descendants = Category.get_all_descendants(db_session, category_id)
-                    filters["category_ids"] = [category_id, *[item.id for item in descendants]]
+                    category_ids = [category_id, *[item.id for item in descendants]]
                     selected_category_id = str(category_id)
             except ValueError:
                 flash("Некорректный фильтр рубрики", "error")
 
-        publications = PublicationService.get_publications(db_session, **filters)
+        publications = PublicationChannelService.list_for_admin(
+            db_session,
+            site_id=selected_site.id,
+            is_published=publication_status,
+            category_ids=category_ids,
+            search=search,
+        )
         categories = (
             db_session.query(Category)
             .filter(Category.site_id == selected_site.id)
@@ -140,19 +179,13 @@ class PublicationListPage(MethodView):
             .all()
         )
 
-        total_publications = (
-            db_session.query(Publication)
-            .filter(Publication.site_id == selected_site.id)
-            .count()
+        total_publications = PublicationChannelService.count_for_admin(
+            db_session,
+            site_id=selected_site.id,
         )
-        count_rows = (
-            db_session.query(Publication.category_id, func.count(Publication.id))
-            .filter(
-                Publication.site_id == selected_site.id,
-                Publication.category_id.is_not(None),
-            )
-            .group_by(Publication.category_id)
-            .all()
+        count_rows = PublicationChannelService.category_counts(
+            db_session,
+            site_id=selected_site.id,
         )
         direct_counts = {str(category_id): int(count) for category_id, count in count_rows}
         category_tree = _tree_with_counts(
@@ -411,12 +444,29 @@ class UpdatePost(MethodView):
             .order_by(Category.title)
             .all()
         )
+        sites = SiteService.list_sites(db_session)
+        placements = PublicationChannelService.list_placements(db_session, id)
+        placements_by_site = {str(item.site_id): item for item in placements}
+        categories_by_site = {
+            str(site.id): (
+                db_session.query(Category)
+                .filter(Category.site_id == site.id)
+                .order_by(Category.title)
+                .all()
+            )
+            for site in sites
+        }
+        workspace_site = _site_from_raw(db_session, request.args.get("site_id"))
         return render_template(
             "dashboard/publication/edit.html",
             categories=categories,
             publication=publication,
             selected_category_id="",
             selected_site=selected_site,
+            workspace_site=workspace_site,
+            sites=sites,
+            placements_by_site=placements_by_site,
+            categories_by_site=categories_by_site,
         )
 
     @login_required
@@ -446,12 +496,26 @@ class UpdatePost(MethodView):
             flash("На этом сайте уже есть публикация с таким URL", "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
-        publication = PublicationService.update_publication(db_session, id, data)
+        publication = PublicationService.update_publication(
+            db_session,
+            id,
+            data,
+            commit=False,
+        )
         if publication is None:
             flash("Не удалось обновить публикацию", "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
-        flash("Публикация сохранена", "success")
+        publication_model = Publication.get_by_id(db_session, id)
+        try:
+            _sync_additional_placements(db_session, publication_model)
+            db_session.commit()
+        except ValueError as exc:
+            db_session.rollback()
+            flash(str(exc), "error")
+            return redirect(url_for("admin.publication.edit", id=id))
+
+        flash("Публикация и размещения сохранены", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
 
 

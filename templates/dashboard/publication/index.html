@@ -153,7 +153,7 @@
                     <div class="publication-card__body">
                         <div class="publication-card__icon" aria-hidden="true">▤</div>
                         <div class="publication-card__content">
-                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id) }}">{{ publication.title }}</a>
+                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}">{{ publication.title }}</a>
                             <div class="publication-card__meta">
                                 <span>{{ publication.category.title if publication.category else 'Без рубрики' }}</span>
                                 <span>{{ publication.source_type }}</span>
@@ -164,7 +164,7 @@
                     </div>
                     <div class="publication-card__actions">
                         <span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span>
-                        <a href="{{ url_for('admin.publication.edit', id=publication.id) }}" class="btn secondary btn-small">Редактировать</a>
+                        <a href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}" class="btn secondary btn-small">Редактировать</a>
                         <form method="post" action="{{ url_for('admin.publication.delete', id=publication.id) }}" onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn danger btn-small">Удалить</button>

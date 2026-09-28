@@ -40,6 +40,14 @@ class PublicationChannelsContractTests(unittest.TestCase):
         self.assertIn("PublicationSite", catalog)
         self.assertIn("PublicationSite.category_id == cat_id", catalog)
 
+    def test_admin_workspace_reads_and_edits_channels(self):
+        views = self.read("views/dashboard/blog/views.py")
+        template = self.read("templates/dashboard/publication/edit.html")
+        self.assertIn("PublicationChannelService.list_for_admin", views)
+        self.assertIn("_sync_additional_placements", views)
+        self.assertIn("Размещение по сайтам", template)
+        self.assertIn("placement_{{ target_site.id }}_enabled", template)
+
 
 if __name__ == "__main__":
     unittest.main()

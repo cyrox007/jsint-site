@@ -5,14 +5,19 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, selectinload
 
+from models.categories import Category
 from models.publication import Publication, PublicationSite
+from models.site import Site
+from utils.validation import validate_slug
 
 
 @dataclass(frozen=True)
-class PublicPublicationView:
+class PublicationChannelView:
     id: UUID
+    owner_site_id: UUID
     title: str
     slug: str
     content: str
@@ -20,6 +25,7 @@ class PublicPublicationView:
     extra_data: dict[str, Any]
     category: Any
     technologies: list[Any]
+    is_published: bool
     created_at: datetime
     updated_at: datetime
     published_at: datetime | None
@@ -27,9 +33,13 @@ class PublicPublicationView:
 
 class PublicationChannelService:
     @staticmethod
-    def _to_view(publication: Publication, placement: PublicationSite) -> PublicPublicationView:
-        return PublicPublicationView(
+    def _to_view(
+        publication: Publication,
+        placement: PublicationSite,
+    ) -> PublicationChannelView:
+        return PublicationChannelView(
             id=publication.id,
+            owner_site_id=publication.site_id,
             title=publication.title,
             slug=placement.slug,
             content=publication.content,
@@ -37,9 +47,25 @@ class PublicationChannelService:
             extra_data=publication.extra_data or {},
             category=placement.category,
             technologies=list(publication.technologies or []),
+            is_published=placement.is_published,
             created_at=publication.created_at,
             updated_at=publication.updated_at,
             published_at=placement.published_at,
+        )
+
+    @staticmethod
+    def _base_query(session: Session, site_id: UUID):
+        return (
+            session.query(Publication, PublicationSite)
+            .join(
+                PublicationSite,
+                PublicationSite.publication_id == Publication.id,
+            )
+            .options(
+                selectinload(Publication.technologies),
+                selectinload(PublicationSite.category),
+            )
+            .filter(PublicationSite.site_id == site_id)
         )
 
     @staticmethod
@@ -76,21 +102,9 @@ class PublicationChannelService:
         offset: int = 0,
         category_id: UUID | None = None,
         source_type: str | None = None,
-    ) -> list[PublicPublicationView]:
-        query = (
-            session.query(Publication, PublicationSite)
-            .join(
-                PublicationSite,
-                PublicationSite.publication_id == Publication.id,
-            )
-            .options(
-                selectinload(Publication.technologies),
-                selectinload(PublicationSite.category),
-            )
-            .filter(
-                PublicationSite.site_id == site_id,
-                PublicationSite.is_published.is_(True),
-            )
+    ) -> list[PublicationChannelView]:
+        query = cls._base_query(session, site_id).filter(
+            PublicationSite.is_published.is_(True)
         )
         if category_id is not None:
             query = query.filter(PublicationSite.category_id == category_id)
@@ -131,6 +145,64 @@ class PublicationChannelService:
         return query.count()
 
     @classmethod
+    def list_for_admin(
+        cls,
+        session: Session,
+        *,
+        site_id: UUID,
+        is_published: bool | None = None,
+        category_ids: list[UUID] | None = None,
+        search: str | None = None,
+    ) -> list[PublicationChannelView]:
+        query = cls._base_query(session, site_id)
+        if is_published is not None:
+            query = query.filter(PublicationSite.is_published == is_published)
+        if category_ids:
+            query = query.filter(PublicationSite.category_id.in_(category_ids))
+        if search:
+            term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Publication.title.ilike(term),
+                    Publication.content.ilike(term),
+                    PublicationSite.slug.ilike(term),
+                )
+            )
+
+        rows = query.order_by(
+            Publication.updated_at.desc(),
+            Publication.created_at.desc(),
+        ).all()
+        return [cls._to_view(publication, placement) for publication, placement in rows]
+
+    @staticmethod
+    def count_for_admin(session: Session, *, site_id: UUID) -> int:
+        return (
+            session.query(PublicationSite)
+            .filter(PublicationSite.site_id == site_id)
+            .count()
+        )
+
+    @staticmethod
+    def category_counts(
+        session: Session,
+        *,
+        site_id: UUID,
+    ) -> list[tuple[UUID, int]]:
+        return (
+            session.query(
+                PublicationSite.category_id,
+                func.count(PublicationSite.publication_id),
+            )
+            .filter(
+                PublicationSite.site_id == site_id,
+                PublicationSite.category_id.is_not(None),
+            )
+            .group_by(PublicationSite.category_id)
+            .all()
+        )
+
+    @classmethod
     def get_public_by_slug(
         cls,
         session: Session,
@@ -138,22 +210,10 @@ class PublicationChannelService:
         site_id: UUID,
         slug: str,
         category_id: UUID | None = None,
-    ) -> PublicPublicationView | None:
-        query = (
-            session.query(Publication, PublicationSite)
-            .join(
-                PublicationSite,
-                PublicationSite.publication_id == Publication.id,
-            )
-            .options(
-                selectinload(Publication.technologies),
-                selectinload(PublicationSite.category),
-            )
-            .filter(
-                PublicationSite.site_id == site_id,
-                PublicationSite.slug == slug,
-                PublicationSite.is_published.is_(True),
-            )
+    ) -> PublicationChannelView | None:
+        query = cls._base_query(session, site_id).filter(
+            PublicationSite.slug == slug,
+            PublicationSite.is_published.is_(True),
         )
         if category_id is not None:
             query = query.filter(PublicationSite.category_id == category_id)
@@ -165,7 +225,10 @@ class PublicationChannelService:
         return cls._to_view(publication, placement)
 
     @staticmethod
-    def list_placements(session: Session, publication_id: UUID) -> list[PublicationSite]:
+    def list_placements(
+        session: Session,
+        publication_id: UUID,
+    ) -> list[PublicationSite]:
         return (
             session.query(PublicationSite)
             .options(selectinload(PublicationSite.category))
@@ -184,6 +247,36 @@ class PublicationChannelService:
         category_id: UUID | None,
         is_published: bool,
     ) -> PublicationSite:
+        publication = Publication.get_by_id(session, publication_id)
+        if publication is None:
+            raise ValueError("Публикация не найдена")
+        if site_id == publication.site_id:
+            raise ValueError("Основной канал изменяется через основные поля публикации")
+        if session.query(Site).filter(Site.id == site_id).first() is None:
+            raise ValueError("Сайт размещения не найден")
+
+        normalized_slug = validate_slug(slug)
+        if category_id is not None and Category.get_by_id(
+            session,
+            category_id,
+            site_id,
+        ) is None:
+            raise ValueError("Рубрика не принадлежит выбранному сайту")
+        if is_published and category_id is None:
+            raise ValueError("Для опубликованного размещения выберите рубрику")
+
+        duplicate = (
+            session.query(PublicationSite)
+            .filter(
+                PublicationSite.site_id == site_id,
+                PublicationSite.slug == normalized_slug,
+                PublicationSite.publication_id != publication_id,
+            )
+            .first()
+        )
+        if duplicate is not None:
+            raise ValueError("На этом сайте уже используется такой URL публикации")
+
         placement = (
             session.query(PublicationSite)
             .filter(
@@ -198,7 +291,7 @@ class PublicationChannelService:
                 site_id=site_id,
             )
 
-        placement.slug = slug
+        placement.slug = normalized_slug
         placement.category_id = category_id
         if is_published and not placement.published_at:
             placement.published_at = datetime.now(timezone.utc)
@@ -216,6 +309,10 @@ class PublicationChannelService:
         publication_id: UUID,
         site_id: UUID,
     ) -> None:
+        publication = Publication.get_by_id(session, publication_id)
+        if publication is not None and site_id == publication.site_id:
+            raise ValueError("Основной канал публикации нельзя удалить")
+
         placement = (
             session.query(PublicationSite)
             .filter(
