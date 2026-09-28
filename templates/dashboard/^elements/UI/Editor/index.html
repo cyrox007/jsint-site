@@ -154,6 +154,24 @@ document.addEventListener("DOMContentLoaded", () => {
         ]
     });
 
+    quill.keyboard.addBinding(
+        {key: "k", shortKey: true},
+        range => {
+            const current = quill.getFormat(range).link || "";
+            const value = window.prompt(
+                "Адрес ссылки",
+                current || "https://"
+            );
+            if (value === null) {
+                return false;
+            }
+
+            const href = value.trim();
+            quill.format("link", href || false, "user");
+            return false;
+        }
+    );
+
     window.jsintEditors = window.jsintEditors || {};
     window.jsintEditors["{{ fieldId }}"] = quill;
 
