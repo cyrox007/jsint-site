@@ -15,6 +15,8 @@ class PublicFrontendApiContractTests(unittest.TestCase):
         )
         self.assertIn('"categories": [_category_payload(item) for item in categories]', source)
         self.assertIn('"latest_publications": [', source)
+        self.assertIn("def _site_payload(site)", source)
+        self.assertNotIn("SiteService.public_config(site)", source)
 
     def test_external_frontend_contract_has_explicit_cors(self):
         source = (ROOT / "views/public/api.py").read_text(encoding="utf-8")
@@ -28,6 +30,7 @@ class PublicFrontendApiContractTests(unittest.TestCase):
         self.assertIn("единым backend", doc)
         self.assertIn("VUE_APP_SITE_KEY=logos", doc)
         self.assertIn("не должен хранить API-ключи", doc)
+        self.assertIn("SEO конкретного внешнего frontend принадлежат самому frontend", doc)
 
 
 if __name__ == "__main__":
