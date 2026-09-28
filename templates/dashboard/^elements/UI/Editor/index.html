@@ -1,46 +1,187 @@
 {% macro Editor(fieldName, fieldId, labelText, value='') %}
-<div class="form-field" style="flex: 1">
+<div class="form-field jsint-rich-editor" data-rich-editor="{{ fieldId }}" style="flex: 1">
     {% if labelText %}<label for="{{ fieldId }}-editor">{{ labelText }}</label>{% endif %}
     <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value }}</textarea>
+
+    <div id="{{ fieldId }}-toolbar" class="jsint-rich-editor__toolbar" role="toolbar" aria-label="Форматирование текста">
+        <span class="ql-formats jsint-rich-editor__history">
+            <button class="ql-undo" type="button" title="Отменить (Ctrl+Z)" aria-label="Отменить">↶</button>
+            <button class="ql-redo" type="button" title="Повторить (Ctrl+Shift+Z)" aria-label="Повторить">↷</button>
+        </span>
+
+        <span class="ql-formats">
+            <select class="ql-header" title="Стиль абзаца" aria-label="Стиль абзаца">
+                <option value="2">Заголовок 2</option>
+                <option value="3">Заголовок 3</option>
+                <option value="4">Заголовок 4</option>
+                <option selected>Обычный текст</option>
+            </select>
+        </span>
+
+        <span class="ql-formats">
+            <button class="ql-bold" type="button" title="Жирный (Ctrl+B)" aria-label="Жирный"></button>
+            <button class="ql-italic" type="button" title="Курсив (Ctrl+I)" aria-label="Курсив"></button>
+            <button class="ql-underline" type="button" title="Подчёркнутый (Ctrl+U)" aria-label="Подчёркнутый"></button>
+            <button class="ql-strike" type="button" title="Зачёркнутый" aria-label="Зачёркнутый"></button>
+        </span>
+
+        <span class="ql-formats">
+            <button class="ql-blockquote" type="button" title="Цитата" aria-label="Цитата"></button>
+            <button class="ql-code-block" type="button" title="Блок кода" aria-label="Блок кода"></button>
+        </span>
+
+        <span class="ql-formats">
+            <button class="ql-list" value="ordered" type="button" title="Нумерованный список" aria-label="Нумерованный список"></button>
+            <button class="ql-list" value="bullet" type="button" title="Маркированный список" aria-label="Маркированный список"></button>
+        </span>
+
+        <span class="ql-formats">
+            <button class="ql-script" value="sub" type="button" title="Нижний индекс" aria-label="Нижний индекс"></button>
+            <button class="ql-script" value="super" type="button" title="Верхний индекс" aria-label="Верхний индекс"></button>
+        </span>
+
+        <span class="ql-formats">
+            <button class="ql-link" type="button" title="Ссылка (Ctrl+K)" aria-label="Ссылка"></button>
+            <button class="ql-media" type="button" title="Изображение из медиатеки" aria-label="Изображение из медиатеки">▧</button>
+            <button class="ql-clean" type="button" title="Очистить форматирование" aria-label="Очистить форматирование"></button>
+        </span>
+
+        <span class="ql-formats jsint-rich-editor__view">
+            <button class="ql-fullscreen" type="button" title="Полноэкранный режим" aria-label="Полноэкранный режим" aria-pressed="false">⛶</button>
+        </span>
+    </div>
+
     <div id="{{ fieldId }}-editor" class="quill-editor-container"></div>
+
+    <footer class="jsint-rich-editor__footer" aria-live="polite">
+        <span data-editor-count="{{ fieldId }}">0 слов · 0 знаков</span>
+        <span>Ctrl+S — сохранить</span>
+    </footer>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const editor = document.getElementById("{{ fieldId }}-editor");
-        const input = document.getElementById("{{ fieldId }}-input");
+document.addEventListener("DOMContentLoaded", () => {
+    const root = document.querySelector('[data-rich-editor="{{ fieldId }}"]');
+    const editor = document.getElementById("{{ fieldId }}-editor");
+    const input = document.getElementById("{{ fieldId }}-input");
+    const toolbar = document.getElementById("{{ fieldId }}-toolbar");
+    const counter = document.querySelector('[data-editor-count="{{ fieldId }}"]');
 
-        if (typeof Quill === "undefined") {
-            editor.textContent = "Редактор не загрузился. Обновите страницу.";
+    if (!root || !editor || !input || !toolbar) {
+        return;
+    }
+
+    if (typeof Quill === "undefined") {
+        editor.textContent = "Редактор не загрузился. Обновите страницу.";
+        return;
+    }
+
+    const syncInput = quill => {
+        input.value = typeof quill.getSemanticHTML === "function"
+            ? quill.getSemanticHTML()
+            : quill.root.innerHTML;
+    };
+
+    const updateCounter = quill => {
+        if (!counter) {
             return;
         }
 
-        const quill = new Quill(editor, {
-            theme: "snow",
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline'],
-                    ['blockquote', 'code-block'],
-                    [{header: [2, 3, 4, 5, 6, false]}],
-                    [{list: 'ordered'}, {list: 'bullet'}],
-                    ['link']
-                ]
-            }
-        });
+        const text = quill.getText().replace(/\n$/, "");
+        const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
+        counter.textContent = `${words} слов · ${text.length} знаков`;
+    };
 
-        window.jsintEditors = window.jsintEditors || {};
-        window.jsintEditors["{{ fieldId }}"] = quill;
+    const toggleFullscreen = () => {
+        const active = root.classList.toggle("is-fullscreen");
+        document.body.classList.toggle("rich-editor-fullscreen-open", active);
 
-        if (input.value) {
-            quill.clipboard.dangerouslyPasteHTML(input.value);
+        const button = toolbar.querySelector(".ql-fullscreen");
+        if (button) {
+            button.setAttribute("aria-pressed", active ? "true" : "false");
+            button.title = active ? "Выйти из полноэкранного режима" : "Полноэкранный режим";
         }
 
-        quill.on('text-change', () => {
-            input.value = quill.root.innerHTML;
-            document.dispatchEvent(new CustomEvent('jsint-editor-change', {
-                detail: {fieldId: "{{ fieldId }}"}
-            }));
+        window.requestAnimationFrame(() => {
+            const quill = window.jsintEditors && window.jsintEditors["{{ fieldId }}"];
+            if (quill) {
+                quill.focus();
+            }
         });
+    };
+
+    const quill = new Quill(editor, {
+        theme: "snow",
+        placeholder: "Начните писать текст публикации…",
+        modules: {
+            history: {
+                delay: 700,
+                maxStack: 200,
+                userOnly: true
+            },
+            toolbar: {
+                container: toolbar,
+                handlers: {
+                    undo() {
+                        this.quill.history.undo();
+                    },
+                    redo() {
+                        this.quill.history.redo();
+                    },
+                    media() {
+                        document.dispatchEvent(new CustomEvent("jsint-editor-media-request", {
+                            detail: {fieldId: "{{ fieldId }}"}
+                        }));
+                    },
+                    fullscreen() {
+                        toggleFullscreen();
+                    }
+                }
+            }
+        },
+        formats: [
+            "header",
+            "bold",
+            "italic",
+            "underline",
+            "strike",
+            "blockquote",
+            "code-block",
+            "list",
+            "script",
+            "link",
+            "image"
+        ]
     });
+
+    window.jsintEditors = window.jsintEditors || {};
+    window.jsintEditors["{{ fieldId }}"] = quill;
+
+    if (input.value) {
+        quill.clipboard.dangerouslyPasteHTML(input.value);
+    }
+
+    syncInput(quill);
+    updateCounter(quill);
+
+    quill.on("text-change", () => {
+        syncInput(quill);
+        updateCounter(quill);
+        document.dispatchEvent(new CustomEvent("jsint-editor-change", {
+            detail: {fieldId: "{{ fieldId }}"}
+        }));
+    });
+
+    const form = root.closest("form");
+    if (form) {
+        form.addEventListener("submit", () => syncInput(quill));
+    }
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && root.classList.contains("is-fullscreen")) {
+            toggleFullscreen();
+        }
+    });
+});
 </script>
 {% endmacro %}
