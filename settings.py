@@ -56,6 +56,17 @@ class Config:
     )
 
     MAX_CONTENT_LENGTH = max(64 * 1024, int(os.getenv("MAX_CONTENT_LENGTH", str(2 * 1024 * 1024))))
+    MEDIA_STORAGE_PATH = os.getenv(
+        "MEDIA_STORAGE_PATH",
+        "/var/lib/jsint-site/media" if IS_PRODUCTION else os.path.join(BASE_DIR, "storage", "media"),
+    ).strip()
+    MEDIA_UPLOAD_MAX_BYTES = min(
+        MAX_CONTENT_LENGTH,
+        max(
+            64 * 1024,
+            int(os.getenv("MEDIA_UPLOAD_MAX_BYTES", str(2 * 1024 * 1024))),
+        ),
+    )
     PREFERRED_URL_SCHEME = "https" if IS_PRODUCTION else "http"
 
     AUTH_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("AUTH_RATE_LIMIT_ATTEMPTS", "5")))
@@ -135,6 +146,9 @@ class Config:
             or parsed_site_url.path not in {"", "/"}
         ):
             raise RuntimeError("SITE_BASE_URL must be an absolute origin URL without path/query/fragment")
+
+        if not os.path.isabs(cls.MEDIA_STORAGE_PATH):
+            raise RuntimeError("MEDIA_STORAGE_PATH must be an absolute external path")
 
         if cls.IS_PRODUCTION:
             if parsed_site_url.scheme != "https":

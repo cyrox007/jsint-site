@@ -2,6 +2,7 @@
 from models.technology import Technology
 from models.users import User
 from models.site import Site
+from models.media import MediaAsset
 
 # 2. Публичные страницы и контент
 from models.page import Page, PageBlock
@@ -15,6 +16,7 @@ from models.control_plane import LicenseRecord, ReleaseRecord
 __all__ = [
     "User",
     "Site",
+    "MediaAsset",
     "Page",
     "PageBlock",
     "Category",
