@@ -50,6 +50,24 @@ class PublicationProfileTests(unittest.TestCase):
         )
         self.assertIsNone(build_profile("jsint", "article", {}))
 
+    def test_legacy_profile_is_migrated_without_data_loss(self):
+        legacy = {
+            "seo_title": "Старый заголовок",
+            "profile": {
+                "schema": "logos.article",
+                "version": 1,
+                "data": {"abstract": "Старый профиль"},
+            },
+        }
+        updated = set_profile(legacy, "jsint", None)
+
+        self.assertNotIn("profile", updated)
+        self.assertEqual(
+            updated["profiles"]["logos"]["data"]["abstract"],
+            "Старый профиль",
+        )
+        self.assertEqual(updated["seo_title"], "Старый заголовок")
+
     def test_profiles_are_isolated_by_site(self):
         logos = build_profile(
             "logos",
