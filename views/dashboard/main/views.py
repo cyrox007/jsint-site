@@ -12,6 +12,7 @@ from models.categories import Category
 from models.control_plane import LicenseRecord, ReleaseRecord
 from models.publication import PublicationSite
 from models.site import Site
+from services.control_plane_audit import ControlPlaneAuditService
 from settings import config
 from version import application_version
 
@@ -73,6 +74,7 @@ class DashboardMain(MethodView):
         )
         release_count = db_session.query(ReleaseRecord).count()
         background = get_background_status()
+        operator_monitor = ControlPlaneAuditService.dashboard(db_session)
 
         return render_template(
             "dashboard/main/index.html",
@@ -90,4 +92,5 @@ class DashboardMain(MethodView):
             license_count=license_count,
             active_license_count=active_license_count,
             release_count=release_count,
+            operator_monitor=operator_monitor,
         )
