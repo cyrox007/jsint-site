@@ -1,23 +1,30 @@
 {% set systems = block.settings if block is defined and block.settings else {} %}
-<section id="systems">
+<section class="systems-section" id="systems">
     <div class="container">
-        <h2 class="section-title">{{ systems.title or 'Публикации' }}</h2>
-        <p class="section-subtitle section-subtitle--spaced">{{ systems.subtitle or '' }}</p>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">02 / Материалы</span>
+                <h2 class="section-title">{{ systems.title or 'Публикации' }}</h2>
+            </div>
+            {% if systems.subtitle %}<p class="section-subtitle">{{ systems.subtitle }}</p>{% endif %}
+        </div>
 
         <div class="projects-grid">
             {% if articles %}
                 {% for article in articles %}
                 <article class="project-card">
-                    <div class="project-icon">{{ article.title[:2] | upper }}</div>
+                    <div class="project-card__top">
+                        <span class="project-index">{{ '%02d'|format(loop.index) }}</span>
+                        {% if article.category %}<span class="project-category">{{ article.category.title }}</span>{% endif %}
+                    </div>
                     <h3>{{ article.title }}</h3>
-                    <p class="project-summary">{{ article.content|striptags|truncate(150, true, '...') }}</p>
+                    <p class="project-summary">{{ article.content|striptags|truncate(170, true, '...') }}</p>
                     <div class="project-stack">
-                        {% if article.category %}<span class="tech tech--accent">{{ article.category.title }}</span>{% endif %}
                         <span class="tech">{{ article.created_at.strftime('%d.%m.%Y') }}</span>
                     </div>
                     {% if article.category %}
                     <a href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) }}" class="project-link">
-                        Читать далее <span>→</span>
+                        Открыть материал <span>↗</span>
                     </a>
                     {% endif %}
                 </article>
