@@ -41,7 +41,7 @@ usage() {
   -> обновление .venv dependencies
   -> compileall
   -> Alembic migrations
-  -> pytest
+  -> unit/HTTP smoke tests (database E2E отключены)
   -> CLI healthcheck
   -> start web/worker/beat
   -> HTTP healthcheck
@@ -103,6 +103,7 @@ else
 fi
 
 OLD_COMMIT="$(git rev-parse HEAD)"
+log "Текущее состояние checkout: branch=${CURRENT_BRANCH:-detached}, HEAD=${OLD_COMMIT}, target=${TARGET_REF}@${TARGET_COMMIT}."
 if [[ "${TARGET_COMMIT}" == "${OLD_COMMIT}" ]]; then
     log "Commit ${TARGET_COMMIT} уже находится на диске. Выполняю полное обновление runtime и перезапуск сервисов."
 fi
@@ -237,6 +238,11 @@ rollback() {
     set +e
     stop_services
     git reset --hard "${OLD_COMMIT}"
+    RESTORED_COMMIT="$(git rev-parse HEAD)"
+    log "Rollback checkout: branch=${CURRENT_BRANCH:-detached}, HEAD=${RESTORED_COMMIT}, ожидаемый target=${TARGET_COMMIT}."
+    if [[ -n "${CURRENT_BRANCH}" && "${RESTORED_COMMIT}" != "${TARGET_COMMIT}" ]]; then
+        log "ВНИМАНИЕ: имя ветки ${CURRENT_BRANCH} сохранено, но checkout откатан на старый commit. Сверяйте HEAD, а не только название ветки."
+    fi
     install_dependencies
     install_units
     PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
@@ -268,6 +274,10 @@ stop_services
 trap 'rollback "необработанная ошибка updater"; exit 1' ERR
 
 git reset --hard "${TARGET_COMMIT}"
+CHECKED_OUT_COMMIT="$(git rev-parse HEAD)"
+[[ "${CHECKED_OUT_COMMIT}" == "${TARGET_COMMIT}" ]] \
+    || die "После reset HEAD=${CHECKED_OUT_COMMIT}, ожидался ${TARGET_COMMIT}."
+log "Candidate checkout подтверждён: ${CHECKED_OUT_COMMIT}."
 install_dependencies
 
 log "Проверка Python syntax."
@@ -277,8 +287,9 @@ log "Применение Alembic migrations."
 "${APP_DIR}/.venv/bin/alembic" upgrade head
 
 if (( SKIP_TESTS == 0 )); then
-    log "Запуск unit/HTTP smoke tests."
-    "${APP_DIR}/.venv/bin/python" -m unittest discover -s tests -v
+    log "Запуск unit/HTTP smoke tests. Database E2E принудительно отключены для рабочей БД."
+    ALLOW_DATABASE_E2E_TESTS=false \
+        "${APP_DIR}/.venv/bin/python" -m unittest discover -s tests -v
 else
     log "Тесты пропущены оператором (--skip-tests)."
 fi
@@ -301,6 +312,11 @@ log "Проверка свежего Celery heartbeat."
 
 trap - ERR
 
+INSTALLED_COMMIT="$(git rev-parse HEAD)"
+[[ "${INSTALLED_COMMIT}" == "${TARGET_COMMIT}" ]] \
+    || die "После запуска runtime HEAD=${INSTALLED_COMMIT}, ожидался ${TARGET_COMMIT}."
+
 log "Обновление завершено успешно."
-log "Установлен commit: ${TARGET_COMMIT}"
+log "Установлен commit: ${INSTALLED_COMMIT}"
+log "Checkout: branch=${CURRENT_BRANCH:-detached}, HEAD=${INSTALLED_COMMIT}."
 log "Backup перед обновлением: ${BACKUP_FILE}"
