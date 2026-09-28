@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import String, func, or_
+from sqlalchemy import String, cast, or_
 from sqlalchemy.orm import Session
 
 from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
@@ -145,7 +145,7 @@ class ControlPlaneAuditService:
                 or_(
                     ControlPlaneAuditRecord.target_id.ilike(needle),
                     ControlPlaneAuditRecord.license_id.ilike(needle),
-                    func.cast(ControlPlaneAuditRecord.installation_id, String).ilike(needle),
+                    cast(ControlPlaneAuditRecord.installation_id, String).ilike(needle),
                 )
             )
         return (
