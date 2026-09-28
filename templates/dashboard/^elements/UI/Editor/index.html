@@ -28,6 +28,9 @@
             }
         });
 
+        window.jsintEditors = window.jsintEditors || {};
+        window.jsintEditors["{{ fieldId }}"] = quill;
+
         if (input.value) {
             quill.clipboard.dangerouslyPasteHTML(input.value);
         }
