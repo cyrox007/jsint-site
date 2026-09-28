@@ -5,7 +5,7 @@
     <div class="container">
         <div class="section-heading">
             <div>
-                <span class="section-kicker">04 / Практика</span>
+                <span class="section-kicker">{{ resume.get('kicker') or '04 / Практика' }}</span>
                 <h2 class="section-title">{{ resume.get('title') or 'Опыт работы' }}</h2>
             </div>
             {% if resume.get('subtitle') %}<p class="section-subtitle">{{ resume.get('subtitle') }}</p>{% endif %}
