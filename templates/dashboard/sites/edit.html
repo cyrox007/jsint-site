@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <form method="post" class="site-editor__form">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="dynamic_site_lists" value="1">
 
         <section class="admin-card">
             <div class="admin-card__header">
