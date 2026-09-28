@@ -586,3 +586,36 @@ class ReleaseStatusView(MethodView):
         )
         flash("Статус релиза обновлён", "success")
         return redirect(url_for("admin.releases.index", tab="registry"))
+
+
+class ControlPlaneAuditView(MethodView):
+    @login_required
+    @with_db_session
+    def get(self, db_session: Session):
+        action = request.args.get("action", "").strip()[:96] or None
+        outcome = request.args.get("outcome", "").strip()[:16] or None
+        query = request.args.get("q", "").strip()[:160] or None
+        records = ControlPlaneAuditService.list_records(
+            db_session,
+            action=action,
+            outcome=outcome,
+            query=query,
+        )
+        actions = [
+            item[0]
+            for item in (
+                db_session.query(ControlPlaneAuditRecord.action)
+                .distinct()
+                .order_by(ControlPlaneAuditRecord.action)
+                .all()
+            )
+        ]
+        return render_template(
+            "dashboard/control_plane/audit.html",
+            records=records,
+            actions=actions,
+            selected_action=action or "",
+            selected_outcome=outcome or "",
+            query=query or "",
+            retention_days=config.OPERATOR_AUDIT_RETENTION_DAYS,
+        )
