@@ -1,0 +1,133 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}{{ page.title }} | Страницы{% endblock %}
+{% block content %}
+<div class="admin-page page-builder">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">{{ selected_site.name }} · /{{ page.slug }}</span>
+            <h1 class="admin-page__title">{{ page.title }}</h1>
+            <p class="admin-page__description">Структура страницы отдаётся тем же публичным API любому подключённому frontend.</p>
+        </div>
+        <div class="admin-page__actions">
+            <a class="btn secondary" href="{{ url_for('admin.pages.index', site_id=selected_site.id) }}">К страницам</a>
+            {% if page.slug == 'home' %}
+            <a class="btn secondary" href="{{ url_for('admin.sites.edit', site_id=selected_site.id) }}">Настройки главной</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="admin-card">
+        <div class="admin-card__header"><div><h2 class="admin-card__title">Параметры страницы</h2></div></div>
+        <form method="post" class="admin-card__body admin-form page-meta-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="update_page">
+            <label>Название<input name="title" maxlength="200" value="{{ page.title }}" required></label>
+            <label>URL<input name="slug" maxlength="120" value="{{ page.slug }}" {% if page.slug == 'home' %}readonly{% endif %} required></label>
+            <label class="page-field-wide">SEO title<input name="seo_title" maxlength="255" value="{{ page.seo_title or '' }}"></label>
+            <label class="page-field-wide">SEO description<textarea name="seo_description" rows="3" maxlength="1000">{{ page.seo_description or '' }}</textarea></label>
+            <label class="switch"><input type="checkbox" name="is_published" {% if page.is_published %}checked{% endif %}><span class="slider"></span><span class="label">Опубликована</span></label>
+            <div class="page-meta-actions">
+                <button class="btn primary" type="submit">Сохранить страницу</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="page-blocks">
+        <div class="page-blocks__heading">
+            <div><span class="admin-page__eyebrow">Конструктор</span><h2>Блоки страницы</h2></div>
+            <span>{{ blocks|length }} шт.</span>
+        </div>
+
+        {% for block in blocks %}
+        <article class="admin-card page-block">
+            <div class="admin-card__header">
+                <div>
+                    <h3 class="admin-card__title">{{ generic_block_labels.get(block.block_type, block.block_type) }}</h3>
+                    <p class="admin-card__description">Позиция {{ block.position }} · {{ 'включён' if block.is_enabled else 'скрыт' }}</p>
+                </div>
+            </div>
+            {% if block.block_type in generic_block_types %}
+            <form method="post" class="admin-card__body admin-form page-block__form">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="update_block">
+                <input type="hidden" name="block_id" value="{{ block.id }}">
+                <label>Позиция<input type="number" name="position" min="0" max="9999" value="{{ block.position }}"></label>
+                <label class="switch"><input type="checkbox" name="is_enabled" {% if block.is_enabled %}checked{% endif %}><span class="slider"></span><span class="label">Показывать блок</span></label>
+                <label class="page-field-wide">Заголовок<input name="block_title" value="{{ block.settings.get('title', '') }}"></label>
+
+                {% if block.block_type == 'rich_text' %}
+                <label class="page-field-wide">Текст<textarea name="block_body" rows="8">{{ block.settings.get('body', '') }}</textarea></label>
+                {% elif block.block_type == 'publication_feed' %}
+                <label>Тип публикаций<input name="block_source_type" value="{{ block.settings.get('source_type', '') }}" placeholder="article"></label>
+                <label>Рубрика<input name="block_category" value="{{ block.settings.get('category', '') }}" placeholder="slug рубрики"></label>
+                <label>Количество<input type="number" name="block_limit" min="1" max="50" value="{{ block.settings.get('limit', 6) }}"></label>
+                {% elif block.block_type == 'callout' %}
+                <label class="page-field-wide">Текст<textarea name="block_text" rows="4">{{ block.settings.get('text', '') }}</textarea></label>
+                <label>Текст кнопки<input name="block_label" value="{{ block.settings.get('label', '') }}"></label>
+                <label>Ссылка<input name="block_href" value="{{ block.settings.get('href', '') }}"></label>
+                {% elif block.block_type == 'links' %}
+                <label class="page-field-wide">Ссылки<textarea name="block_links" rows="6">{% for item in block.settings.get('items', []) %}{{ item.label }}|{{ item.href }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea><small>Одна строка: Название|ссылка</small></label>
+                {% endif %}
+
+                <div class="page-block__actions">
+                    <button class="btn secondary" type="submit">Сохранить блок</button>
+                </div>
+            </form>
+            <form method="post" class="page-block__delete" onsubmit="return confirm('Удалить этот блок?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="delete_block">
+                <input type="hidden" name="block_id" value="{{ block.id }}">
+                <button class="btn danger btn-small" type="submit">Удалить</button>
+            </form>
+            {% else %}
+            <div class="admin-card__body">
+                <p class="admin-card__description">Это системный блок встроенной главной. Его содержимое редактируется в настройках сайта.</p>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="admin-card page-add-block">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Добавить блок</h2>
+                <p class="admin-card__description">Поля, не относящиеся к выбранному типу, будут проигнорированы.</p>
+            </div>
+        </div>
+        <form method="post" class="admin-card__body admin-form page-add-block__form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="add_block">
+            <label>Тип
+                <select name="block_type" required>
+                    {% for block_type in generic_block_types %}<option value="{{ block_type }}">{{ generic_block_labels[block_type] }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="page-field-wide">Заголовок<input name="block_title"></label>
+            <label class="page-field-wide">Текст / HTML<textarea name="block_body" rows="5"></textarea></label>
+            <label>Тип публикаций<input name="block_source_type" placeholder="article"></label>
+            <label>Рубрика<input name="block_category" placeholder="slug"></label>
+            <label>Количество<input type="number" name="block_limit" min="1" max="50" value="6"></label>
+            <label class="page-field-wide">Текст призыва<textarea name="block_text" rows="3"></textarea></label>
+            <label>Текст кнопки<input name="block_label"></label>
+            <label>Ссылка<input name="block_href"></label>
+            <label class="page-field-wide">Список ссылок<textarea name="block_links" rows="4" placeholder="Документация|/docs"></textarea></label>
+            <div><button class="btn primary" type="submit">Добавить блок</button></div>
+        </form>
+    </section>
+
+    {% if page.slug != 'home' %}
+    <section class="admin-card page-danger">
+        <div class="admin-card__body">
+            <div><strong>Удаление страницы</strong><p>Страница и все её блоки будут удалены.</p></div>
+            <form method="post" onsubmit="return confirm('Удалить страницу и все её блоки?')">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="delete_page">
+                <button class="btn danger" type="submit">Удалить страницу</button>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

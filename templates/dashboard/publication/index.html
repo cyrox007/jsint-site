@@ -2,119 +2,104 @@
 {% block title %}Контент | JSInteractive{% endblock %}
 
 {% macro render_tree(items) %}
-    <ul class="publication-tree">
-        {% for item in items %}
-        <li>
-            <div class="publication-tree-row">
-                <a class="publication-tree-link {{ 'is-active' if selected_category_id == item.id|string }}"
-                   href="{{ url_for('admin.publication.index', category_id=item.id) }}">
-                    <span class="publication-tree-link__title">{{ item.title }}</span>
-                    <span class="publication-tree-link__count">{{ item.publication_count }}</span>
-                </a>
+<ul class="publication-tree">
+    {% for item in items %}
+    <li>
+        <div class="publication-tree-row">
+            <a class="publication-tree-link {{ 'is-active' if selected_category_id == item.id|string }}"
+               href="{{ url_for('admin.publication.index', site_id=selected_site.id, category_id=item.id) }}">
+                <span class="publication-tree-link__title">{{ item.title }}</span>
+                <span class="publication-tree-link__count">{{ item.publication_count }}</span>
+            </a>
 
-                <details class="category-actions" {% if edit_category_id == item.id|string %}open{% endif %}>
-                    <summary title="Настроить рубрику" aria-label="Настроить рубрику">•••</summary>
-                    <div class="category-actions__popover">
-                        <form method="post" class="category-inline-form">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="action" value="update_category">
-                            <input type="hidden" name="category_id" value="{{ item.id }}">
-                            <input type="hidden" name="return_category_id" value="{{ selected_category_id }}">
+            <details class="category-actions" {% if edit_category_id == item.id|string %}open{% endif %}>
+                <summary title="Настроить рубрику" aria-label="Настроить рубрику">•••</summary>
+                <div class="category-actions__popover">
+                    <form method="post" class="category-inline-form">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+                        <input type="hidden" name="action" value="update_category">
+                        <input type="hidden" name="category_id" value="{{ item.id }}">
+                        <input type="hidden" name="return_category_id" value="{{ selected_category_id }}">
 
-                            <label>
-                                Название
-                                <input type="text" name="title" maxlength="50" value="{{ item.title }}" required>
-                            </label>
-                            <label>
-                                URL
-                                <input type="text" name="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ item.slug }}" required>
-                            </label>
-                            <label>
-                                Родительская рубрика
-                                <select name="parent_id">
-                                    <option value="">Корневая рубрика</option>
-                                    {% for category in categories %}
-                                        {% if category.id != item.id %}
-                                        <option value="{{ category.id }}"
-                                                {% if category_parent_ids.get(item.id|string, '') == category.id|string %}selected{% endif %}>
-                                            {{ category.title }}
-                                        </option>
-                                        {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <label>
-                                Описание
-                                <textarea name="description" rows="3">{{ item.description or '' }}</textarea>
-                            </label>
-                            <div class="category-inline-form__actions">
-                                <button class="btn primary btn-small" type="submit">Сохранить</button>
-                            </div>
-                        </form>
+                        <label>Название<input type="text" name="title" maxlength="50" value="{{ item.title }}" required></label>
+                        <label>URL<input type="text" name="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value="{{ item.slug }}" required></label>
+                        <label>Родительская рубрика
+                            <select name="parent_id">
+                                <option value="">Корневая рубрика</option>
+                                {% for category in categories %}
+                                    {% if category.id != item.id %}
+                                    <option value="{{ category.id }}" {% if category_parent_ids.get(item.id|string, '') == category.id|string %}selected{% endif %}>{{ category.title }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>Описание<textarea name="description" rows="3">{{ item.description or '' }}</textarea></label>
+                        <div class="category-inline-form__actions"><button class="btn primary btn-small" type="submit">Сохранить</button></div>
+                    </form>
 
-                        <form method="post"
-                              class="category-delete-form"
-                              onsubmit="return confirm('Удалить рубрику «{{ item.title|e }}»? Сначала в ней не должно остаться публикаций и дочерних рубрик.')">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="action" value="delete_category">
-                            <input type="hidden" name="category_id" value="{{ item.id }}">
-                            <input type="hidden" name="return_category_id" value="{{ selected_category_id }}">
-                            <button class="btn danger btn-small" type="submit">Удалить рубрику</button>
-                        </form>
-                    </div>
-                </details>
-            </div>
+                    <form method="post" class="category-delete-form" onsubmit="return confirm('Удалить рубрику «{{ item.title|e }}»?')">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+                        <input type="hidden" name="action" value="delete_category">
+                        <input type="hidden" name="category_id" value="{{ item.id }}">
+                        <input type="hidden" name="return_category_id" value="{{ selected_category_id }}">
+                        <button class="btn danger btn-small" type="submit">Удалить рубрику</button>
+                    </form>
+                </div>
+            </details>
+        </div>
 
-            {% if item.children %}
-                {{ render_tree(item.children) }}
-            {% endif %}
-        </li>
-        {% endfor %}
-    </ul>
+        {% if item.children %}{{ render_tree(item.children) }}{% endif %}
+    </li>
+    {% endfor %}
+</ul>
 {% endmacro %}
 
 {% block content %}
 <div class="admin-page publication-workspace">
     <header class="admin-page__header">
         <div class="admin-page__heading">
-            <span class="admin-page__eyebrow">Публичный сайт</span>
+            <span class="admin-page__eyebrow">Публичный контент</span>
             <h1 class="admin-page__title">Контент</h1>
-            <p class="admin-page__description">Рубрики и публикации управляются в одном рабочем пространстве.</p>
+            <p class="admin-page__description">Рубрики и публикации разделены по сайтам, но управляются из одной админки.</p>
         </div>
         <div class="admin-page__actions">
-            <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary">+ Новая публикация</a>
+            <form method="get" class="site-switcher">
+                <label for="site_id">Сайт</label>
+                <select id="site_id" name="site_id" onchange="this.form.submit()">
+                    {% for site_item in sites %}
+                    <option value="{{ site_item.id }}" {% if site_item.id == selected_site.id %}selected{% endif %}>{{ site_item.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{{ url_for('admin.publication.create', site_id=selected_site.id, category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create', site_id=selected_site.id) }}" class="btn primary">+ Новая публикация</a>
         </div>
     </header>
+
+    <div class="publication-site-note">
+        <strong>{{ selected_site.name }}</strong>
+        <span>{{ selected_site.key }} · {{ selected_site.base_url or 'публичный URL не задан' }}</span>
+        <a href="{{ url_for('admin.sites.edit', site_id=selected_site.id) }}">Настройки сайта</a>
+    </div>
 
     <div class="publication-workspace__grid">
         <aside class="publication-tree-card admin-card">
             <div class="publication-tree-card__header">
-                <div>
-                    <span class="publication-tree-card__eyebrow">Структура сайта</span>
-                    <strong>Рубрики</strong>
-                </div>
+                <div><span class="publication-tree-card__eyebrow">Структура сайта</span><strong>Рубрики</strong></div>
                 <details class="category-create" {% if not category_tree %}open{% endif %}>
                     <summary title="Создать рубрику" aria-label="Создать рубрику">+</summary>
                     <div class="category-create__popover">
                         <form method="post" class="category-inline-form">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="site_id" value="{{ selected_site.id }}">
                             <input type="hidden" name="action" value="create_category">
                             <input type="hidden" name="return_category_id" value="{{ selected_category_id }}">
 
-                            <div class="category-inline-form__heading">
-                                <strong>Новая рубрика</strong>
-                                <span>Можно создать корневую рубрику или дочернюю.</span>
-                            </div>
-                            <label>
-                                Название
-                                <input type="text" name="title" maxlength="50" required>
-                            </label>
-                            <label>
-                                URL
-                                <input type="text" name="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="nazvanie-rubriki" required>
-                            </label>
-                            <label>
-                                Родительская рубрика
+                            <div class="category-inline-form__heading"><strong>Новая рубрика</strong><span>Создаётся только для {{ selected_site.name }}.</span></div>
+                            <label>Название<input type="text" name="title" maxlength="50" required></label>
+                            <label>URL<input type="text" name="slug" maxlength="255" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="nazvanie-rubriki" required></label>
+                            <label>Родительская рубрика
                                 <select name="parent_id">
                                     <option value="">Корневая рубрика</option>
                                     {% for category in categories %}
@@ -122,10 +107,7 @@
                                     {% endfor %}
                                 </select>
                             </label>
-                            <label>
-                                Описание
-                                <textarea name="description" rows="3"></textarea>
-                            </label>
+                            <label>Описание<textarea name="description" rows="3"></textarea></label>
                             <button class="btn primary btn-small" type="submit">Создать рубрику</button>
                         </form>
                     </div>
@@ -133,34 +115,26 @@
             </div>
 
             <div class="publication-tree-card__body">
-                <a class="publication-tree-root {{ 'is-active' if not selected_category_id }}"
-                   href="{{ url_for('admin.publication.index') }}">
-                    <span>Все публикации</span>
-                    <span class="publication-tree-link__count">{{ total_publications }}</span>
+                <a class="publication-tree-root {{ 'is-active' if not selected_category_id }}" href="{{ url_for('admin.publication.index', site_id=selected_site.id) }}">
+                    <span>Все публикации</span><span class="publication-tree-link__count">{{ total_publications }}</span>
                 </a>
-
                 {% if category_tree %}
                     {{ render_tree(category_tree) }}
                 {% else %}
-                    <div class="publication-tree-empty">
-                        <strong>Рубрик пока нет.</strong>
-                        <span>Создайте первую кнопкой «+» выше.</span>
-                    </div>
+                    <div class="publication-tree-empty"><strong>Рубрик пока нет.</strong><span>Создайте первую кнопкой «+» выше.</span></div>
                 {% endif %}
             </div>
         </aside>
 
         <section class="publication-catalog">
             <div class="publication-catalog__heading">
-                <div>
-                    <span class="publication-catalog__eyebrow">Материалы</span>
-                    <h2>{{ 'Выбранная рубрика' if selected_category_id else 'Все публикации' }}</h2>
-                </div>
-                <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary btn-small">+ Добавить</a>
+                <div><span class="publication-catalog__eyebrow">{{ selected_site.name }}</span><h2>{{ 'Выбранная рубрика' if selected_category_id else 'Все публикации' }}</h2></div>
+                <a href="{{ url_for('admin.publication.create', site_id=selected_site.id, category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create', site_id=selected_site.id) }}" class="btn primary btn-small">+ Добавить</a>
             </div>
 
             <div class="admin-toolbar publication-toolbar">
                 <form method="get">
+                    <input type="hidden" name="site_id" value="{{ selected_site.id }}">
                     {% if selected_category_id %}<input type="hidden" name="category_id" value="{{ selected_category_id }}">{% endif %}
                     <input type="search" name="search" maxlength="200" placeholder="Поиск по названию и тексту…" value="{{ request.args.get('search', '') }}">
                     <select name="status">
@@ -169,7 +143,7 @@
                         <option value="draft" {% if request.args.get('status') == 'draft' %}selected{% endif %}>Черновики</option>
                     </select>
                     <button type="submit" class="btn secondary btn-small">Применить</button>
-                    <a href="{{ url_for('admin.publication.index', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.index') }}" class="btn secondary btn-small">Сбросить</a>
+                    <a href="{{ url_for('admin.publication.index', site_id=selected_site.id, category_id=selected_category_id) if selected_category_id else url_for('admin.publication.index', site_id=selected_site.id) }}" class="btn secondary btn-small">Сбросить</a>
                 </form>
             </div>
 
@@ -179,7 +153,7 @@
                     <div class="publication-card__body">
                         <div class="publication-card__icon" aria-hidden="true">▤</div>
                         <div class="publication-card__content">
-                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id) }}">{{ publication.title }}</a>
+                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}">{{ publication.title }}</a>
                             <div class="publication-card__meta">
                                 <span>{{ publication.category.title if publication.category else 'Без рубрики' }}</span>
                                 <span>{{ publication.source_type }}</span>
@@ -188,15 +162,10 @@
                             <div class="publication-card__slug">{{ publication.slug }}</div>
                         </div>
                     </div>
-
                     <div class="publication-card__actions">
-                        <span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">
-                            {{ 'Опубликовано' if publication.is_published else 'Черновик' }}
-                        </span>
-                        <a href="{{ url_for('admin.publication.edit', id=publication.id) }}" class="btn secondary btn-small">Редактировать</a>
-                        <form method="post"
-                              action="{{ url_for('admin.publication.delete', id=publication.id) }}"
-                              onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')">
+                        <span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span>
+                        <a href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}" class="btn secondary btn-small">Редактировать</a>
+                        <form method="post" action="{{ url_for('admin.publication.delete', id=publication.id) }}" onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn danger btn-small">Удалить</button>
                         </form>
@@ -205,8 +174,8 @@
                 {% else %}
                 <div class="admin-empty publication-empty">
                     <strong>Здесь пока нет публикаций</strong>
-                    <span>Создайте материал в выбранной рубрике или измените фильтры.</span>
-                    <a href="{{ url_for('admin.publication.create', category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create') }}" class="btn primary btn-small">Создать публикацию</a>
+                    <span>Создайте материал для {{ selected_site.name }} или измените фильтры.</span>
+                    <a href="{{ url_for('admin.publication.create', site_id=selected_site.id, category_id=selected_category_id) if selected_category_id else url_for('admin.publication.create', site_id=selected_site.id) }}" class="btn primary btn-small">Создать публикацию</a>
                 </div>
                 {% endfor %}
             </div>

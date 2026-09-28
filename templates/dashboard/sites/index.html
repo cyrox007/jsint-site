@@ -1,0 +1,60 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Сайты | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page sites-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Публичные витрины</span>
+            <h1 class="admin-page__title">Сайты</h1>
+            <p class="admin-page__description">Один backend и одна админка обслуживают несколько независимых публичных фронтов.</p>
+        </div>
+    </header>
+
+    <section class="admin-grid admin-grid--2">
+        {% for site in sites %}
+        <article class="admin-card site-card">
+            <div class="admin-card__header">
+                <div>
+                    <div class="site-card__title-row">
+                        <h2 class="admin-card__title">{{ site.name }}</h2>
+                        {% if site.is_default %}<span class="status-badge status-badge--success">Основной</span>{% endif %}
+                        {% if not site.is_active %}<span class="status-badge status-badge--warning">Выключен</span>{% endif %}
+                    </div>
+                    <p class="admin-card__description">{{ site.key }} · {{ site.base_url or 'URL не задан' }}</p>
+                </div>
+            </div>
+            <div class="admin-card__body">
+                <div class="site-card__stats">
+                    <span>{{ counts[site.id|string].categories }} рубрик</span>
+                    <span>{{ counts[site.id|string].publications }} публикаций</span>
+                    <span>тема: {{ site.theme_key }}</span>
+                </div>
+                <div class="admin-actions site-card__actions">
+                    <a class="btn primary" href="{{ url_for('admin.sites.edit', site_id=site.id) }}">Настроить</a>
+                    <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=site.id) }}">Контент</a>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="admin-card site-create-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Подключить ещё один фронт</h2>
+                <p class="admin-card__description">Создаётся логическая витрина. Отдельный backend не нужен.</p>
+            </div>
+        </div>
+        <div class="admin-card__body">
+            <form method="post" class="admin-form site-create-form">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <label>Ключ сайта<input name="key" maxlength="80" placeholder="logos" required></label>
+                <label>Название<input name="name" maxlength="160" placeholder="Logos" required></label>
+                <label>Публичный URL<input name="base_url" placeholder="https://logos.example.ru"></label>
+                <label>Тема<input name="theme_key" maxlength="80" value="ultra"></label>
+                <div><button class="btn primary" type="submit">Создать сайт</button></div>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

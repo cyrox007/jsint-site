@@ -1,14 +1,28 @@
-# 1. Независимые модели (не имеют внешних ключей на другие наши модели)
+# 1. Независимые модели
 from models.technology import Technology
 from models.users import User
-from models.categories import Category
+from models.site import Site
+from models.media import MediaAsset
 
-# 2. Модели, зависящие от других
+# 2. Публичные страницы и контент
+from models.page import Page, PageBlock
+from models.categories import Category
 from models.publication import Publication
 from models.task import Task
+
+# 3. Системный контур
 from models.control_plane import LicenseRecord, ReleaseRecord
 
-# Если будут другие модели — добавляйте в правильном порядке
-# from models.comments import Comment  # зависит от Article и User
-
-__all__ = ["User", "Category", "Technology", "Publication", "Task", "LicenseRecord", "ReleaseRecord"]
+__all__ = [
+    "User",
+    "Site",
+    "MediaAsset",
+    "Page",
+    "PageBlock",
+    "Category",
+    "Technology",
+    "Publication",
+    "Task",
+    "LicenseRecord",
+    "ReleaseRecord",
+]

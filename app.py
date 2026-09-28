@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from components.security.csrf import init_app as init_csrf
@@ -22,12 +22,17 @@ def create_app() -> Flask:
 
     from views.public.home import routers as home_router
     from views.public.articles import routers as article_router
+    from views.public import api as public_api
+    from views.public import media as public_media
     from views.public import seo as public_seo
     from views.auth import router as auth_router
     from views.dashboard.main import router as d_main_router
     from views.dashboard.blog import routers as d_blog_router
     from views.dashboard.catalog import routers as d_catalog_router
     from views.dashboard.control_plane import router as d_control_plane_router
+    from views.dashboard.sites import router as d_sites_router
+    from views.dashboard.media import router as d_media_router
+    from views.dashboard.pages import router as d_pages_router
     from views import notes_api
 
     app = Flask(__name__, static_folder="static")
@@ -46,8 +51,7 @@ def create_app() -> Flask:
     )
 
     if config.BEHIND_PROXY:
-        # Безопасно только когда WSGI-порт доступен исключительно доверенному
-        # reverse proxy (рекомендуемый production deployment).
+        # WSGI-порт должен быть доступен только доверенному reverse proxy.
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
             x_for=1,
@@ -59,13 +63,38 @@ def create_app() -> Flask:
     app.after_request(apply_security_headers)
     app.jinja_env.filters["safe_rich_text"] = safe_rich_text
 
+    @app.context_processor
+    def inject_admin_site_workspace():
+        if not session.get("user_id") or not request.path.startswith(config.ADMIN_ROUTE_PREFIX):
+            return {}
+
+        from components.admin.site_context import resolve_admin_site
+        from database import Database
+        from services.site import SiteService
+
+        db_session = Database.connect_database()
+        try:
+            sites = SiteService.list_sites(db_session)
+            selected_site = resolve_admin_site(db_session)
+            return {
+                "admin_sites": sites,
+                "admin_selected_site": selected_site,
+            }
+        finally:
+            db_session.close()
+
     home_router.install(app)
     article_router.install(app)
+    public_api.install(app)
+    public_media.install(app)
     auth_router.install(app)
     d_main_router.install(app)
     d_blog_router.install(app)
     d_catalog_router.install(app)
     d_control_plane_router.install(app)
+    d_sites_router.install(app)
+    d_media_router.install(app)
+    d_pages_router.install(app)
     notes_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])

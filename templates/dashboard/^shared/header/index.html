@@ -4,7 +4,22 @@
             <span class="admin-brand__mark" aria-hidden="true">JS</span>
             <span class="admin-brand__copy"><strong>JSInteractive</strong><small>Панель управления</small></span>
         </a>
-        <a class="site-link" href="{{ url_for('index') }}" target="_blank" rel="noopener"><span aria-hidden="true">↗</span><span>Открыть сайт</span></a>
+        {% if admin_selected_site %}
+        <form class="workspace-switcher" method="post" action="{{ url_for('admin.site-workspace') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <label for="workspace-site">Рабочий сайт</label>
+            <select id="workspace-site" name="site_id" onchange="this.form.submit()" aria-label="Рабочий сайт">
+                {% for site in admin_sites %}
+                <option value="{{ site.id }}" {% if site.id == admin_selected_site.id %}selected{% endif %}>{{ site.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <a class="site-link"
+           href="{{ admin_selected_site.base_url or url_for('index') }}"
+           target="_blank"
+           rel="noopener"><span aria-hidden="true">↗</span><span>Открыть сайт</span></a>
+        {% endif %}
     </div>
     <details class="header-user">
         <summary class="user-button">

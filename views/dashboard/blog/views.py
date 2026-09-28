@@ -5,9 +5,9 @@ from uuid import UUID
 from flask import abort, flash, jsonify, redirect, render_template, request, session, url_for
 from flask.views import MethodView
 from pydantic import ValidationError
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from components.admin.site_context import resolve_admin_site
 from components.auth.decorator import login_required, with_db_session
 from components.security.html import sanitize_rich_text
 from models.categories import Category
@@ -15,12 +15,19 @@ from models.publication import Publication
 from schemas.publication import PublicationCreate, PublicationUpdate
 from services.catalog import CatalogService
 from services.publication import PublicationService
+from services.publication_channel import PublicationChannelService
+from services.site import SiteService
 from utils.validation import validate_slug
 
 
-def _publication_payload(schema_cls):
+def _site_from_raw(db_session: Session, raw: str | None, *, fallback: bool = True):
+    return resolve_admin_site(db_session, raw, fallback=fallback)
+
+
+def _publication_payload(schema_cls, site_id: UUID):
     content = sanitize_rich_text(request.form.get("content", "").strip())
     return schema_cls(
+        site_id=site_id,
         title=request.form.get("title", "").strip(),
         slug=request.form.get("slug", "").strip(),
         content=content,
@@ -37,8 +44,10 @@ def _publication_payload(schema_cls):
 
 
 def _validate_publication_references(db_session: Session, data) -> str | None:
-    if data.category_id is not None and Category.get_by_id(db_session, data.category_id) is None:
-        return "Выбранная рубрика не существует"
+    if data.category_id is not None:
+        category = Category.get_by_id(db_session, data.category_id, data.site_id)
+        if category is None:
+            return "Выбранная рубрика не существует на этом сайте"
     if data.is_published and data.category_id is None:
         return "Для публикации материала выберите рубрику"
     return None
@@ -54,8 +63,13 @@ def _optional_uuid(raw: str) -> UUID | None:
     return UUID(raw) if raw else None
 
 
-def _content_redirect(*, category_id: UUID | str | None = None, edit_category: UUID | str | None = None):
-    values: dict[str, str] = {}
+def _content_redirect(
+    *,
+    site_id: UUID | str,
+    category_id: UUID | str | None = None,
+    edit_category: UUID | str | None = None,
+):
+    values = {"site_id": str(site_id)}
     if category_id:
         values["category_id"] = str(category_id)
     if edit_category:
@@ -77,49 +91,98 @@ def _tree_with_counts(items: list[dict], direct_counts: dict[str, int]) -> list[
     return result
 
 
+def _sync_additional_placements(
+    db_session: Session,
+    publication: Publication,
+) -> None:
+    for site in SiteService.list_sites(db_session):
+        if site.id == publication.site_id:
+            continue
+
+        prefix = f"placement_{site.id}"
+        enabled = request.form.get(f"{prefix}_enabled") == "on"
+        if not enabled:
+            PublicationChannelService.remove_placement(
+                db_session,
+                publication_id=publication.id,
+                site_id=site.id,
+            )
+            continue
+
+        category_raw = request.form.get(f"{prefix}_category_id", "").strip()
+        try:
+            category_id = UUID(category_raw) if category_raw else None
+        except ValueError as exc:
+            raise ValueError(f"{site.name}: некорректная рубрика") from exc
+
+        slug = request.form.get(f"{prefix}_slug", "").strip() or publication.slug
+        PublicationChannelService.set_placement(
+            db_session,
+            publication_id=publication.id,
+            site_id=site.id,
+            slug=slug,
+            category_id=category_id,
+            is_published=request.form.get(f"{prefix}_published") == "on",
+        )
+
+
 class PublicationListPage(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
-        filters: dict = {"is_published": None}
+        selected_site = _site_from_raw(db_session, request.args.get("site_id"))
         selected_category_id = ""
-
-        search = request.args.get("search", "").strip()
-        if search:
-            filters["search"] = search[:200]
+        category_ids: list[UUID] | None = None
+        search = request.args.get("search", "").strip()[:200] or None
 
         status = request.args.get("status", "").strip()
+        publication_status: bool | None = None
         if status == "published":
-            filters["is_published"] = True
+            publication_status = True
         elif status == "draft":
-            filters["is_published"] = False
+            publication_status = False
 
         category_raw = request.args.get("category_id", "").strip()
         if category_raw:
             try:
                 category_id = UUID(category_raw)
-                selected = Category.get_by_id(db_session, category_id)
+                selected = Category.get_by_id(db_session, category_id, selected_site.id)
                 if selected is None:
-                    flash("Выбранная рубрика не найдена", "error")
+                    flash("Выбранная рубрика не найдена на этом сайте", "error")
                 else:
                     descendants = Category.get_all_descendants(db_session, category_id)
-                    filters["category_ids"] = [category_id, *[item.id for item in descendants]]
+                    category_ids = [category_id, *[item.id for item in descendants]]
                     selected_category_id = str(category_id)
             except ValueError:
                 flash("Некорректный фильтр рубрики", "error")
 
-        publications = PublicationService.get_publications(db_session, **filters)
-        categories = db_session.query(Category).order_by(Category.title).all()
-
-        total_publications = db_session.query(Publication).count()
-        count_rows = (
-            db_session.query(Publication.category_id, func.count(Publication.id))
-            .filter(Publication.category_id.is_not(None))
-            .group_by(Publication.category_id)
+        publications = PublicationChannelService.list_for_admin(
+            db_session,
+            site_id=selected_site.id,
+            is_published=publication_status,
+            category_ids=category_ids,
+            search=search,
+        )
+        categories = (
+            db_session.query(Category)
+            .filter(Category.site_id == selected_site.id)
+            .order_by(Category.title)
             .all()
         )
+
+        total_publications = PublicationChannelService.count_for_admin(
+            db_session,
+            site_id=selected_site.id,
+        )
+        count_rows = PublicationChannelService.category_counts(
+            db_session,
+            site_id=selected_site.id,
+        )
         direct_counts = {str(category_id): int(count) for category_id, count in count_rows}
-        category_tree = _tree_with_counts(Category.get_tree(db_session), direct_counts)
+        category_tree = _tree_with_counts(
+            Category.get_tree(db_session, selected_site.id),
+            direct_counts,
+        )
         category_parent_ids = {
             str(category.id): str(category.parent_id or "") for category in categories
         }
@@ -128,7 +191,7 @@ class PublicationListPage(MethodView):
         if edit_category_id:
             try:
                 edit_id = UUID(edit_category_id)
-                if Category.get_by_id(db_session, edit_id) is None:
+                if Category.get_by_id(db_session, edit_id, selected_site.id) is None:
                     edit_category_id = ""
             except ValueError:
                 edit_category_id = ""
@@ -142,11 +205,21 @@ class PublicationListPage(MethodView):
             category_parent_ids=category_parent_ids,
             edit_category_id=edit_category_id,
             total_publications=total_publications,
+            sites=SiteService.list_sites(db_session),
+            selected_site=selected_site,
         )
 
     @login_required
     @with_db_session
     def post(self, db_session: Session):
+        selected_site = _site_from_raw(
+            db_session,
+            request.form.get("site_id"),
+            fallback=False,
+        )
+        if selected_site is None:
+            abort(400)
+
         action = request.form.get("action", "").strip()
         return_category_raw = request.form.get("return_category_id", "").strip()
         return_category_id: UUID | None = None
@@ -162,11 +235,15 @@ class PublicationListPage(MethodView):
                 parent_id = _optional_uuid(request.form.get("parent_id", ""))
             except ValueError as exc:
                 flash(str(exc) or "Проверьте данные рубрики", "error")
-                return _content_redirect(category_id=return_category_id)
+                return _content_redirect(
+                    site_id=selected_site.id,
+                    category_id=return_category_id,
+                )
 
             category = CatalogService.create_category(
                 db_session,
                 {
+                    "site_id": selected_site.id,
                     "title": request.form.get("title", "").strip(),
                     "slug": slug,
                     "description": request.form.get("description", "").strip(),
@@ -175,10 +252,16 @@ class PublicationListPage(MethodView):
             )
             if category:
                 flash("Рубрика создана", "success")
-                return _content_redirect(category_id=category.id)
+                return _content_redirect(
+                    site_id=selected_site.id,
+                    category_id=category.id,
+                )
 
-            flash("Не удалось создать рубрику: проверьте название, URL и родительскую рубрику", "error")
-            return _content_redirect(category_id=return_category_id)
+            flash("Не удалось создать рубрику: проверьте название, URL и иерархию", "error")
+            return _content_redirect(
+                site_id=selected_site.id,
+                category_id=return_category_id,
+            )
 
         if action == "update_category":
             try:
@@ -187,7 +270,14 @@ class PublicationListPage(MethodView):
                 parent_id = _optional_uuid(request.form.get("parent_id", ""))
             except ValueError as exc:
                 flash(str(exc) or "Проверьте данные рубрики", "error")
-                return _content_redirect(category_id=return_category_id)
+                return _content_redirect(
+                    site_id=selected_site.id,
+                    category_id=return_category_id,
+                )
+
+            category = Category.get_by_id(db_session, category_id, selected_site.id)
+            if category is None:
+                abort(404)
 
             updated = CatalogService.update_category(
                 db_session,
@@ -201,17 +291,30 @@ class PublicationListPage(MethodView):
             )
             if updated:
                 flash("Рубрика обновлена", "success")
-                return _content_redirect(category_id=category_id)
+                return _content_redirect(
+                    site_id=selected_site.id,
+                    category_id=category_id,
+                )
 
             flash("Рубрику не удалось обновить: проверьте URL и иерархию", "error")
-            return _content_redirect(category_id=return_category_id, edit_category=category_id)
+            return _content_redirect(
+                site_id=selected_site.id,
+                category_id=return_category_id,
+                edit_category=category_id,
+            )
 
         if action == "delete_category":
             try:
                 category_id = UUID(request.form.get("category_id", "").strip())
             except ValueError:
                 flash("Некорректная рубрика", "error")
-                return _content_redirect(category_id=return_category_id)
+                return _content_redirect(
+                    site_id=selected_site.id,
+                    category_id=return_category_id,
+                )
+
+            if Category.get_by_id(db_session, category_id, selected_site.id) is None:
+                abort(404)
 
             if CatalogService.delete_category(db_session, category_id):
                 flash("Рубрика удалена", "success")
@@ -222,7 +325,10 @@ class PublicationListPage(MethodView):
                     "Рубрику нельзя удалить: сначала удалите или перенесите публикации и дочерние рубрики",
                     "error",
                 )
-            return _content_redirect(category_id=return_category_id)
+            return _content_redirect(
+                site_id=selected_site.id,
+                category_id=return_category_id,
+            )
 
         abort(400)
 
@@ -231,13 +337,19 @@ class CreatePost(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
-        categories = db_session.query(Category).order_by(Category.title).all()
+        selected_site = _site_from_raw(db_session, request.args.get("site_id"))
+        categories = (
+            db_session.query(Category)
+            .filter(Category.site_id == selected_site.id)
+            .order_by(Category.title)
+            .all()
+        )
         selected_category_id = ""
         category_raw = request.args.get("category_id", "").strip()
         if category_raw:
             try:
                 category_id = UUID(category_raw)
-                if Category.get_by_id(db_session, category_id) is not None:
+                if Category.get_by_id(db_session, category_id, selected_site.id) is not None:
                     selected_category_id = str(category_id)
             except ValueError:
                 pass
@@ -246,31 +358,40 @@ class CreatePost(MethodView):
             "dashboard/publication/edit.html",
             categories=categories,
             selected_category_id=selected_category_id,
+            selected_site=selected_site,
         )
 
     @login_required
     @with_db_session
     def post(self, db_session: Session):
+        selected_site = _site_from_raw(
+            db_session,
+            request.form.get("site_id"),
+            fallback=False,
+        )
+        if selected_site is None:
+            abort(400)
+
         try:
-            data = _publication_payload(PublicationCreate)
+            data = _publication_payload(PublicationCreate, selected_site.id)
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
-            return redirect(url_for("admin.publication.create"))
+            return redirect(url_for("admin.publication.create", site_id=selected_site.id))
 
         reference_error = _validate_publication_references(db_session, data)
         if reference_error:
             flash(reference_error, "error")
-            return redirect(url_for("admin.publication.create"))
+            return redirect(url_for("admin.publication.create", site_id=selected_site.id))
 
-        if db_session.query(Publication).filter(Publication.slug == data.slug).first():
-            flash("Публикация с таким URL уже существует", "error")
-            return redirect(url_for("admin.publication.create"))
+        if Publication.get_by_slug(db_session, data.slug, selected_site.id):
+            flash("На этом сайте уже есть публикация с таким URL", "error")
+            return redirect(url_for("admin.publication.create", site_id=selected_site.id))
 
         publication = PublicationService.create_publication(db_session, data)
         if publication is None:
             flash("Не удалось создать публикацию", "error")
-            return redirect(url_for("admin.publication.create"))
+            return redirect(url_for("admin.publication.create", site_id=selected_site.id))
 
         flash("Публикация сохранена", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
@@ -285,13 +406,13 @@ class CheckSlug(MethodView):
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
 
+        selected_site = _site_from_raw(db_session, request.args.get("site_id"))
         candidate = original
         counter = 1
-        while db_session.query(Publication).filter(Publication.slug == candidate).first():
+        while Publication.get_by_slug(db_session, candidate, selected_site.id):
             suffix = f"-{counter}"
             candidate = f"{original[:255 - len(suffix)].rstrip('-')}{suffix}"
             counter += 1
-
         return jsonify({"slug": candidate})
 
 
@@ -299,26 +420,58 @@ class UpdatePost(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session, id: UUID):
-        publication = PublicationService.get_publication(db_session, id)
-        if publication is None:
+        publication_model = Publication.get_by_id(db_session, id)
+        if publication_model is None:
             abort(404)
 
-        categories = db_session.query(Category).order_by(Category.title).all()
+        publication = PublicationService.get_publication(db_session, id)
+        selected_site = SiteService.get_by_id(db_session, publication_model.site_id)
+        if publication is None or selected_site is None:
+            abort(404)
+
+        categories = (
+            db_session.query(Category)
+            .filter(Category.site_id == selected_site.id)
+            .order_by(Category.title)
+            .all()
+        )
+        sites = SiteService.list_sites(db_session)
+        placements = PublicationChannelService.list_placements(db_session, id)
+        placements_by_site = {str(item.site_id): item for item in placements}
+        categories_by_site = {
+            str(site.id): (
+                db_session.query(Category)
+                .filter(Category.site_id == site.id)
+                .order_by(Category.title)
+                .all()
+            )
+            for site in sites
+        }
+        workspace_site = _site_from_raw(db_session, request.args.get("site_id"))
         return render_template(
             "dashboard/publication/edit.html",
             categories=categories,
             publication=publication,
             selected_category_id="",
+            selected_site=selected_site,
+            workspace_site=workspace_site,
+            sites=sites,
+            placements_by_site=placements_by_site,
+            categories_by_site=categories_by_site,
         )
 
     @login_required
     @with_db_session
     def post(self, db_session: Session, id: UUID):
-        if Publication.get_by_id(db_session, id) is None:
+        publication_model = Publication.get_by_id(db_session, id)
+        if publication_model is None:
+            abort(404)
+        selected_site = SiteService.get_by_id(db_session, publication_model.site_id)
+        if selected_site is None:
             abort(404)
 
         try:
-            data = _publication_payload(PublicationUpdate)
+            data = _publication_payload(PublicationUpdate, selected_site.id)
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
@@ -329,17 +482,31 @@ class UpdatePost(MethodView):
             flash(reference_error, "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
-        existing = db_session.query(Publication).filter(Publication.slug == data.slug).first()
+        existing = Publication.get_by_slug(db_session, data.slug, selected_site.id)
         if existing is not None and existing.id != id:
-            flash("Публикация с таким URL уже существует", "error")
+            flash("На этом сайте уже есть публикация с таким URL", "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
-        publication = PublicationService.update_publication(db_session, id, data)
+        publication = PublicationService.update_publication(
+            db_session,
+            id,
+            data,
+            commit=False,
+        )
         if publication is None:
             flash("Не удалось обновить публикацию", "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
-        flash("Публикация сохранена", "success")
+        publication_model = Publication.get_by_id(db_session, id)
+        try:
+            _sync_additional_placements(db_session, publication_model)
+            db_session.commit()
+        except ValueError as exc:
+            db_session.rollback()
+            flash(str(exc), "error")
+            return redirect(url_for("admin.publication.edit", id=id))
+
+        flash("Публикация и размещения сохранены", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
 
 
@@ -348,9 +515,14 @@ class DeletePost(MethodView):
     @with_db_session
     def post(self, db_session: Session, id: UUID):
         publication = Publication.get_by_id(db_session, id)
-        return_category_id = publication.category_id if publication else None
+        if publication is None:
+            flash("Публикация не найдена", "error")
+            return _content_redirect(site_id=SiteService.get_default(db_session).id)
+
+        site_id = publication.site_id
+        return_category_id = publication.category_id
         if not PublicationService.delete_publication(db_session, id):
             flash("Публикация не найдена", "error")
         else:
             flash("Публикация удалена", "success")
-        return _content_redirect(category_id=return_category_id)
+        return _content_redirect(site_id=site_id, category_id=return_category_id)

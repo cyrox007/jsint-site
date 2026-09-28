@@ -17,58 +17,70 @@ class CatalogService:
 
     @classmethod
     def get_category(cls, session: Session, cat_id: UUID) -> Optional[CategoryOut]:
-        cached = cache.get("category", str(cat_id), CategoryOut)
-        if cached:
-            return cached
-
         cat = Category.get_by_id(session, cat_id)
         if not cat:
             return None
 
+        cache_key = f"{cat.site_id}:{cat_id}"
+        cached = cache.get("category", cache_key, CategoryOut)
+        if cached:
+            return cached
+
         schema = CategoryOut.model_validate(cat)
-        cache.set("category", str(cat_id), schema, ttl=cls.TTL_DETAIL)
+        cache.set("category", cache_key, schema, ttl=cls.TTL_DETAIL)
         return schema
 
     @classmethod
-    def get_category_tree(cls, session: Session, parent_id: Optional[UUID] = None) -> List[dict]:
-        cache_key = f"tree:{parent_id or 'root'}"
+    def get_category_tree(
+        cls,
+        session: Session,
+        site_id: UUID,
+        *,
+        parent_id: UUID | None = None,
+    ) -> List[dict]:
+        cache_key = f"tree:{site_id}:{parent_id or 'root'}"
         cached = cache.get_list("category", cache_key, dict)
         if cached is not None:
             return cached
 
-        tree = Category.get_tree(session, parent_id)
+        tree = Category.get_tree(session, site_id, parent_id)
         if tree:
             cache.set_list("category", cache_key, tree, ttl=cls.TTL_LIST)
         return tree
 
     @classmethod
     def get_category_breadcrumbs(cls, session: Session, category_id: UUID) -> List[CategoryOut]:
-        cache_key = f"breadcrumbs:{category_id}"
+        category = Category.get_by_id(session, category_id)
+        if category is None:
+            return []
+
+        cache_key = f"breadcrumbs:{category.site_id}:{category_id}"
         cached = cache.get_list("category", cache_key, CategoryOut)
         if cached is not None:
             return cached
 
-        ancestors = Category.get_ancestors(session, category_id)
-        schemas = [CategoryOut.model_validate(cat) for cat in ancestors]
+        schemas = [CategoryOut.model_validate(item) for item in Category.get_ancestors(session, category_id)]
         if schemas:
             cache.set_list("category", cache_key, schemas, ttl=cls.TTL_DETAIL)
         return schemas
 
     @classmethod
     def create_category(cls, session: Session, data: dict) -> Optional[CategoryOut]:
+        site_id = data.get("site_id")
         title = str(data.get("title") or "").strip()
         slug = validate_slug(str(data.get("slug") or ""))
         description = str(data.get("description") or "").strip() or None
         parent_id = data.get("parent_id")
 
-        if not title or len(title) > 50:
+        if site_id is None or not title or len(title) > 50:
             return None
-        if parent_id is not None and Category.get_by_id(session, parent_id) is None:
+        if parent_id is not None and Category.get_by_id(session, parent_id, site_id) is None:
             return None
-        if Category.get_by_slug(session, slug) is not None:
+        if Category.get_by_slug(session, slug, site_id) is not None:
             return None
 
         category = Category(
+            site_id=site_id,
             title=title,
             slug=slug,
             description=description,
@@ -78,7 +90,7 @@ class CatalogService:
         session.commit()
         session.refresh(category)
 
-        cls.invalidate_category_cache()
+        cls.invalidate_category_cache(site_id=site_id)
         return CategoryOut.model_validate(category)
 
     @classmethod
@@ -95,12 +107,12 @@ class CatalogService:
         if not title or len(title) > 50:
             return None
 
-        existing = Category.get_by_slug(session, slug)
+        existing = Category.get_by_slug(session, slug, category.site_id)
         if existing is not None and existing.id != cat_id:
             return None
 
         if parent_id is not None:
-            if parent_id == cat_id or Category.get_by_id(session, parent_id) is None:
+            if parent_id == cat_id or Category.get_by_id(session, parent_id, category.site_id) is None:
                 return None
             descendants = {item.id for item in Category.get_all_descendants(session, cat_id)}
             if parent_id in descendants:
@@ -113,7 +125,7 @@ class CatalogService:
 
         session.commit()
         session.refresh(category)
-        cls.invalidate_category_cache(category_id=cat_id)
+        cls.invalidate_category_cache(site_id=category.site_id, category_id=cat_id)
         return CategoryOut.model_validate(category)
 
     @classmethod
@@ -122,27 +134,50 @@ class CatalogService:
         if not category:
             return False
 
-        if session.query(Category).filter(Category.parent_id == cat_id).count() > 0:
+        if (
+            session.query(Category)
+            .filter(Category.site_id == category.site_id, Category.parent_id == cat_id)
+            .count()
+            > 0
+        ):
             return False
 
-        from models.publication import Publication
-        if session.query(Publication).filter(Publication.category_id == cat_id).count() > 0:
+        from models.publication import Publication, PublicationSite
+
+        owner_publications = (
+            session.query(Publication)
+            .filter(
+                Publication.site_id == category.site_id,
+                Publication.category_id == cat_id,
+            )
+            .count()
+        )
+        channel_publications = (
+            session.query(PublicationSite)
+            .filter(
+                PublicationSite.site_id == category.site_id,
+                PublicationSite.category_id == cat_id,
+            )
+            .count()
+        )
+        if owner_publications > 0 or channel_publications > 0:
             return False
 
+        site_id = category.site_id
         session.delete(category)
         session.commit()
-        cls.invalidate_category_cache()
+        cls.invalidate_category_cache(site_id=site_id)
         return True
 
     @classmethod
-    def invalidate_category_cache(cls, category_id: Optional[UUID] = None) -> None:
+    def invalidate_category_cache(
+        cls,
+        *,
+        site_id: UUID,
+        category_id: Optional[UUID] = None,
+    ) -> None:
         if category_id:
-            cache.invalidate("category", str(category_id))
-        cache.delete_pattern(f"{cache.PREFIX}:category:tree:*")
-        cache.delete_pattern(f"{cache.PREFIX}:category:breadcrumbs:*")
-        if category_id is None:
-            cache.invalidate("category")
-
-        # Публикации содержат вложенную рубрику в cached schema, поэтому после
-        # переименования или перемещения рубрики список должен обновиться сразу.
+            cache.invalidate("category", f"{site_id}:{category_id}")
+        cache.delete_pattern(f"{cache.PREFIX}:category:tree:{site_id}:*")
+        cache.delete_pattern(f"{cache.PREFIX}:category:breadcrumbs:{site_id}:*")
         cache.invalidate("publications")

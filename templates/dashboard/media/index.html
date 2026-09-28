@@ -1,0 +1,92 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Медиатека | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page media-library">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Публичные сайты</span>
+            <h1 class="admin-page__title">Медиатека</h1>
+            <p class="admin-page__description">Общие изображения для встроенной витрины и внешних frontend.</p>
+        </div>
+        <div class="admin-page__actions">
+            <form method="get" class="site-switcher">
+                <label for="media-site">Сайт</label>
+                <select id="media-site" name="site_id" onchange="this.form.submit()">
+                    {% for site in sites %}
+                    <option value="{{ site.id }}" {% if site.id == selected_site.id %}selected{% endif %}>{{ site.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </header>
+
+    <section class="admin-card media-upload">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Добавить изображение</h2>
+                <p class="admin-card__description">JPEG, PNG, GIF или WebP. Тип проверяется по содержимому файла.</p>
+            </div>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="admin-card__body admin-form media-upload__form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="upload">
+            <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+            <label>Изображение<input type="file" name="file" accept="image/jpeg,image/png,image/gif,image/webp" required></label>
+            <label>Alt-текст<input type="text" name="alt_text" maxlength="500" placeholder="Что изображено — для доступности и SEO"></label>
+            <button class="btn primary" type="submit">Загрузить</button>
+        </form>
+    </section>
+
+    <div class="media-grid">
+        {% for asset in assets %}
+        <article class="admin-card media-card">
+            <div class="media-card__preview">
+                <img loading="lazy"
+                     src="{{ url_for('public.media.file', asset_id=asset.id, filename=media_service.public_filename(asset)) }}"
+                     alt="{{ asset.alt_text or '' }}">
+            </div>
+            <div class="media-card__body">
+                <div class="media-card__heading">
+                    <strong>{{ asset.original_name }}</strong>
+                    <span>{{ (asset.size_bytes / 1024)|round(1) }} КБ · {{ asset.extension|upper }}</span>
+                </div>
+                <label class="media-url">Публичный URL
+                    <input readonly value="{{ url_for('public.media.file', asset_id=asset.id, filename=media_service.public_filename(asset), _external=True) }}" onclick="this.select()">
+                </label>
+
+                <form method="post" class="admin-form media-card__settings">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+                    <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                    <label>Alt-текст<input type="text" name="alt_text" maxlength="500" value="{{ asset.alt_text or '' }}"></label>
+                    <fieldset class="media-sites">
+                        <legend>Доступно на сайтах</legend>
+                        {% for site in sites %}
+                        <label>
+                            <input type="checkbox" name="site_ids" value="{{ site.id }}" {% if site in asset.sites %}checked{% endif %}>
+                            <span>{{ site.name }}</span>
+                        </label>
+                        {% endfor %}
+                    </fieldset>
+                    <button class="btn secondary btn-small" type="submit">Сохранить настройки</button>
+                </form>
+
+                <form method="post" onsubmit="return confirm('Убрать файл из сайта «{{ selected_site.name|e }}»?')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="detach">
+                    <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+                    <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                    <button class="btn danger btn-small" type="submit">Убрать из сайта</button>
+                </form>
+            </div>
+        </article>
+        {% else %}
+        <div class="admin-empty media-empty">
+            <strong>Для {{ selected_site.name }} пока нет изображений</strong>
+            <span>Загрузите первое изображение или привяжите существующее к этому сайту.</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

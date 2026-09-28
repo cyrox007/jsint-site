@@ -1,26 +1,22 @@
+{% set settings = site.settings %}
 <footer>
     <div class="footer-brand">
-        <h3>
-            +УЛЬТРА
-        </h3>
-        <p>
-            Инженерная мини-студия
-            на базе jsinteractive.
-        </p>
+        <h3>{{ settings.brand.name }}</h3>
+        {% if settings.footer.description %}<p>{{ settings.footer.description }}</p>{% endif %}
     </div>
 
     <div class="footer-links">
-        <a href="https://github.com/cyrox007" target="_blank" rel="noopener noreferrer">
-            GitHub
-        </a>
-        <a href="mailto:cyrox007@gmail.com">
-            Email
-        </a>
+        {% if settings.contact.github_url %}
+        <a href="{{ settings.contact.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+        {% endif %}
+        {% if settings.contact.email %}
+        <a href="mailto:{{ settings.contact.email }}">Email</a>
+        {% endif %}
     </div>
 
     <div class="footer-bottom">
-        <span>© 2026</span>
-        <span>Удалённая работа</span>
-        <span>backend systems · realtime infrastructure · аудит систем</span>
+        <span>© {{ now_year if now_year else 2026 }}</span>
+        {% if settings.footer.location %}<span>{{ settings.footer.location }}</span>{% endif %}
+        {% if settings.footer.note %}<span>{{ settings.footer.note }}</span>{% endif %}
     </div>
 </footer>

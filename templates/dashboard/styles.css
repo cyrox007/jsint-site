@@ -7,7 +7,9 @@
 {% include '/dashboard/auth/style.css' %}
 {% include '/dashboard/publication/style.css' %}
 {% include '/dashboard/catalog/style.css' %}
+{% include '/dashboard/sites/style.css' %}
+{% include '/dashboard/media/style.css' %}
+{% include '/dashboard/pages/style.css' %}
 {% include '/dashboard/^core/ui.css' %}
 {% include '/dashboard/^core/comfort-palette.css' %}
-
 {% include '/dashboard/control_plane/style.css' %}

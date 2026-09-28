@@ -11,6 +11,7 @@ from utils.validation import validate_slug
 
 
 class PublicationCreate(BaseModel):
+    site_id: UUID
     title: str = Field(min_length=1, max_length=255)
     slug: str = Field(min_length=1, max_length=255)
     content: str = Field(min_length=1, max_length=500_000)
@@ -41,6 +42,7 @@ class PublicationUpdate(PublicationCreate):
 
 class PublicationOut(BaseModel):
     id: UUID
+    site_id: UUID
     title: str
     content: str
     slug: str
