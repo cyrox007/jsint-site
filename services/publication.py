@@ -9,6 +9,7 @@ from cache.manager import cache
 from models.publication import Publication
 from models.technology import Technology
 from schemas.publication import PublicationCreate, PublicationOut, PublicationUpdate
+from services.publication_channel import PublicationChannelService
 
 
 class PublicationService:
@@ -81,6 +82,7 @@ class PublicationService:
                 .all()
             )
 
+        PublicationChannelService.sync_owner(session, publication)
         session.commit()
         session.refresh(publication)
         cache.invalidate("publications")
@@ -114,6 +116,7 @@ class PublicationService:
         if not publication:
             return None
 
+        PublicationChannelService.sync_owner(session, publication)
         session.commit()
         session.refresh(publication)
         cache.invalidate("publications")

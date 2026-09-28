@@ -8,7 +8,7 @@ from flask import Response
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import with_db_session
-from models.publication import Publication
+from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 from settings import config
 
@@ -48,15 +48,10 @@ def sitemap_xml(db_session: Session) -> Response:
     site_model = SiteService.get_default(db_session)
     site = SiteService.public_config(site_model)
     base_url = site["base_url"] or config.SITE_BASE_URL
-    publications = (
-        db_session.query(Publication)
-        .filter(
-            Publication.site_id == site_model.id,
-            Publication.is_published.is_(True),
-            Publication.category_id.is_not(None),
-        )
-        .order_by(Publication.updated_at.desc())
-        .all()
+    publications = PublicationChannelService.list_public(
+        db_session,
+        site_id=site_model.id,
+        limit=100,
     )
 
     urls: list[tuple[str, str | None]] = [(f"{base_url}/", None)]

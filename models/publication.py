@@ -68,6 +68,13 @@ class Publication(Database.Base):
         secondary="publication_technologies",
         lazy="selectin",
     )
+    placements: Mapped[List["PublicationSite"]] = relationship(
+        "PublicationSite",
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -212,6 +219,50 @@ class Publication(Database.Base):
             return False
         session.delete(publication)
         return True
+
+
+class PublicationSite(Database.Base):
+    """Канал показа публикации на конкретной публичной витрине."""
+
+    __tablename__ = "publication_sites"
+    __table_args__ = (
+        UniqueConstraint("site_id", "slug", name="uq_publication_sites_site_slug"),
+    )
+
+    publication_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    site_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("sites.id", ondelete="CASCADE"),
+        primary_key=True,
+        index=True,
+    )
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    category_id: Mapped[Optional[UUID]] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    is_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    publication: Mapped["Publication"] = relationship("Publication", back_populates="placements")
+    category = relationship("Category", lazy="selectin")
 
 
 publication_technologies = Table(

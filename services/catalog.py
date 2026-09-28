@@ -142,17 +142,25 @@ class CatalogService:
         ):
             return False
 
-        from models.publication import Publication
+        from models.publication import Publication, PublicationSite
 
-        if (
+        owner_publications = (
             session.query(Publication)
             .filter(
                 Publication.site_id == category.site_id,
                 Publication.category_id == cat_id,
             )
             .count()
-            > 0
-        ):
+        )
+        channel_publications = (
+            session.query(PublicationSite)
+            .filter(
+                PublicationSite.site_id == category.site_id,
+                PublicationSite.category_id == cat_id,
+            )
+            .count()
+        )
+        if owner_publications > 0 or channel_publications > 0:
             return False
 
         site_id = category.site_id

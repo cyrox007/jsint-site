@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from components.auth.decorator import with_db_session
 from models.categories import Category
-from models.publication import Publication
 from services.page import PageService
+from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
 
@@ -48,13 +48,12 @@ def _category_payload(category: Category) -> dict:
     }
 
 
-def _publication_payload(publication: Publication, *, include_content: bool) -> dict:
+def _publication_payload(publication, *, include_content: bool) -> dict:
     extra = publication.extra_data or {}
     plain_text = re.sub(r"<[^>]+>", " ", publication.content or "")
     plain_text = re.sub(r"\s+", " ", plain_text).strip()
     payload = {
         "id": str(publication.id),
-        "site_id": str(publication.site_id),
         "title": publication.title,
         "slug": publication.slug,
         "source_type": publication.source_type,
@@ -127,15 +126,8 @@ def site_categories(db_session: Session, site_key: str):
 @with_db_session
 def site_publications(db_session: Session, site_key: str):
     site = _site_or_404(db_session, site_key)
-    query = (
-        db_session.query(Publication)
-        .filter(
-            Publication.site_id == site.id,
-            Publication.is_published.is_(True),
-        )
-        .order_by(Publication.published_at.desc(), Publication.created_at.desc())
-    )
 
+    category_id = None
     category_slug = request.args.get("category", "").strip()
     if category_slug:
         category = Category.get_by_slug(db_session, category_slug, site.id)
@@ -148,20 +140,29 @@ def site_publications(db_session: Session, site_key: str):
                     "pagination": {"limit": 20, "offset": 0, "total": 0},
                 },
             )
-        query = query.filter(Publication.category_id == category.id)
+        category_id = category.id
 
-    source_type = request.args.get("type", "").strip()
-    if source_type:
-        query = query.filter(Publication.source_type == source_type)
-
+    source_type = request.args.get("type", "").strip() or None
     try:
         limit = min(max(int(request.args.get("limit", "20")), 1), 100)
         offset = max(int(request.args.get("offset", "0")), 0)
     except ValueError:
         abort(400)
 
-    total = query.order_by(None).count()
-    publications = query.offset(offset).limit(limit).all()
+    publications = PublicationChannelService.list_public(
+        db_session,
+        site_id=site.id,
+        category_id=category_id,
+        source_type=source_type,
+        limit=limit,
+        offset=offset,
+    )
+    total = PublicationChannelService.count_public(
+        db_session,
+        site_id=site.id,
+        category_id=category_id,
+        source_type=source_type,
+    )
     return _api_response(
         site,
         {
@@ -171,18 +172,13 @@ def site_publications(db_session: Session, site_key: str):
         },
     )
 
-
 @with_db_session
 def site_publication_detail(db_session: Session, site_key: str, publication_slug: str):
     site = _site_or_404(db_session, site_key)
-    publication = (
-        db_session.query(Publication)
-        .filter(
-            Publication.site_id == site.id,
-            Publication.slug == publication_slug,
-            Publication.is_published.is_(True),
-        )
-        .first()
+    publication = PublicationChannelService.get_public_by_slug(
+        db_session,
+        site_id=site.id,
+        slug=publication_slug,
     )
     if publication is None:
         abort(404)
@@ -193,7 +189,6 @@ def site_publication_detail(db_session: Session, site_key: str, publication_slug
             "item": _publication_payload(publication, include_content=True),
         },
     )
-
 
 def install(app: Flask) -> None:
     app.add_url_rule(

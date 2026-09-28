@@ -3,7 +3,7 @@ from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
 from services.page import PageService
-from services.publication import PublicationService
+from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
 
@@ -21,12 +21,9 @@ class MainPage(MethodView):
         )
         home_blocks = PageService.public_blocks(page) if page is not None else []
 
-        articles = PublicationService.get_publications(
+        articles = PublicationChannelService.list_public(
             db_session,
             site_id=site_model.id,
-            is_published=True,
-            order_by="published_at",
-            order_direction="desc",
             limit=5,
         )
 
