@@ -20,6 +20,17 @@ class RichTextSecurityTests(unittest.TestCase):
         self.assertIn('href="https://example.com/path"', clean)
         self.assertIn("noopener noreferrer nofollow", clean)
 
+    def test_preserves_advanced_safe_formatting(self):
+        clean = sanitize_rich_text(
+            "<p>H<sub>2</sub>O и x<sup>2</sup></p>"
+            "<blockquote>Цитата</blockquote>"
+            "<pre><code>print('ok')</code></pre>"
+        )
+        self.assertIn("<sub>2</sub>", clean)
+        self.assertIn("<sup>2</sup>", clean)
+        self.assertIn("<blockquote>Цитата</blockquote>", clean)
+        self.assertIn("<pre><code>", clean)
+
     def test_allows_safe_image_and_blocks_data_url(self):
         clean = sanitize_rich_text(
             '<img src="/media/123/image.png" alt="Схема">'

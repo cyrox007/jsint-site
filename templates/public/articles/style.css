@@ -184,3 +184,40 @@
 .article-preview-banner .container{display:flex;align-items:center;gap:12px;min-height:46px;padding-top:8px;padding-bottom:8px;color:#735f28;font-size:.82rem}
 .article-preview-banner strong{color:#5c4b1f}.article-preview-banner span{flex:1}.article-preview-banner a{font-weight:750;color:#735f28}
 @media(max-width:640px){.article-preview-banner .container{align-items:flex-start;flex-direction:column;gap:4px}}
+
+
+.article-content h4 {
+    margin: 1.55em 0 .65em;
+    color: var(--text);
+    font-size: 1.14rem;
+    line-height: 1.25;
+}
+
+.article-content ul,
+.article-content ol {
+    padding-left: 1.55em;
+}
+
+.article-content li + li {
+    margin-top: .38em;
+}
+
+.article-content img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 1.6em auto;
+    border-radius: 14px;
+}
+
+.article-content pre code {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.article-content sub,
+.article-content sup {
+    font-size: .72em;
+    line-height: 0;
+}

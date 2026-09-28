@@ -41,44 +41,44 @@
 
     <div class="publication-editor-layout">
         <main class="publication-writing">
-            <div class="publication-writing__document">
+            <section class="publication-writing__document" aria-label="Редактор публикации">
                 <div class="publication-title-field">
-                    <label for="title">Название публикации</label>
+                    <label for="title">Название</label>
                     <input
                         id="title"
                         name="title"
                         type="text"
                         value="{{ publication.title if publication else '' }}"
-                        placeholder="Название материала"
+                        placeholder="Введите название публикации"
                         maxlength="255"
                         required
                     >
                 </div>
 
-                <div class="publication-writing__separator"></div>
-
                 <div class="publication-body-field">
                     <div class="publication-body-tools">
-                        <span>Текст публикации</span>
+                        <div>
+                            <strong>Содержание</strong>
+                            <span>Основной текст публикации</span>
+                        </div>
                         <button class="btn secondary btn-small" type="button" data-open-media>
-                            Вставить из медиатеки
+                            Вставить изображение
                         </button>
                     </div>
                     {{ editor.Editor(
                         fieldName="content",
                         fieldId="publication-content",
-                        labelText="Редактор",
+                        labelText="",
                         value=publication.content if publication else ''
                     ) }}
                 </div>
-            </div>
+            </section>
         </main>
 
         <aside class="publication-settings" aria-label="Параметры публикации">
             <div class="publication-settings__intro">
-                <span class="publication-settings__eyebrow">Параметры</span>
-                <strong>{{ 'Настройка материала' if publication else 'Новая публикация' }}</strong>
-                <p>Основные поля находятся здесь, чтобы не отвлекать от текста.</p>
+                <strong>Параметры</strong>
+                <span>{{ 'Опубликованный материал' if publication and publication.is_published else 'Черновик' }}</span>
             </div>
 
             <details class="publication-settings-group" open>
@@ -466,6 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mediaDialog = document.querySelector('[data-media-dialog]');
     const mediaOpen = document.querySelector('[data-open-media]');
     const mediaClose = document.querySelector('[data-close-media]');
+    let mediaEditorId = 'publication-content';
     let dirty = false;
 
     const markDirty = () => {
@@ -502,15 +503,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (mediaOpen && mediaDialog) {
-        mediaOpen.addEventListener('click', () => mediaDialog.showModal());
+        mediaOpen.addEventListener('click', () => {
+            mediaEditorId = 'publication-content';
+            mediaDialog.showModal();
+        });
     }
+
+    document.addEventListener('jsint-editor-media-request', event => {
+        if (!mediaDialog) {
+            return;
+        }
+        mediaEditorId = event.detail && event.detail.fieldId
+            ? event.detail.fieldId
+            : 'publication-content';
+        mediaDialog.showModal();
+    });
     if (mediaClose && mediaDialog) {
         mediaClose.addEventListener('click', () => mediaDialog.close());
     }
 
     document.querySelectorAll('[data-media-url]').forEach(button => {
         button.addEventListener('click', () => {
-            const quill = window.jsintEditors && window.jsintEditors['publication-content'];
+            const quill = window.jsintEditors && window.jsintEditors[mediaEditorId];
             if (!quill) {
                 return;
             }
@@ -531,8 +545,20 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('change', markDirty);
         form.addEventListener('submit', () => {
             dirty = false;
+            form.dataset.submitting = 'true';
         });
     }
+
+    document.addEventListener('keydown', event => {
+        const saveShortcut = (event.ctrlKey || event.metaKey)
+            && event.key.toLowerCase() === 's';
+        if (!saveShortcut || !form || form.dataset.submitting === 'true') {
+            return;
+        }
+
+        event.preventDefault();
+        form.requestSubmit();
+    });
 
     document.addEventListener('jsint-editor-change', markDirty);
     window.addEventListener('beforeunload', event => {
