@@ -54,6 +54,7 @@ class ControlPlaneAuditRecord(Database.Base):
         nullable=True,
         index=True,
     )
+    actor_label: Mapped[str | None] = mapped_column(String(320), nullable=True)
     action: Mapped[str] = mapped_column(String(96), nullable=False, index=True)
     outcome: Mapped[str] = mapped_column(String(16), nullable=False, default="success", index=True)
     target_type: Mapped[str | None] = mapped_column(String(48), nullable=True, index=True)
