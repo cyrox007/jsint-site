@@ -17,6 +17,8 @@ class PublicFrontendApiContractTests(unittest.TestCase):
         self.assertIn('"latest_publications": [', source)
         self.assertIn("def _site_payload(site)", source)
         self.assertNotIn("SiteService.public_config(site)", source)
+        self.assertIn('"data": public_profile(extra)', source)
+        self.assertNotIn('"extra_data": extra', source)
 
     def test_external_frontend_contract_has_explicit_cors(self):
         source = (ROOT / "views/public/api.py").read_text(encoding="utf-8")
