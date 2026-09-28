@@ -294,6 +294,61 @@
                                     <p class="publication-placement__hint">Для {{ target_site.name }} пока нет рубрик.</p>
                                     {% endif %}
 
+                                    {% set target_profile_schemas = profile_schemas_by_site.get(target_site.id|string, {}) %}
+                                    {% set target_profile_data = profile_data_by_site.get(target_site.id|string, {}) %}
+                                    {% if target_profile_schemas %}
+                                    <div class="publication-placement-profile">
+                                        {% for target_source_type, target_schema in target_profile_schemas.items() %}
+                                        <div
+                                            class="publication-profile-fields"
+                                            data-profile-source="{{ target_source_type }}"
+                                            data-profile-site="{{ target_site.key }}"
+                                            {% if target_source_type != current_source_type %}hidden{% endif %}
+                                        >
+                                            <div class="publication-profile-schema">
+                                                <strong>{{ target_schema.label }}</strong>
+                                                <span>{{ target_schema.key }}@{{ target_schema.version }}</span>
+                                            </div>
+                                            <div class="admin-form">
+                                                {% for field in target_schema.fields %}
+                                                <label>
+                                                    {{ field.label }}
+                                                    {% if field.kind == 'textarea' %}
+                                                    <textarea
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        rows="4"
+                                                        maxlength="{{ field.max_length }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >{{ target_profile_data.get(field.name, '') if target_source_type == current_source_type else '' }}</textarea>
+                                                    {% elif field.kind == 'tags' %}
+                                                    <input
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        value="{{ target_profile_data.get(field.name, [])|join(', ') if target_source_type == current_source_type else '' }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >
+                                                    {% elif field.kind == 'lines' %}
+                                                    <textarea
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        rows="5"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >{{ target_profile_data.get(field.name, [])|join('\n') if target_source_type == current_source_type else '' }}</textarea>
+                                                    {% else %}
+                                                    <input
+                                                        name="placement_{{ target_site.id }}_profile_{{ field.name }}"
+                                                        maxlength="{{ field.max_length }}"
+                                                        value="{{ target_profile_data.get(field.name, '') if target_source_type == current_source_type else '' }}"
+                                                        {% if target_source_type != current_source_type %}disabled{% endif %}
+                                                    >
+                                                    {% endif %}
+                                                    {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                                                </label>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+
                                     <label class="switch switch--compact">
                                         <input type="checkbox" name="placement_{{ target_site.id }}_published" {% if placement and placement.is_published %}checked{% endif %}>
                                         <span class="slider"></span>
