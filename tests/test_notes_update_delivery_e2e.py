@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import tempfile
 import time
 import unittest
@@ -20,6 +21,43 @@ from models.control_plane import LicenseRecord, ReleaseRecord
 from services.notes_control_plane import NotesControlPlane, _build_release_manifest
 from settings import config
 
+
+_E2E_RELEASE_SOURCE_COMMITS = ["1" * 40, "2" * 40, "3" * 40, "4" * 40]
+
+
+def _is_test_database_name(name: str) -> bool:
+    normalized = name.strip().lower()
+    return (
+        normalized == "test"
+        or normalized.startswith("test_")
+        or normalized.endswith("_test")
+        or normalized.endswith("-test")
+    )
+
+
+def _require_isolated_e2e_database() -> None:
+    if os.getenv("ALLOW_DATABASE_E2E_TESTS", "").strip().lower() != "true":
+        raise unittest.SkipTest(
+            "E2E-тесты с записью в БД отключены. "
+            "Для изолированной тестовой БД задайте ALLOW_DATABASE_E2E_TESTS=true."
+        )
+    if not _is_test_database_name(config.DB_NAME):
+        raise RuntimeError(
+            "E2E-тесты отказались работать с БД "
+            f"{config.DB_NAME!r}: имя БД должно явно указывать на test."
+        )
+
+
+def _cleanup_e2e_records(session) -> None:
+    session.query(ReleaseRecord).filter(
+        ReleaseRecord.source_commit.in_(_E2E_RELEASE_SOURCE_COMMITS)
+    ).delete(synchronize_session=False)
+    session.query(LicenseRecord).filter(
+        LicenseRecord.customer == "CI update E2E",
+        LicenseRecord.key_id == "test-license-e2e",
+        LicenseRecord.license_id.like("lic-update-e2e-%"),
+    ).delete(synchronize_session=False)
+    session.commit()
 
 def b64url(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
@@ -55,6 +93,7 @@ def signed_license(
 class NotesUpdateDeliveryE2ETests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        _require_isolated_e2e_database()
         cls.app = create_app()
         cls.app.config.update(TESTING=True)
         cls.client = cls.app.test_client()
@@ -73,6 +112,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         self.installation_id = str(uuid4())
         self.license_key_id = "test-license-e2e"
         self.update_key_id = "test-update-e2e"
+        self.addCleanup(self._cleanup_state)
         self.license_key = SigningKey.generate()
         self.update_key = SigningKey.generate()
         LICENSE_TRUSTED_KEYS[self.license_key_id] = b64url(bytes(self.license_key.verify_key))
@@ -88,6 +128,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
 
         session = Database.connect_database()
         try:
+            _cleanup_e2e_records(session)
             record = LicenseRecord(
                 installation_id=UUID(self.installation_id),
                 license_id="lic-update-e2e-" + self.installation_id[:8],
@@ -109,16 +150,10 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
 
         self.package_bytes = self._publish_release("1.0.4", 10004, 10003, "1" * 40)
 
-    def tearDown(self):
+    def _cleanup_state(self):
         session = Database.connect_database()
         try:
-            session.query(ReleaseRecord).filter(
-                ReleaseRecord.source_commit.in_(["1" * 40, "2" * 40, "3" * 40, "4" * 40])
-            ).delete(synchronize_session=False)
-            session.query(LicenseRecord).filter(
-                LicenseRecord.installation_id == UUID(self.installation_id)
-            ).delete(synchronize_session=False)
-            session.commit()
+            _cleanup_e2e_records(session)
         finally:
             session.close()
 

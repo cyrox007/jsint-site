@@ -173,6 +173,16 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('manifest_bytes = str(payload.get("manifest_bytes", ""))', views)
 
 
+    def test_database_e2e_refuses_non_test_database(self):
+        e2e = self.read("tests/test_notes_update_delivery_e2e.py")
+        ci = self.read(".github/workflows/ci.yml")
+        self.assertIn("ALLOW_DATABASE_E2E_TESTS", e2e)
+        self.assertIn("_require_isolated_e2e_database()", e2e)
+        self.assertIn("_is_test_database_name(config.DB_NAME)", e2e)
+        self.assertIn("CI update E2E", e2e)
+        self.assertIn('ALLOW_DATABASE_E2E_TESTS: "true"', ci)
+        self.assertIn("DB_NAME: jsint_test", ci)
+
     def test_control_plane_audit_is_append_only_and_filterable(self):
         model = self.read("models/control_plane.py")
         migration = self.read("alembic/versions/d4e9a61b7c20_control_plane_audit.py")
