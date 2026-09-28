@@ -176,3 +176,11 @@
 .publication-body-field .ql-editor img{display:block;max-width:100%;height:auto;margin:1.4rem auto;border-radius:10px}
 @media(max-width:760px){.publication-body-tools{align-items:flex-start;flex-direction:column}.publication-media-dialog__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.publication-media-dialog__grid{grid-template-columns:1fr}}
+
+.publication-neutral-preview__document{width:min(100%,880px);margin:0 auto;padding:40px 46px;background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:18px;box-shadow:var(--admin-shadow-sm)}
+.publication-neutral-preview__meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;color:var(--admin-muted);font-size:.72rem}.publication-neutral-preview__meta span{padding:4px 8px;background:var(--admin-surface-subtle);border-radius:999px}
+.publication-neutral-preview__document h2{margin:0 0 26px;color:var(--admin-text);font-size:clamp(1.9rem,3vw,2.7rem);line-height:1.15;letter-spacing:-.035em}
+.publication-neutral-preview__content{color:var(--admin-text);font-size:1rem;line-height:1.75}.publication-neutral-preview__content img{display:block;max-width:100%;height:auto;margin:1.4rem auto;border-radius:10px}
+.publication-neutral-preview__profile{margin-top:34px;padding-top:22px;border-top:1px solid var(--admin-border)}.publication-neutral-preview__profile>div{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.publication-neutral-preview__profile>div strong{color:var(--admin-text)}.publication-neutral-preview__profile>div span{color:var(--admin-muted);font:600 .7rem ui-monospace,SFMono-Regular,Menlo,monospace}
+.publication-neutral-preview__profile dl{display:grid;gap:9px;margin:0}.publication-neutral-preview__profile dl>div{display:grid;grid-template-columns:180px minmax(0,1fr);gap:14px;padding:9px 0;border-bottom:1px solid var(--admin-border)}.publication-neutral-preview__profile dt{color:var(--admin-muted);font-size:.78rem}.publication-neutral-preview__profile dd{margin:0;color:var(--admin-text);font-size:.84rem}
+@media(max-width:640px){.publication-neutral-preview__document{padding:26px 18px}.publication-neutral-preview__profile dl>div{grid-template-columns:1fr;gap:3px}}
