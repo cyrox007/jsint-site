@@ -6,21 +6,14 @@ from flask import abort, flash, redirect, render_template, request, session, url
 from flask.views import MethodView
 from sqlalchemy.orm import Session
 
+from components.admin.site_context import resolve_admin_site
 from components.auth.decorator import login_required, with_db_session
 from services.media import MediaService
 from services.site import SiteService
 
 
 def _selected_site(db_session: Session, raw: str | None):
-    value = (raw or "").strip()
-    if value:
-        try:
-            site = SiteService.get_by_id(db_session, UUID(value))
-        except ValueError:
-            site = None
-        if site is not None:
-            return site
-    return SiteService.get_default(db_session)
+    return resolve_admin_site(db_session, raw)
 
 
 def _asset_for_site(db_session: Session, asset_id: UUID, site_id: UUID):
