@@ -1,6 +1,6 @@
 {% macro Editor(fieldName, fieldId, labelText, value='') %}
 <div class="form-field" style="flex: 1">
-    <label for="{{ fieldId }}-editor">{{ labelText }}</label>
+    {% if labelText %}<label for="{{ fieldId }}-editor">{{ labelText }}</label>{% endif %}
     <textarea name="{{ fieldName }}" id="{{ fieldId }}-input" hidden>{{ value }}</textarea>
     <div id="{{ fieldId }}-editor" class="quill-editor-container"></div>
 </div>
