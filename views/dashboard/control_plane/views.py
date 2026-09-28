@@ -361,6 +361,21 @@ class ReleaseListView(MethodView):
                 signature=signature,
                 package_path=package_path,
             )
+            ControlPlaneAuditService.operator(
+                db_session,
+                actor_user_id=_actor_user_id(),
+                action="release.publish",
+                target_type="release",
+                target_id=f"{record.channel}:{record.version_code}",
+                release_id=record.id,
+                details={
+                    "channel": record.channel,
+                    "version": record.version,
+                    "version_code": record.version_code,
+                    "source_commit": record.source_commit,
+                    "package_sha256": record.package_sha256,
+                },
+            )
             if json_mode:
                 return jsonify(
                     {
@@ -416,6 +431,22 @@ class ReleaseGitHubPrepareView(MethodView):
                 **_release_context(db_session, tab="publish"),
             ), exc.status
 
+        preflight = _release_preflight(db_session, prepared)
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="release.prepare",
+            target_type="release",
+            target_id=f"{prepared['channel']}:{prepared['version_code']}",
+            details={
+                "channel": prepared["channel"],
+                "version": prepared["version"],
+                "version_code": prepared["version_code"],
+                "source_commit": prepared["source_commit"],
+                "package_sha256": prepared["package_sha256"],
+                "preflight_ready": preflight["ready"],
+            },
+        )
         if json_mode:
             return jsonify(
                 {
@@ -429,6 +460,12 @@ class ReleaseGitHubPrepareView(MethodView):
                         "channel": prepared["channel"],
                         "source_commit": prepared["source_commit"],
                         "package_sha256": prepared["package_sha256"],
+                        "preflight": {
+                            "ready": preflight["ready"],
+                            "warnings": preflight["warnings"],
+                            "channel_head_version": preflight["head"].version if preflight["head"] else None,
+                            "channel_head_version_code": preflight["head"].version_code if preflight["head"] else None,
+                        },
                     },
                 }
             )
@@ -445,6 +482,7 @@ class ReleaseGitHubPrepareView(MethodView):
                 prepared_manifest=prepared["manifest"],
                 prepared_package_path=prepared["package_path"],
                 prepared_release_source=prepared,
+                prepared_release_preflight=preflight,
             ),
         )
 
@@ -537,5 +575,14 @@ class ReleaseStatusView(MethodView):
         record.is_active = status == "active"
         db_session.add(record)
         db_session.commit()
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="release.status",
+            target_type="release",
+            target_id=f"{record.channel}:{record.version_code}",
+            release_id=record.id,
+            details={"status": status},
+        )
         flash("Статус релиза обновлён", "success")
         return redirect(url_for("admin.releases.index", tab="registry"))
