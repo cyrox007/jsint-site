@@ -88,7 +88,12 @@ def _media_payload(asset) -> dict:
     }
 
 
-def _publication_payload(publication, *, include_content: bool) -> dict:
+def _publication_payload(
+    publication,
+    *,
+    include_content: bool,
+    site_key: str,
+) -> dict:
     extra = publication.extra_data or {}
     plain_text = re.sub(r"<[^>]+>", " ", publication.content or "")
     plain_text = re.sub(r"\s+", " ", plain_text).strip()
@@ -98,7 +103,7 @@ def _publication_payload(publication, *, include_content: bool) -> dict:
         "slug": publication.slug,
         "source_type": publication.source_type,
         "excerpt": plain_text[:240],
-        "data": public_profile(extra),
+        "data": public_profile(extra, site_key),
         "category": _category_payload(publication.category) if publication.category else None,
         "published_at": publication.published_at.isoformat() if publication.published_at else None,
         "created_at": publication.created_at.isoformat() if publication.created_at else None,
@@ -224,7 +229,7 @@ def site_publications(db_session: Session, site_key: str):
         site,
         {
             "site": {"key": site.key, "name": site.name},
-            "items": [_publication_payload(item, include_content=False) for item in publications],
+            "items": [_publication_payload(item, include_content=False, site_key=site.key) for item in publications],
             "pagination": {"limit": limit, "offset": offset, "total": total},
         },
     )
@@ -243,7 +248,7 @@ def site_publication_detail(db_session: Session, site_key: str, publication_slug
         site,
         {
             "site": {"key": site.key, "name": site.name},
-            "item": _publication_payload(publication, include_content=True),
+            "item": _publication_payload(publication, include_content=True, site_key=site.key),
         },
     )
 
