@@ -5,17 +5,52 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, session as flask_session, url_for
 from flask.views import MethodView
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
-from models.control_plane import LicenseRecord, ReleaseRecord
+from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
+from services.control_plane_audit import ControlPlaneAuditService
 from services.github_release_automation import GitHubReleaseAutomation
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
+
+def _actor_user_id() -> UUID | None:
+    raw = flask_session.get("user_id")
+    try:
+        return UUID(str(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+def _release_preflight(db_session: Session, prepared: dict) -> dict:
+    head = (
+        db_session.query(ReleaseRecord)
+        .filter(
+            ReleaseRecord.channel == prepared["channel"],
+            ReleaseRecord.is_active.is_(True),
+        )
+        .order_by(ReleaseRecord.version_code.desc())
+        .first()
+    )
+    warnings: list[str] = []
+    if head is not None and prepared["version_code"] <= head.version_code:
+        warnings.append(
+            f"version_code {prepared['version_code']} не выше текущей головы канала {head.version_code}."
+        )
+    if prepared["channel"] == "stable":
+        lowered = prepared["version"].lower()
+        if any(marker in lowered for marker in ("alpha", "beta", "rc", "pre")):
+            warnings.append("Название версии похоже на prerelease, хотя канал указан stable.")
+
+    return {
+        "head": head,
+        "warnings": warnings,
+        "ready": not warnings,
+    }
 
 def _parse_optional_datetime(value: str, field: str) -> datetime | None:
     value = value.strip()
@@ -117,6 +152,8 @@ def _release_context(db_session: Session, *, tab: str = "registry", **extra):
         "prepared_manifest": None,
         "prepared_package_path": None,
         "prepared_release_source": None,
+        "prepared_release_preflight": None,
+        "channel_state": ControlPlaneAuditService.channel_state(db_session),
     }
     context.update(extra)
     return context
