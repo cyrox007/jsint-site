@@ -148,6 +148,7 @@ def _resume_settings_from_form() -> dict:
             }
         )
     return {
+        "kicker": request.form.get("resume_kicker", "").strip()[:120] or "04 / Практика",
         "title": request.form.get("resume_title", "").strip()[:160] or "Опыт работы",
         "subtitle": request.form.get("resume_subtitle", "").strip()[:500],
         "items": items,
@@ -187,6 +188,12 @@ def _home_block_settings_from_form() -> dict[str, dict]:
             "accent": request.form.get("hero_accent", "").strip()[:240],
             "description": request.form.get("hero_description", "").strip()[:3000],
             "note": request.form.get("hero_note", "").strip()[:300],
+            "github_label": request.form.get("hero_github_label", "").strip()[:80] or "GitHub",
+            "materials_label": request.form.get("hero_materials_label", "").strip()[:120] or "Смотреть материалы",
+            "contact_label": request.form.get("hero_contact_label", "").strip()[:80] or "Связаться",
+            "console_eyebrow": request.form.get("hero_console_eyebrow", "").strip()[:120] or "system / overview",
+            "console_title": request.form.get("hero_console_title", "").strip()[:160] or "Рабочий контур",
+            "console_status": request.form.get("hero_console_status", "").strip()[:80] or "online",
             "terminal_lines": _lines(request.form.get("hero_terminal_lines", ""))[:8],
             "metrics": _hero_metrics_from_form(),
             "tags": [
@@ -196,15 +203,20 @@ def _home_block_settings_from_form() -> dict[str, dict]:
             ][:16],
         },
         "philosophy": {
+            "kicker": request.form.get("philosophy_kicker", "").strip()[:120] or "01 / Принципы",
             "title": request.form.get("philosophy_title", "").strip()[:160],
             "subtitle": request.form.get("philosophy_subtitle", "").strip()[:500],
             "text": request.form.get("philosophy_text", "").strip()[:5000],
         },
         "systems": {
+            "kicker": request.form.get("systems_kicker", "").strip()[:120] or "02 / Материалы",
             "title": request.form.get("systems_title", "").strip()[:160],
             "subtitle": request.form.get("systems_subtitle", "").strip()[:500],
+            "article_label": request.form.get("systems_article_label", "").strip()[:120] or "Открыть материал",
+            "empty_text": request.form.get("systems_empty_text", "").strip()[:300] or "Пока нет опубликованных материалов.",
         },
         "about": {
+            "kicker": request.form.get("about_kicker", "").strip()[:120] or "03 / Контекст",
             "title": request.form.get("about_title", "").strip()[:160],
             "cards": about_cards,
         },
