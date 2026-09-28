@@ -3,40 +3,46 @@
 {% if resume_items %}
 <section class="resume-section" id="resume">
     <div class="container">
-        <h2 class="section-title">{{ resume.get('title') or 'Опыт работы' }}</h2>
-        {% if resume.get('subtitle') %}
-        <p class="section-subtitle">{{ resume.get('subtitle') }}</p>
-        {% endif %}
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">04 / Практика</span>
+                <h2 class="section-title">{{ resume.get('title') or 'Опыт работы' }}</h2>
+            </div>
+            {% if resume.get('subtitle') %}<p class="section-subtitle">{{ resume.get('subtitle') }}</p>{% endif %}
+        </div>
 
         <div class="resume-timeline">
             {% for item in resume_items %}
-            <article class="resume-item card">
-                <div class="resume-header">
-                    <div class="resume-company">
-                        <h3>{{ item.company }}</h3>
-                        {% if item.period %}<span class="resume-period">{{ item.period }}</span>{% endif %}
+            <article class="resume-item">
+                <div class="resume-marker" aria-hidden="true">{{ '%02d'|format(loop.index) }}</div>
+                <div class="resume-card">
+                    <div class="resume-header">
+                        <div class="resume-company">
+                            <h3>{{ item.company }}</h3>
+                            {% if item.period %}<span class="resume-period">{{ item.period }}</span>{% endif %}
+                        </div>
+                        {% if item.position %}<div class="resume-position">{{ item.position }}</div>{% endif %}
                     </div>
-                    {% if item.position %}<div class="resume-position">{{ item.position }}</div>{% endif %}
-                </div>
 
-                <div class="resume-body">
-                    {% if item.description %}<p>{{ item.description }}</p>{% endif %}
+                    <div class="resume-body">
+                        {% if item.description %}<p>{{ item.description }}</p>{% endif %}
 
-                    {% if item.achievements %}
-                    <ul class="resume-achievements">
-                        {% for achievement in item.achievements %}
-                        <li>{{ achievement }}</li>
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
+                        {% if item.achievements %}
+                        <ul class="resume-achievements">
+                            {% for achievement in item.achievements %}
+                            <li>{{ achievement }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
 
-                    {% if item.technologies %}
-                    <div class="resume-tech" aria-label="Технологии">
-                        {% for technology in item.technologies %}
-                        <span class="tech">{{ technology }}</span>
-                        {% endfor %}
+                        {% if item.technologies %}
+                        <div class="resume-tech" aria-label="Технологии">
+                            {% for technology in item.technologies %}
+                            <span class="tech">{{ technology }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </article>
             {% endfor %}
