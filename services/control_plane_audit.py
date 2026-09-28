@@ -8,6 +8,7 @@ from sqlalchemy import String, func, or_
 from sqlalchemy.orm import Session
 
 from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
+from models.users import User
 from settings import config
 
 
@@ -39,6 +40,7 @@ class ControlPlaneAuditService:
         action: str,
         outcome: str = "success",
         actor_user_id: UUID | None = None,
+        actor_label: str | None = None,
         target_type: str | None = None,
         target_id: str | None = None,
         installation_id: UUID | None = None,
@@ -50,6 +52,7 @@ class ControlPlaneAuditService:
         record = ControlPlaneAuditRecord(
             actor_kind=actor_kind[:16],
             actor_user_id=actor_user_id,
+            actor_label=actor_label[:320] if actor_label else None,
             action=action[:96],
             outcome=outcome[:16],
             target_type=target_type[:48] if target_type else None,
@@ -78,10 +81,17 @@ class ControlPlaneAuditService:
         release_id: UUID | None = None,
         details: dict[str, Any] | None = None,
     ) -> ControlPlaneAuditRecord:
+        actor_label = None
+        if actor_user_id is not None:
+            user = session.query(User).filter(User.id == actor_user_id).first()
+            if user is not None:
+                actor_label = user.email
+
         return ControlPlaneAuditService.record(
             session,
             actor_kind="operator",
             actor_user_id=actor_user_id,
+            actor_label=actor_label,
             action=action,
             target_type=target_type,
             target_id=target_id,
