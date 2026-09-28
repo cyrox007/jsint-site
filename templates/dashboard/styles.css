@@ -5,6 +5,7 @@
 {% include '/dashboard/^elements/UI/Fields/style.css' %}
 {% include '/dashboard/^elements/UI/Editor/style.css' %}
 {% include '/dashboard/auth/style.css' %}
+{% include '/dashboard/main/style.css' %}
 {% include '/dashboard/publication/style.css' %}
 {% include '/dashboard/catalog/style.css' %}
 {% include '/dashboard/sites/style.css' %}
