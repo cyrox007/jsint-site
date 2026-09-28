@@ -448,6 +448,21 @@ class UpdatePost(MethodView):
             for site in sites
         }
         workspace_site = _site_from_raw(db_session, request.args.get("site_id"))
+
+        preview_url = None
+        if selected_site.is_default and publication_model.is_published and publication_model.category_id:
+            preview_category = Category.get_by_id(
+                db_session,
+                publication_model.category_id,
+                selected_site.id,
+            )
+            if preview_category is not None:
+                preview_url = url_for(
+                    "public.articles.show",
+                    categories_slug=preview_category.slug,
+                    publication_slug=publication_model.slug,
+                )
+
         return render_template(
             "dashboard/publication/edit.html",
             categories=categories,
@@ -458,6 +473,7 @@ class UpdatePost(MethodView):
             sites=sites,
             placements_by_site=placements_by_site,
             categories_by_site=categories_by_site,
+            preview_url=preview_url,
         )
 
     @login_required

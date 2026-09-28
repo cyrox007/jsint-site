@@ -4,7 +4,7 @@
         <div class="philosophy-layout">
             <div class="section-heading section-heading--stacked">
                 <div>
-                    <span class="section-kicker">01 / Принципы</span>
+                    <span class="section-kicker">{{ philosophy.kicker or '01 / Принципы' }}</span>
                     <h2 class="section-title">{{ philosophy.title or 'Подход' }}</h2>
                 </div>
                 {% if philosophy.subtitle %}<p class="section-subtitle">{{ philosophy.subtitle }}</p>{% endif %}

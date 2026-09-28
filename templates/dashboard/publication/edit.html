@@ -1,7 +1,7 @@
 {% extends '/dashboard/^core/base.html' %}
 {% import '/dashboard/^elements/UI/Editor/index.html' as editor %}
 {% from '/dashboard/^elements/UI/Fields/index.html' import text_input %}
-{% block title %}{{ 'Редактирование публикации' if publication else 'Новая публикация' }} | JSInteractive{% endblock %}
+{% block title %}{{ 'Редактирование публикации' if publication else 'Новая публикация' }} | {{ selected_site.name }}{% endblock %}
 {% block extra_head %}<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">{% endblock %}
 {% block content %}
 {% set current_category_id = publication.category_id|string if publication else selected_category_id %}
@@ -16,7 +16,10 @@
             <p class="admin-page__description">{{ 'Измените материал и параметры публикации.' if publication else 'Создайте новый материал выбранного публичного сайта.' }}</p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=return_site.id) }}">Отмена</a>
+            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=return_site.id) }}">К публикациям</a>
+            {% if preview_url is defined and preview_url %}
+            <a class="btn secondary" href="{{ preview_url }}" target="_blank" rel="noopener noreferrer">Открыть на сайте ↗</a>
+            {% endif %}
             <button type="submit" class="btn primary">Сохранить</button>
         </div>
     </header>
@@ -31,8 +34,13 @@
     <aside class="editor-right">
         <div class="admin-card card"><div class="admin-card__body">
             <div class="publication-site-lock"><span>Сайт</span><strong>{{ selected_site.name }}</strong><small>{{ selected_site.key }}</small></div>
+            <div class="publication-editor-status {{ 'is-published' if publication and publication.is_published else 'is-draft' }}">
+                <span>Статус</span>
+                <strong>{{ 'Опубликовано' if publication and publication.is_published else 'Черновик' }}</strong>
+                <small>{{ 'Материал доступен читателям.' if publication and publication.is_published else 'Материал виден только в админке.' }}</small>
+            </div>
             {{ text_input(name="slug", label="Slug (URL)", value=publication.slug if publication else '') }}
-            <label class="switch"><input type="checkbox" name="is_published" {% if publication and publication.is_published %}checked{% endif %}><span class="slider"></span><span class="label">Опубликовано</span></label>
+            <label class="switch"><input type="checkbox" name="is_published" {% if publication and publication.is_published %}checked{% endif %}><span class="slider"></span><span class="label">Опубликовать материал</span></label>
         </div></div>
 
         <div class="admin-card card"><div class="admin-card__body admin-form">
