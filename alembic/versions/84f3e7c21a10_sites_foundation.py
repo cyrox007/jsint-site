@@ -7,7 +7,6 @@ Create Date: 2026-09-28
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 revision = "84f3e7c21a10"
@@ -82,7 +81,7 @@ def upgrade() -> None:
         sa.column("updated_at", sa.DateTime(timezone=True)),
     )
     op.execute(sites.insert().values(
-        id=sa.text("gen_random_uuid()"),
+        id="0f6a9d64-8f23-4a89-baf4-8bd6e576c2d1",
         slug="jsinteractive",
         name="+УЛЬТРА",
         brand_subtitle="на базе jsinteractive",
