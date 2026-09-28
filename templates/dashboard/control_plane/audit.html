@@ -1,0 +1,93 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Журнал операций | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page control-plane-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Control plane</span>
+            <h1 class="admin-page__title">Журнал операций</h1>
+            <p class="admin-page__description">
+                Неизменяемый журнал действий операторов и отказов machine API. Секреты, токены, коды активации и приватные ключи сюда не записываются.
+            </p>
+        </div>
+    </header>
+
+    <section class="admin-card audit-filter-card">
+        <form method="get" class="admin-card__body audit-filter-form">
+            <label>
+                Действие
+                <select name="action">
+                    <option value="">Все</option>
+                    {% for item in actions %}
+                    <option value="{{ item }}" {% if selected_action == item %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Результат
+                <select name="outcome">
+                    <option value="">Все</option>
+                    <option value="success" {% if selected_outcome == 'success' %}selected{% endif %}>Успех</option>
+                    <option value="failure" {% if selected_outcome == 'failure' %}selected{% endif %}>Ошибка</option>
+                </select>
+            </label>
+            <label>
+                Поиск
+                <input name="q" value="{{ query }}" placeholder="installation / license / release">
+            </label>
+            <div class="audit-filter-actions">
+                <button class="btn primary" type="submit">Применить</button>
+                <a class="btn secondary" href="{{ url_for('admin.control-plane.audit') }}">Сбросить</a>
+            </div>
+        </form>
+        <div class="admin-card__footer">
+            <small>Политика хранения: не менее {{ retention_days }} дней. Автоматическое удаление из приложения отключено.</small>
+        </div>
+    </section>
+
+    <section class="admin-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">Последние события</h2>
+                <p class="admin-card__description">Показываются последние 200 записей с учётом фильтров.</p>
+            </div>
+        </div>
+        <div class="admin-card__body audit-list">
+            {% for item in records %}
+            <article class="audit-row">
+                <div class="audit-row__head">
+                    <div>
+                        <strong>{{ item.action }}</strong>
+                        <span class="status-badge {{ 'status-badge--success' if item.outcome == 'success' else 'status-badge--danger' }}">{{ item.outcome }}</span>
+                        <span class="status-badge">{{ item.actor_kind }}</span>
+                        {% if item.actor_label %}<span class="status-badge status-badge--info">{{ item.actor_label }}</span>{% endif %}
+                    </div>
+                    <time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at.strftime('%d.%m.%Y %H:%M:%S UTC') }}</time>
+                </div>
+                <div class="audit-row__grid">
+                    <div><span>Цель</span><strong>{{ item.target_type or '—' }}{% if item.target_id %} · {{ item.target_id }}{% endif %}</strong></div>
+                    <div><span>Installation</span><code>{{ item.installation_id or '—' }}</code></div>
+                    <div><span>License</span><code>{{ item.license_id or '—' }}</code></div>
+                    <div><span>Release</span><code>{{ item.release_id or '—' }}</code></div>
+                </div>
+                {% if item.details %}
+                <details class="audit-row__details">
+                    <summary>Детали</summary>
+                    <dl>
+                        {% for key, value in item.details.items() %}
+                        <div><dt>{{ key }}</dt><dd>{{ value }}</dd></div>
+                        {% endfor %}
+                    </dl>
+                </details>
+                {% endif %}
+            </article>
+            {% else %}
+            <div class="admin-empty">
+                <strong>Записей не найдено</strong>
+                <span>Измените фильтры или выполните операцию control plane.</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

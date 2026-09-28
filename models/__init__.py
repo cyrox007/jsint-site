@@ -11,7 +11,7 @@ from models.publication import Publication
 from models.task import Task
 
 # 3. Системный контур
-from models.control_plane import LicenseRecord, ReleaseRecord
+from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
 
 __all__ = [
     "User",
@@ -25,4 +25,5 @@ __all__ = [
     "Task",
     "LicenseRecord",
     "ReleaseRecord",
+    "ControlPlaneAuditRecord",
 ]

@@ -51,3 +51,9 @@ def install(app: Flask) -> None:
         view_func=views.ReleaseStatusView.as_view("admin.releases.status"),
         methods=["POST"],
     )
+
+    app.add_url_rule(
+        f"{prefix}/operator-audit",
+        view_func=views.ControlPlaneAuditView.as_view("admin.control-plane.audit"),
+        methods=["GET"],
+    )

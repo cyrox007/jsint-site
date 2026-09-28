@@ -5,17 +5,49 @@ import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, session as flask_session, url_for
 from flask.views import MethodView
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
-from models.control_plane import LicenseRecord, ReleaseRecord
+from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
+from services.control_plane_audit import ControlPlaneAuditService
 from services.github_release_automation import GitHubReleaseAutomation
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
+
+def _actor_user_id() -> UUID | None:
+    raw = flask_session.get("user_id")
+    try:
+        return UUID(str(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+def _release_preflight(db_session: Session, prepared: dict) -> dict:
+    head = (
+        db_session.query(ReleaseRecord)
+        .filter(ReleaseRecord.channel == prepared["channel"])
+        .order_by(ReleaseRecord.version_code.desc())
+        .first()
+    )
+    warnings: list[str] = []
+    if head is not None and prepared["version_code"] <= head.version_code:
+        warnings.append(
+            f"version_code {prepared['version_code']} не выше текущей головы канала {head.version_code}."
+        )
+    if prepared["channel"] == "stable":
+        lowered = prepared["version"].lower()
+        if any(marker in lowered for marker in ("alpha", "beta", "rc", "pre")):
+            warnings.append("Название версии похоже на prerelease, хотя канал указан stable.")
+
+    return {
+        "head": head,
+        "warnings": warnings,
+        "ready": not warnings,
+    }
 
 def _parse_optional_datetime(value: str, field: str) -> datetime | None:
     value = value.strip()
@@ -117,6 +149,8 @@ def _release_context(db_session: Session, *, tab: str = "registry", **extra):
         "prepared_manifest": None,
         "prepared_package_path": None,
         "prepared_release_source": None,
+        "prepared_release_preflight": None,
+        "channel_state": ControlPlaneAuditService.channel_state(db_session),
     }
     context.update(extra)
     return context
@@ -158,6 +192,16 @@ class LicenseListView(MethodView):
                 **_license_context(db_session, tab="import"),
             ), exc.status
 
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.import",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+            details={"edition": record.edition},
+        )
         flash("Лицензия импортирована в реестр.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
@@ -191,6 +235,16 @@ class LicenseIssueView(MethodView):
                 **_license_context(db_session, tab="issue"),
             ), exc.status
 
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.issue",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+            details={"edition": record.edition},
+        )
         flash("Лицензия подписана на ПК оператора, проверена сервером и добавлена в реестр.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
@@ -212,7 +266,18 @@ class LicenseStatusView(MethodView):
         if record is None:
             abort(404)
         try:
-            NotesControlPlane.set_status(db_session, record, request.form.get("status", ""))
+            new_status = request.form.get("status", "")
+            NotesControlPlane.set_status(db_session, record, new_status)
+            ControlPlaneAuditService.operator(
+                db_session,
+                actor_user_id=_actor_user_id(),
+                action="license.status",
+                target_type="license",
+                target_id=record.license_id,
+                installation_id=record.installation_id,
+                license_id=record.license_id,
+                details={"status": new_status},
+            )
             flash("Статус лицензии обновлён", "success")
         except ControlPlaneError as exc:
             flash(str(exc), "error")
@@ -230,6 +295,15 @@ class LicenseActivationView(MethodView):
             flash("Нельзя выпустить activation code для отозванной лицензии", "error")
             return redirect(url_for("admin.licenses.index", tab="registry"))
         activation_code = NotesControlPlane.reissue_activation(db_session, record)
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="license.activation_reissued",
+            target_type="license",
+            target_id=record.license_id,
+            installation_id=record.installation_id,
+            license_id=record.license_id,
+        )
         flash("Новый activation code создан. Предыдущий больше не действует.", "success")
         return render_template(
             "dashboard/control_plane/licenses.html",
@@ -283,6 +357,21 @@ class ReleaseListView(MethodView):
                 manifest_bytes=manifest_bytes,
                 signature=signature,
                 package_path=package_path,
+            )
+            ControlPlaneAuditService.operator(
+                db_session,
+                actor_user_id=_actor_user_id(),
+                action="release.publish",
+                target_type="release",
+                target_id=f"{record.channel}:{record.version_code}",
+                release_id=record.id,
+                details={
+                    "channel": record.channel,
+                    "version": record.version,
+                    "version_code": record.version_code,
+                    "source_commit": record.source_commit,
+                    "package_sha256": record.package_sha256,
+                },
             )
             if json_mode:
                 return jsonify(
@@ -339,6 +428,22 @@ class ReleaseGitHubPrepareView(MethodView):
                 **_release_context(db_session, tab="publish"),
             ), exc.status
 
+        preflight = _release_preflight(db_session, prepared)
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="release.prepare",
+            target_type="release",
+            target_id=f"{prepared['channel']}:{prepared['version_code']}",
+            details={
+                "channel": prepared["channel"],
+                "version": prepared["version"],
+                "version_code": prepared["version_code"],
+                "source_commit": prepared["source_commit"],
+                "package_sha256": prepared["package_sha256"],
+                "preflight_ready": preflight["ready"],
+            },
+        )
         if json_mode:
             return jsonify(
                 {
@@ -352,6 +457,12 @@ class ReleaseGitHubPrepareView(MethodView):
                         "channel": prepared["channel"],
                         "source_commit": prepared["source_commit"],
                         "package_sha256": prepared["package_sha256"],
+                        "preflight": {
+                            "ready": preflight["ready"],
+                            "warnings": preflight["warnings"],
+                            "channel_head_version": preflight["head"].version if preflight["head"] else None,
+                            "channel_head_version_code": preflight["head"].version_code if preflight["head"] else None,
+                        },
                     },
                 }
             )
@@ -368,6 +479,7 @@ class ReleaseGitHubPrepareView(MethodView):
                 prepared_manifest=prepared["manifest"],
                 prepared_package_path=prepared["package_path"],
                 prepared_release_source=prepared,
+                prepared_release_preflight=preflight,
             ),
         )
 
@@ -460,5 +572,47 @@ class ReleaseStatusView(MethodView):
         record.is_active = status == "active"
         db_session.add(record)
         db_session.commit()
+        ControlPlaneAuditService.operator(
+            db_session,
+            actor_user_id=_actor_user_id(),
+            action="release.status",
+            target_type="release",
+            target_id=f"{record.channel}:{record.version_code}",
+            release_id=record.id,
+            details={"status": status},
+        )
         flash("Статус релиза обновлён", "success")
         return redirect(url_for("admin.releases.index", tab="registry"))
+
+
+class ControlPlaneAuditView(MethodView):
+    @login_required
+    @with_db_session
+    def get(self, db_session: Session):
+        action = request.args.get("action", "").strip()[:96] or None
+        outcome = request.args.get("outcome", "").strip()[:16] or None
+        query = request.args.get("q", "").strip()[:160] or None
+        records = ControlPlaneAuditService.list_records(
+            db_session,
+            action=action,
+            outcome=outcome,
+            query=query,
+        )
+        actions = [
+            item[0]
+            for item in (
+                db_session.query(ControlPlaneAuditRecord.action)
+                .distinct()
+                .order_by(ControlPlaneAuditRecord.action)
+                .all()
+            )
+        ]
+        return render_template(
+            "dashboard/control_plane/audit.html",
+            records=records,
+            actions=actions,
+            selected_action=action or "",
+            selected_outcome=outcome or "",
+            query=query or "",
+            retention_days=config.OPERATOR_AUDIT_RETENTION_DAYS,
+        )

@@ -310,6 +310,55 @@ UPDATE_CREDENTIALS_FILE=/private/update-access.json
 UPDATE_FEED_URL=https://jsinteractive.ru/api/notes/v1/stable/feed.json
 ```
 
+## Операторский аудит
+
+В административной панели доступен append-only журнал control plane.
+
+Журнал сохраняет:
+
+- UUID и email оператора на момент действия;
+- тип действия;
+- целевую лицензию, installation или release;
+- результат операции;
+- безопасные технические детали: channel, version, source SHA, package SHA-256.
+
+В журнал не попадают:
+
+- `wo1...` и `wou1...` токены;
+- activation codes;
+- download credentials;
+- приватные ключи;
+- содержимое файлов ключей.
+
+Таблица защищена PostgreSQL trigger: обычные `UPDATE` и `DELETE` запрещены. Минимальный срок хранения задаётся `OPERATOR_AUDIT_RETENTION_DAYS`; приложение само старые записи не удаляет. Если в будущем потребуется архивирование, оно должно выполняться отдельной административной процедурой с экспортом и контролируемым удалением вне web-интерфейса.
+
+Machine API добавляет в этот журнал только ошибки выдачи update artifacts. Это позволяет видеть revoked/expired попытки без хранения credentials.
+
+## Мониторинг control plane
+
+Главный dashboard показывает технические показатели:
+
+- installations на связи за последние 15 минут;
+- лицензии с `updates_until` в ближайшие 30 дней;
+- последние зарегистрированные релизы;
+- количество ошибок update API за 24 часа;
+- количество отказов по revoked/expired entitlement;
+- PostgreSQL, Redis и Celery heartbeat.
+
+Содержимое пользовательских данных Workspace Organizer в мониторинг не передаётся.
+
+## Предрелизная проверка
+
+Перед подписью manifest обычный GitHub-выпуск выполняет preflight:
+
+1. сверяет Git tag, версию в ZIP и GitHub prerelease-state;
+2. проверяет source SHA и package SHA-256;
+3. сравнивает новый `version_code` с текущей активной головой канала;
+4. останавливает выпуск, если версия не выше текущей головы;
+5. отдельно предупреждает о prerelease-подобном имени версии в канале stable.
+
+Вверху раздела «Релизы» отображается read-only состояние каналов stable/beta/alpha: текущая версия, `version_code`, manifest и signature. Релиз можно временно снять с feed и вернуть обратно без удаления записи.
+
 ## Production environment
 
 ```env

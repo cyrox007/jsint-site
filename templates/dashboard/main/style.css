@@ -1,0 +1,5 @@
+.dashboard-release-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--admin-border)}
+.dashboard-release-line:last-child{border-bottom:0}
+.dashboard-release-line>div{display:flex;min-width:0;flex-direction:column;gap:2px}
+.dashboard-release-line strong{color:var(--admin-text);font-size:.84rem}
+.dashboard-release-line>div>span{color:var(--admin-muted);font-size:.7rem}
