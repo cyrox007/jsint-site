@@ -112,6 +112,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         self.installation_id = str(uuid4())
         self.license_key_id = "test-license-e2e"
         self.update_key_id = "test-update-e2e"
+        self.addCleanup(self._cleanup_state)
         self.license_key = SigningKey.generate()
         self.update_key = SigningKey.generate()
         LICENSE_TRUSTED_KEYS[self.license_key_id] = b64url(bytes(self.license_key.verify_key))
@@ -149,7 +150,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
 
         self.package_bytes = self._publish_release("1.0.4", 10004, 10003, "1" * 40)
 
-    def tearDown(self):
+    def _cleanup_state(self):
         session = Database.connect_database()
         try:
             _cleanup_e2e_records(session)
