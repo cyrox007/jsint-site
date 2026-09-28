@@ -22,6 +22,7 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("actor_kind", sa.String(length=16), nullable=False),
         sa.Column("actor_user_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("actor_label", sa.String(length=320), nullable=True),
         sa.Column("action", sa.String(length=96), nullable=False),
         sa.Column("outcome", sa.String(length=16), nullable=False),
         sa.Column("target_type", sa.String(length=48), nullable=True),
@@ -31,8 +32,6 @@ def upgrade() -> None:
         sa.Column("release_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("details", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["actor_user_id"], ["users.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["release_id"], ["release_registry.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     for column in (
