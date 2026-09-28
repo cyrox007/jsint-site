@@ -21,7 +21,9 @@ def _safe_href(value: str) -> str:
     if value.startswith(("#", "/")):
         return value
     parsed = urlparse(value)
-    if parsed.scheme in {"http", "https", "mailto"} and parsed.netloc or parsed.scheme == "mailto":
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return value
+    if parsed.scheme == "mailto" and parsed.path:
         return value
     raise ValueError(f"Недопустимая ссылка: {value}")
 
