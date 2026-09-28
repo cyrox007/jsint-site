@@ -5,6 +5,7 @@ from services.publication_profile import (
     profile_for_editor,
     public_profile,
     schema_for,
+    set_profile,
     schemas_for_site,
 )
 
@@ -35,11 +36,33 @@ class PublicationProfileTests(unittest.TestCase):
 
     def test_profile_helpers_do_not_expose_invalid_payload(self):
         self.assertEqual(
-            profile_for_editor({"profile": {"data": {"abstract": "A"}}}),
+            profile_for_editor(
+                {"profiles": {"logos": {"data": {"abstract": "A"}}}},
+                "logos",
+            ),
             {"abstract": "A"},
         )
-        self.assertIsNone(public_profile({"profile": {"schema": "logos.article"}}))
+        self.assertIsNone(
+            public_profile(
+                {"profiles": {"logos": {"schema": "logos.article"}}},
+                "logos",
+            )
+        )
         self.assertIsNone(build_profile("jsint", "article", {}))
+
+    def test_profiles_are_isolated_by_site(self):
+        logos = build_profile(
+            "logos",
+            "article",
+            {"abstract": "Для Logos", "keywords": "", "bibliography": ""},
+        )
+        extra = set_profile({"seo_title": "JSInt title"}, "logos", logos)
+        self.assertEqual(
+            public_profile(extra, "logos")["data"]["abstract"],
+            "Для Logos",
+        )
+        self.assertIsNone(public_profile(extra, "jsint"))
+        self.assertEqual(extra["seo_title"], "JSInt title")
 
 
 if __name__ == "__main__":
