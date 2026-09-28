@@ -41,73 +41,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         {"label": "Подход", "href": "#philosophy"},
         {"label": "О студии", "href": "#about"},
     ],
-    "hero": {
-        "badge": "Независимая инженерная мини-студия",
-        "title": "+УЛЬТРА",
-        "accent": "архитектура сложных web-систем",
-        "description": (
-            "+УЛЬТРА — независимая студия, специализирующаяся на backend-системах, "
-            "realtime-инфраструктуре, аудите архитектуры и доработке сложных web-платформ.\n\n"
-            "Основное направление — исправление технических проблем, оптимизация "
-            "production-систем и развитие независимой инфраструктуры."
-        ),
-        "note": "+УЛЬТРА · backend systems · realtime infrastructure",
-        "terminal_lines": [
-            "booting websocket infrastructure...",
-            "redis cluster synchronized",
-            "realtime channels connected",
-            "latency stabilized: 21ms",
-            "system status: ONLINE",
-        ],
-        "metrics": [
-            {"label": "Основной фокус", "value": "Backend"},
-            {"label": "Realtime", "value": "WebSocket"},
-            {"label": "Инфраструктура", "value": "Независимая"},
-            {"label": "Подход", "value": "Production-first"},
-        ],
-        "tags": [
-            "Realtime",
-            "WebSocket",
-            "Backend",
-            "Архитектура",
-            "Инфраструктура",
-            "Аудит систем",
-        ],
-    },
-    "home": {
-        "philosophy_title": "Философия",
-        "philosophy_subtitle": (
-            "Сложные backend-системы, realtime взаимодействие и независимая инфраструктура."
-        ),
-        "philosophy_text": (
-            "+УЛЬТРА — это не просто персональное портфолио, а независимая инженерная мини-студия, "
-            "ориентированная на создание, доработку и восстановление сложных web-систем.\n\n"
-            "Основной фокус — backend-архитектура, realtime взаимодействие, self-hosted платформы, "
-            "аудит production-среды и исправление критических инфраструктурных проблем.\n\n"
-            "Название вдохновлено выражением «Plus Ultra» — «дальше предела»."
-        ),
-        "systems_title": "Проекты и публикации",
-        "systems_subtitle": "Независимые платформы, backend-системы и последние материалы.",
-        "about_title": "О студии",
-        "about_cards": [
-            {
-                "title": "Интерактивная инженерия",
-                "text": (
-                    "Разрабатываю системы для быстрой обработки данных и обмена информацией "
-                    "в реальном времени, включая серверные и веб-приложения."
-                ),
-            },
-            {
-                "title": "Независимый открытый исходный код",
-                "text": (
-                    "Большая часть проектов развивается как независимые платформы. Особенно "
-                    "интересуют системы, которые пользователь может контролировать сам."
-                ),
-            },
-        ],
-        # Поле сохранено для обратной совместимости. Видимость секций теперь задают page_blocks.
-        "resume_enabled": True,
-    },
     "footer": {
         "description": "Инженерная мини-студия на базе jsinteractive.",
         "location": "Удалённая работа",
@@ -240,6 +173,7 @@ class SiteService:
         settings: dict,
         is_active: bool,
         is_default: bool,
+        commit: bool = True,
     ) -> Site:
         name = name.strip()
         if not name or len(name) > 160:
@@ -259,7 +193,9 @@ class SiteService:
         site.is_active = is_active
         site.is_default = is_default
         session.add(site)
-        session.commit()
+        session.flush()
+        if commit:
+            session.commit()
         session.refresh(site)
         return site
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -14,6 +15,36 @@ HOME_BLOCK_LABELS = {
     "systems": "Публикации",
     "about": "О проекте",
     "resume": "Опыт работы",
+}
+HOME_BLOCK_DEFAULTS = {
+    "hero": {
+        "badge": "",
+        "title": "",
+        "accent": "",
+        "description": "",
+        "note": "",
+        "terminal_lines": [],
+        "metrics": [],
+        "tags": [],
+    },
+    "philosophy": {
+        "title": "Подход",
+        "subtitle": "",
+        "text": "",
+    },
+    "systems": {
+        "title": "Публикации",
+        "subtitle": "",
+    },
+    "about": {
+        "title": "О проекте",
+        "cards": [],
+    },
+    "resume": {
+        "title": "Опыт работы",
+        "subtitle": "",
+        "items": [],
+    },
 }
 
 
@@ -52,13 +83,7 @@ class PageService:
                     page_id=page.id,
                     block_type=block_type,
                     position=position * 100,
-                    settings={
-                        "title": "Опыт работы",
-                        "subtitle": "",
-                        "items": [],
-                    }
-                    if block_type == "resume"
-                    else {},
+                    settings=copy.deepcopy(HOME_BLOCK_DEFAULTS[block_type]),
                     is_enabled=block_type != "resume",
                 )
             )
@@ -67,10 +92,34 @@ class PageService:
 
     @staticmethod
     def list_blocks(page: Page, *, enabled_only: bool = False) -> list[PageBlock]:
-        blocks = sorted(page.blocks, key=lambda item: (item.position, item.created_at, str(item.id)))
+        blocks = sorted(
+            page.blocks,
+            key=lambda item: (
+                item.position,
+                item.created_at.isoformat() if item.created_at else "",
+                str(item.id),
+            ),
+        )
         if enabled_only:
             return [item for item in blocks if item.is_enabled]
         return blocks
+
+    @classmethod
+    def block_settings(cls, page: Page | None) -> dict[str, dict]:
+        if page is None:
+            return {
+                key: copy.deepcopy(value)
+                for key, value in HOME_BLOCK_DEFAULTS.items()
+            }
+
+        result = {
+            key: copy.deepcopy(value)
+            for key, value in HOME_BLOCK_DEFAULTS.items()
+        }
+        for block in page.blocks:
+            if block.block_type in result:
+                result[block.block_type].update(block.settings or {})
+        return result
 
     @classmethod
     def public_blocks(cls, page: Page) -> list[dict]:
@@ -93,7 +142,8 @@ class PageService:
         seo_title: str,
         seo_description: str,
         block_states: dict[str, dict],
-        resume_settings: dict,
+        block_settings: dict[str, dict],
+        commit: bool = True,
     ) -> Page:
         page = cls.get_page(session, site_id, "home")
         if page is None:
@@ -106,18 +156,28 @@ class PageService:
         for block_type in HOME_BLOCK_TYPES:
             block = by_type.get(block_type)
             if block is None:
-                block = PageBlock(page_id=page.id, block_type=block_type, settings={})
+                block = PageBlock(
+                    page_id=page.id,
+                    block_type=block_type,
+                    settings=copy.deepcopy(HOME_BLOCK_DEFAULTS[block_type]),
+                )
                 session.add(block)
                 by_type[block_type] = block
 
             state = block_states.get(block_type, {})
             block.position = max(0, min(int(state.get("position", 100)), 9999))
             block.is_enabled = bool(state.get("enabled", False))
-
-        resume_block = by_type["resume"]
-        resume_block.settings = resume_settings
+            block.settings = copy.deepcopy(
+                block_settings.get(
+                    block_type,
+                    block.settings or HOME_BLOCK_DEFAULTS[block_type],
+                )
+            )
+            session.add(block)
 
         session.add(page)
-        session.commit()
+        session.flush()
+        if commit:
+            session.commit()
         session.refresh(page)
         return page

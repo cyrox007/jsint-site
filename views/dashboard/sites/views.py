@@ -93,45 +93,9 @@ def _settings_from_form(current: dict) -> dict:
         else "",
     }
     settings["navigation"] = _parse_navigation(request.form.get("navigation", ""))
+    settings.pop("hero", None)
+    settings.pop("home", None)
 
-    hero = dict(current.get("hero") or {})
-    hero.update(
-        {
-            "badge": request.form.get("hero_badge", "").strip()[:200],
-            "title": request.form.get("hero_title", "").strip()[:200],
-            "accent": request.form.get("hero_accent", "").strip()[:240],
-            "description": request.form.get("hero_description", "").strip()[:3000],
-            "note": request.form.get("hero_note", "").strip()[:300],
-            "terminal_lines": _lines(request.form.get("hero_terminal_lines", ""))[:8],
-            "tags": [
-                item.strip()[:80]
-                for item in request.form.get("hero_tags", "").split(",")
-                if item.strip()
-            ][:16],
-        }
-    )
-    settings["hero"] = hero
-
-    about_cards = [
-        {
-            "title": request.form.get("about_card_1_title", "").strip()[:160],
-            "text": request.form.get("about_card_1_text", "").strip()[:1500],
-        },
-        {
-            "title": request.form.get("about_card_2_title", "").strip()[:160],
-            "text": request.form.get("about_card_2_text", "").strip()[:1500],
-        },
-    ]
-    settings["home"] = {
-        "philosophy_title": request.form.get("philosophy_title", "").strip()[:160],
-        "philosophy_subtitle": request.form.get("philosophy_subtitle", "").strip()[:500],
-        "philosophy_text": request.form.get("philosophy_text", "").strip()[:5000],
-        "systems_title": request.form.get("systems_title", "").strip()[:160],
-        "systems_subtitle": request.form.get("systems_subtitle", "").strip()[:500],
-        "about_title": request.form.get("about_title", "").strip()[:160],
-        "about_cards": about_cards,
-        "resume_enabled": current.get("home", {}).get("resume_enabled", True),
-    }
     settings["footer"] = {
         "description": request.form.get("footer_description", "").strip()[:500],
         "location": request.form.get("footer_location", "").strip()[:160],
@@ -190,6 +154,64 @@ def _resume_settings_from_form() -> dict:
     }
 
 
+def _hero_metrics_from_form() -> list[dict[str, str]]:
+    metrics: list[dict[str, str]] = []
+    for line in _lines(request.form.get("hero_metrics", "")):
+        label, separator, value = line.partition("|")
+        if not separator or not label.strip() or not value.strip():
+            raise ValueError("Метрики первого экрана: используйте формат «Название|Значение»")
+        metrics.append(
+            {
+                "label": label.strip()[:80],
+                "value": value.strip()[:120],
+            }
+        )
+    return metrics[:12]
+
+
+def _home_block_settings_from_form() -> dict[str, dict]:
+    about_cards = [
+        {
+            "title": request.form.get("about_card_1_title", "").strip()[:160],
+            "text": request.form.get("about_card_1_text", "").strip()[:1500],
+        },
+        {
+            "title": request.form.get("about_card_2_title", "").strip()[:160],
+            "text": request.form.get("about_card_2_text", "").strip()[:1500],
+        },
+    ]
+    return {
+        "hero": {
+            "badge": request.form.get("hero_badge", "").strip()[:200],
+            "title": request.form.get("hero_title", "").strip()[:200],
+            "accent": request.form.get("hero_accent", "").strip()[:240],
+            "description": request.form.get("hero_description", "").strip()[:3000],
+            "note": request.form.get("hero_note", "").strip()[:300],
+            "terminal_lines": _lines(request.form.get("hero_terminal_lines", ""))[:8],
+            "metrics": _hero_metrics_from_form(),
+            "tags": [
+                item.strip()[:80]
+                for item in request.form.get("hero_tags", "").split(",")
+                if item.strip()
+            ][:16],
+        },
+        "philosophy": {
+            "title": request.form.get("philosophy_title", "").strip()[:160],
+            "subtitle": request.form.get("philosophy_subtitle", "").strip()[:500],
+            "text": request.form.get("philosophy_text", "").strip()[:5000],
+        },
+        "systems": {
+            "title": request.form.get("systems_title", "").strip()[:160],
+            "subtitle": request.form.get("systems_subtitle", "").strip()[:500],
+        },
+        "about": {
+            "title": request.form.get("about_title", "").strip()[:160],
+            "cards": about_cards,
+        },
+        "resume": _resume_settings_from_form(),
+    }
+
+
 class SiteListPage(MethodView):
     @login_required
     @with_db_session
@@ -233,11 +255,8 @@ class SiteEditPage(MethodView):
 
         home_page = PageService.get_page(db_session, site.id, "home")
         home_blocks = PageService.list_blocks(home_page) if home_page is not None else []
-        resume_block = next(
-            (item for item in home_blocks if item.block_type == "resume"),
-            None,
-        )
-        resume_settings = resume_block.settings if resume_block is not None else {}
+        home_block_settings = PageService.block_settings(home_page)
+        resume_settings = home_block_settings["resume"]
 
         return render_template(
             "dashboard/sites/edit.html",
@@ -246,6 +265,7 @@ class SiteEditPage(MethodView):
             home_page=home_page,
             home_blocks=home_blocks,
             block_labels=HOME_BLOCK_LABELS,
+            home_block_settings=home_block_settings,
             resume_settings=resume_settings,
             resume_items=resume_settings.get("items", []),
         )
@@ -260,7 +280,7 @@ class SiteEditPage(MethodView):
         try:
             settings = _settings_from_form(SiteService.settings(site))
             block_states = _block_states_from_form()
-            resume_settings = _resume_settings_from_form()
+            block_settings = _home_block_settings_from_form()
 
             SiteService.update(
                 db_session,
@@ -271,6 +291,7 @@ class SiteEditPage(MethodView):
                 settings=settings,
                 is_active=request.form.get("is_active") == "on",
                 is_default=request.form.get("is_default") == "on",
+                commit=False,
             )
             PageService.update_home(
                 db_session,
@@ -278,9 +299,12 @@ class SiteEditPage(MethodView):
                 seo_title=request.form.get("home_seo_title", ""),
                 seo_description=request.form.get("home_seo_description", ""),
                 block_states=block_states,
-                resume_settings=resume_settings,
+                block_settings=block_settings,
+                commit=False,
             )
+            db_session.commit()
         except ValueError as exc:
+            db_session.rollback()
             flash(str(exc), "error")
             return redirect(url_for("admin.sites.edit", site_id=site_id))
 

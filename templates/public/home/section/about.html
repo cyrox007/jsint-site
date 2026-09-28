@@ -1,9 +1,9 @@
-{% set home = site.settings.home %}
+{% set about = block.settings if block is defined and block.settings else {} %}
 <section id="about">
     <div class="container">
-        <h2 class="section-title section-title--spaced">{{ home.about_title }}</h2>
+        <h2 class="section-title section-title--spaced">{{ about.title or 'О проекте' }}</h2>
         <div class="about-grid">
-            {% for card in home.about_cards %}
+            {% for card in about.get('cards', []) %}
             <article class="glass-card about-card">
                 <h3>{{ card.title }}</h3>
                 <p>{{ card.text }}</p>

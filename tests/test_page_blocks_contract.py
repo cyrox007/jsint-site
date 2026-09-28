@@ -30,6 +30,24 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertIn("for block in home_blocks", template)
         self.assertIn("PageService.public_blocks", view)
 
+    def test_page_content_lives_in_block_settings(self):
+        service = self.read("services/page.py")
+        site_service = self.read("services/site.py")
+        migration = self.read("alembic/versions/c8d2f51a6e90_page_block_content.py")
+        sections = [
+            self.read("templates/public/home/section/hero.html"),
+            self.read("templates/public/home/section/philosophy.html"),
+            self.read("templates/public/home/section/systems.html"),
+            self.read("templates/public/home/section/about.html"),
+        ]
+        self.assertIn("HOME_BLOCK_DEFAULTS", service)
+        self.assertNotIn('"hero": {', site_service)
+        self.assertIn("settings - 'hero' - 'home'", migration)
+        for section in sections:
+            self.assertIn("block.settings", section)
+            self.assertNotIn("site.settings.home", section)
+            self.assertNotIn("site.settings.hero", section)
+
     def test_site_editor_controls_blocks_and_resume(self):
         controller = self.read("views/dashboard/sites/views.py")
         template = self.read("templates/dashboard/sites/edit.html")

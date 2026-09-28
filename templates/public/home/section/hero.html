@@ -1,4 +1,4 @@
-{% set hero = site.settings.hero %}
+{% set hero = block.settings if block is defined and block.settings else {} %}
 <section class="hero">
     <div class="container">
         <div class="hero-grid">

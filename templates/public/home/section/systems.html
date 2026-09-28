@@ -1,8 +1,8 @@
-{% set home = site.settings.home %}
+{% set systems = block.settings if block is defined and block.settings else {} %}
 <section id="systems">
     <div class="container">
-        <h2 class="section-title">{{ home.systems_title }}</h2>
-        <p class="section-subtitle section-subtitle--spaced">{{ home.systems_subtitle }}</p>
+        <h2 class="section-title">{{ systems.title or 'Публикации' }}</h2>
+        <p class="section-subtitle section-subtitle--spaced">{{ systems.subtitle or '' }}</p>
 
         <div class="projects-grid">
             {% if articles %}
