@@ -10,9 +10,21 @@ from markupsafe import Markup
 _ALLOWED_TAGS = {
     "p", "br", "strong", "b", "em", "i", "u", "s",
     "blockquote", "pre", "code", "h2", "h3", "h4", "h5", "h6",
-    "ul", "ol", "li", "a",
+    "ul", "ol", "li", "a", "img",
 }
+_VOID_TAGS = {"br", "img"}
 _DROP_WITH_CONTENT = {"script", "style", "iframe", "object", "embed", "svg", "math"}
+
+
+def _safe_image_src(value: str) -> str | None:
+    value = value.strip()
+    if not value or value.startswith("//"):
+        return None
+
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.scheme.lower() not in {"http", "https"}:
+        return None
+    return value
 
 
 def _safe_href(value: str) -> str | None:
@@ -46,6 +58,19 @@ class _RichTextSanitizer(HTMLParser):
             self.parts.append("<br>")
             return
 
+        if tag == "img":
+            attr_map = {str(k).lower(): str(v) for k, v in attrs if k and v is not None}
+            src = _safe_image_src(attr_map.get("src", ""))
+            if src:
+                alt = attr_map.get("alt", "").strip()[:500]
+                self.parts.append(
+                    '<img src="{}" alt="{}" loading="lazy">'.format(
+                        escape(src, quote=True),
+                        escape(alt, quote=True),
+                    )
+                )
+            return
+
         if tag == "a":
             attr_map = {str(k).lower(): str(v) for k, v in attrs if k and v is not None}
             href = _safe_href(attr_map.get("href", ""))
@@ -68,7 +93,7 @@ class _RichTextSanitizer(HTMLParser):
             if self.drop_depth:
                 self.drop_depth -= 1
             return
-        if self.drop_depth or tag not in _ALLOWED_TAGS or tag == "br":
+        if self.drop_depth or tag not in _ALLOWED_TAGS or tag in _VOID_TAGS:
             return
         self.parts.append(f"</{tag}>")
 
