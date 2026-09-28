@@ -6,6 +6,7 @@ from flask import Flask, abort, jsonify, request, url_for
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import with_db_session
+from components.security.html import sanitize_rich_text
 from models.categories import Category
 from services.media import MediaService
 from services.page import PageService
@@ -93,7 +94,7 @@ def _publication_payload(publication, *, include_content: bool) -> dict:
         "updated_at": publication.updated_at.isoformat() if publication.updated_at else None,
     }
     if include_content:
-        payload["content"] = publication.content
+        payload["content"] = sanitize_rich_text(publication.content)
     return payload
 
 
