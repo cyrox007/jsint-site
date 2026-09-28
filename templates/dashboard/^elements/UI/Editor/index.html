@@ -53,13 +53,13 @@
             <details class="jsint-editor-more">
                 <summary class="jsint-editor-button" title="Дополнительное форматирование" aria-label="Дополнительное форматирование">•••</summary>
                 <div class="jsint-editor-more__menu">
-                    <button class="ql-underline jsint-editor-more__item" type="button"><span>U</span>Подчёркивание</button>
-                    <button class="ql-strike jsint-editor-more__item" type="button"><span>S</span>Зачёркивание</button>
-                    <button class="ql-blockquote jsint-editor-more__item" type="button"><span>❝</span>Цитата</button>
-                    <button class="ql-code-block jsint-editor-more__item" type="button"><span>&lt;/&gt;</span>Блок кода</button>
-                    <button class="ql-script jsint-editor-more__item" value="sub" type="button"><span>x₂</span>Нижний индекс</button>
-                    <button class="ql-script jsint-editor-more__item" value="super" type="button"><span>x²</span>Верхний индекс</button>
-                    <button class="ql-clean jsint-editor-more__item" type="button"><span>Tx</span>Очистить форматирование</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="underline"><span>U</span>Подчёркивание</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="strike"><span>S</span>Зачёркивание</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="blockquote"><span>❝</span>Цитата</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="code-block"><span>&lt;/&gt;</span>Блок кода</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="script" data-more-value="sub"><span>x₂</span>Нижний индекс</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-format="script" data-more-value="super"><span>x²</span>Верхний индекс</button>
+                    <button class="jsint-editor-more__item" type="button" data-more-clean><span>Tx</span>Очистить форматирование</button>
                 </div>
             </details>
 
@@ -225,6 +225,49 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     );
 
+    const updateMoreMenu = range => {
+        const format = range ? quill.getFormat(range) : quill.getFormat();
+        toolbar.querySelectorAll("[data-more-format]").forEach(button => {
+            const name = button.dataset.moreFormat;
+            const value = button.dataset.moreValue || true;
+            const active = value === true
+                ? Boolean(format[name])
+                : format[name] === value;
+            button.classList.toggle("is-active", active);
+        });
+    };
+
+    toolbar.querySelectorAll("[data-more-format]").forEach(button => {
+        button.addEventListener("mousedown", event => event.preventDefault());
+        button.addEventListener("click", () => {
+            const range = quill.getSelection(true);
+            const name = button.dataset.moreFormat;
+            const value = button.dataset.moreValue || true;
+            const current = quill.getFormat(range)[name];
+            const active = value === true
+                ? Boolean(current)
+                : current === value;
+            quill.format(name, active ? false : value, "user");
+            updateMoreMenu(range);
+        });
+    });
+
+    const cleanButton = toolbar.querySelector("[data-more-clean]");
+    if (cleanButton) {
+        cleanButton.addEventListener("mousedown", event => event.preventDefault());
+        cleanButton.addEventListener("click", () => {
+            const range = quill.getSelection(true);
+            if (range.length > 0) {
+                quill.removeFormat(range.index, range.length, "user");
+            } else {
+                quill.format("header", false, "user");
+                quill.format("blockquote", false, "user");
+                quill.format("code-block", false, "user");
+            }
+            updateMoreMenu(range);
+        });
+    }
+
     const hideBubble = () => {
         if (bubble) {
             bubble.hidden = true;
@@ -291,6 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     quill.on("selection-change", range => {
         showBubble(range);
+        updateMoreMenu(range);
     });
 
     window.jsintEditors = window.jsintEditors || {};
