@@ -154,8 +154,6 @@
 .publication-placement__body{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--admin-border)}
 .publication-placement__hint{margin:0;color:var(--admin-muted);font-size:.74rem;line-height:1.45}
 @media(max-width:640px){.publication-placement__header{align-items:flex-start;flex-direction:column}}
-.publication-body-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.publication-body-tools>span{color:var(--admin-muted);font-size:.72rem;font-weight:750;letter-spacing:.055em;text-transform:uppercase}
 .publication-profile-fields[hidden],.publication-settings-note[hidden]{display:none}
 .publication-profile-schema{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--admin-border)}
 .publication-profile-schema strong{color:var(--admin-text);font-size:.8rem}
