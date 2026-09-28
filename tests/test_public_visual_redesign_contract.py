@@ -14,7 +14,6 @@ class PublicVisualRedesignContractTests(unittest.TestCase):
             ROOT / "templates/public/^shared/header/style.css"
         ).read_text(encoding="utf-8")
         self.assertIn("logo-mark", template)
-        self.assertIn("workspace", styles.lower() if False else "workspace")
         self.assertIn("border-radius: 22px", styles)
         self.assertIn("backdrop-filter", styles)
 
