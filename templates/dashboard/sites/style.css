@@ -1,0 +1,11 @@
+.sites-page .admin-grid{margin-bottom:24px}
+.site-card__title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.site-card__stats{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.site-card__actions{justify-content:flex-start;margin-top:18px}
+.site-create-form,.site-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.site-editor__form{display:grid;gap:20px}
+.site-field-wide{grid-column:1/-1}
+.site-editor__save{position:sticky;bottom:18px;display:flex;justify-content:flex-end;z-index:5}
+.site-editor__save .btn{box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.admin-form small{display:block;margin-top:6px;color:var(--muted);font-size:.8rem}
+@media(max-width:800px){.site-create-form,.site-form-grid{grid-template-columns:1fr}.site-field-wide{grid-column:auto}}

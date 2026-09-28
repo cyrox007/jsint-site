@@ -1,15 +1,11 @@
 {% extends "public/^core/base.html" %}
 
 {% block content %}
-
 {% include 'public/home/section/hero.html' %}
-
 {% include 'public/home/section/philosophy.html' %}
-
 {% include 'public/home/section/systems.html' %}
-
 {% include 'public/home/section/about.html' %}
-
-{% include 'public/home/section/resume.html' %}
-
+{% if site.settings.home.resume_enabled %}
+    {% include 'public/home/section/resume.html' %}
+{% endif %}
 {% endblock %}

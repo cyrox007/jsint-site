@@ -118,3 +118,9 @@ section::after {
 .btn-secondary:hover {
 	border-color: rgba(56, 189, 248, 0.4);
 }
+
+
+.error-page{min-height:70vh;display:flex;align-items:center;padding-top:100px}
+.error-page__inner{max-width:760px}
+.error-page h1{font-size:clamp(2.4rem,7vw,5rem);margin-bottom:18px}
+.error-page p{color:var(--muted);margin-bottom:28px}

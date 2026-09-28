@@ -1,18 +1,24 @@
+{% set settings = site.settings %}
 <header class="navbar">
     <div class="container">
         <div class="navbar-inner">
-            <a href="{{ url_for('index') }}" class="logo">
-                <div class="logo-main">+УЛЬТРА</div>
-                <div class="logo-sub">на базе jsinteractive</div>
+            <a href="{{ url_for('index') }}" class="logo" aria-label="{{ settings.brand.name }}">
+                <div class="logo-main">{{ settings.brand.name }}</div>
+                {% if settings.brand.subtitle %}<div class="logo-sub">{{ settings.brand.subtitle }}</div>{% endif %}
             </a>
+            {% if settings.navigation %}
             <nav class="nav-links" aria-label="Основная навигация">
-                <a href="{{ url_for('index') }}#systems">Системы</a>
-                <a href="{{ url_for('index') }}#philosophy">Подход</a>
-                <a href="{{ url_for('index') }}#about">О студии</a>
+                {% for item in settings.navigation %}
+                    {% set item_href = (url_for('index') ~ item.href) if item.href.startswith('#') else item.href %}
+                    <a href="{{ item_href }}">{{ item.label }}</a>
+                {% endfor %}
             </nav>
+            {% endif %}
+            {% if settings.contact.email %}
             <div class="nav-actions">
-                <a href="mailto:cyrox007@gmail.com" class="nav-cta">Связаться</a>
+                <a href="mailto:{{ settings.contact.email }}" class="nav-cta">Связаться</a>
             </div>
+            {% endif %}
         </div>
     </div>
 </header>

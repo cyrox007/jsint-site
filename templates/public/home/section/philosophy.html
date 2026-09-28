@@ -1,24 +1,10 @@
-<style>
-    
-</style>
-
-<!-- Philosophy Section -->
+{% set home = site.settings.home %}
 <section class="philosophy" id="philosophy">
     <div class="container">
-        <h2 class="section-title" style="font-size: 2rem; margin-bottom: 16px;">Философия</h2>
-        <p class="section-subtitle" style="color: var(--muted); max-width: 600px; margin-bottom: 32px;">
-            Сложные backend-системы, realtime взаимодействие и независимая инфраструктура.
-        </p>
-        <div class="glass-card" style="padding: 32px;">
-            <p style="color: var(--text); line-height: 1.8;">
-                +УЛЬТРА — это не просто персональное портфолио, а независимая инженерная мини-студия, ориентированная на
-                создание, доработку и восстановление сложных web-систем.<br><br>
-                Основной фокус — backend-архитектура, realtime взаимодействие, self-hosted платформы, аудит
-                production-среды и исправление критических инфраструктурных проблем.<br><br>
-                Название вдохновлено выражением «Plus Ultra» — «дальше предела». Этот подход отражает интерес к
-                нестандартным задачам, сложным системам и архитектуре, которая продолжает работать под высокой
-                нагрузкой.
-            </p>
+        <h2 class="section-title">{{ home.philosophy_title }}</h2>
+        <p class="section-subtitle">{{ home.philosophy_subtitle }}</p>
+        <div class="glass-card section-copy">
+            <p>{{ home.philosophy_text }}</p>
         </div>
     </div>
 </section>

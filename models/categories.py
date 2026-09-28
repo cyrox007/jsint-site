@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     Text,
+    UniqueConstraint,
     asc,
     desc,
 )
@@ -23,8 +24,17 @@ if TYPE_CHECKING:
 
 class Category(Database.Base):
     __tablename__ = "categories"
+    __table_args__ = (
+        UniqueConstraint("site_id", "slug", name="uq_categories_site_slug"),
+    )
 
     id: Mapped[UUIDType] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    site_id: Mapped[UUIDType] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("sites.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     parent_id: Mapped[Optional[UUIDType]] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("categories.id", ondelete="CASCADE"),
@@ -40,7 +50,7 @@ class Category(Database.Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     title: Mapped[str] = mapped_column(String(50), nullable=False)
-    slug: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    slug: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     articles: Mapped[List["Publication"]] = relationship(
@@ -58,6 +68,7 @@ class Category(Database.Base):
         cls,
         session: Session,
         *,
+        site_id: UUIDType | None = None,
         title_contains: Optional[str] = None,
         slug: Optional[str] = None,
         has_articles: Optional[bool] = None,
@@ -71,6 +82,8 @@ class Category(Database.Base):
     ) -> List["Category"]:
         query = session.query(cls)
 
+        if site_id is not None:
+            query = query.filter(cls.site_id == site_id)
         if title_contains is not None:
             query = query.filter(cls.title.ilike(f"%{title_contains}%"))
         if slug is not None:
@@ -97,39 +110,65 @@ class Category(Database.Base):
             query = query.offset(offset)
         if limit is not None:
             query = query.limit(limit)
-
         return query.all()
 
     @classmethod
-    def get_by_id(cls, session: Session, category_id: UUIDType) -> Optional["Category"]:
-        return session.query(cls).filter(cls.id == category_id).first()
+    def get_by_id(
+        cls,
+        session: Session,
+        category_id: UUIDType,
+        site_id: UUIDType | None = None,
+    ) -> Optional["Category"]:
+        query = session.query(cls).filter(cls.id == category_id)
+        if site_id is not None:
+            query = query.filter(cls.site_id == site_id)
+        return query.first()
 
     @classmethod
-    def get_by_slug(cls, session: Session, slug: str) -> Optional["Category"]:
-        return session.query(cls).filter(cls.slug == slug).first()
+    def get_by_slug(
+        cls,
+        session: Session,
+        slug: str,
+        site_id: UUIDType | None = None,
+    ) -> Optional["Category"]:
+        query = session.query(cls).filter(cls.slug == slug)
+        if site_id is not None:
+            query = query.filter(cls.site_id == site_id)
+        return query.first()
 
     @classmethod
     def get_tree(
         cls,
         session: Session,
+        site_id: UUIDType,
         parent_id: Optional[UUIDType] = None,
         _visited: Optional[set[UUIDType]] = None,
     ) -> List[dict]:
         visited = set() if _visited is None else set(_visited)
-        query = session.query(cls).filter(cls.parent_id == parent_id).order_by(cls.title)
+        query = (
+            session.query(cls)
+            .filter(cls.site_id == site_id, cls.parent_id == parent_id)
+            .order_by(cls.title)
+        )
         tree: list[dict] = []
 
-        for cat in query.all():
-            if cat.id in visited:
+        for category in query.all():
+            if category.id in visited:
                 continue
-            next_visited = visited | {cat.id}
+            next_visited = visited | {category.id}
             tree.append(
                 {
-                    "id": cat.id,
-                    "title": cat.title,
-                    "slug": cat.slug,
-                    "description": cat.description,
-                    "children": cls.get_tree(session, cat.id, next_visited),
+                    "id": category.id,
+                    "site_id": category.site_id,
+                    "title": category.title,
+                    "slug": category.slug,
+                    "description": category.description,
+                    "children": cls.get_tree(
+                        session,
+                        site_id,
+                        category.id,
+                        next_visited,
+                    ),
                 }
             )
         return tree
@@ -146,7 +185,7 @@ class Category(Database.Base):
         while current.parent_id:
             if current.parent_id in visited:
                 break
-            parent = cls.get_by_id(session, current.parent_id)
+            parent = cls.get_by_id(session, current.parent_id, current.site_id)
             if not parent:
                 break
             visited.add(parent.id)
@@ -156,17 +195,34 @@ class Category(Database.Base):
 
     @classmethod
     def get_children(cls, session: Session, category_id: UUIDType) -> List["Category"]:
-        return session.query(cls).filter(cls.parent_id == category_id).order_by(cls.title).all()
+        category = cls.get_by_id(session, category_id)
+        if category is None:
+            return []
+        return (
+            session.query(cls)
+            .filter(cls.site_id == category.site_id, cls.parent_id == category_id)
+            .order_by(cls.title)
+            .all()
+        )
 
     @classmethod
     def get_all_descendants(cls, session: Session, category_id: UUIDType) -> List["Category"]:
+        category = cls.get_by_id(session, category_id)
+        if category is None:
+            return []
+
         result: list[Category] = []
         stack = [category_id]
         visited = {category_id}
 
         while stack:
             current_id = stack.pop()
-            for child in session.query(cls).filter(cls.parent_id == current_id).all():
+            children = (
+                session.query(cls)
+                .filter(cls.site_id == category.site_id, cls.parent_id == current_id)
+                .all()
+            )
+            for child in children:
                 if child.id in visited:
                     continue
                 visited.add(child.id)
@@ -182,6 +238,16 @@ class Category(Database.Base):
     def get_publication_count(cls, session: Session, category_id: UUIDType) -> int:
         from models.publication import Publication
 
+        category = cls.get_by_id(session, category_id)
+        if category is None:
+            return 0
         descendants = cls.get_all_descendants(session, category_id)
-        ids = [cat.id for cat in descendants] + [category_id]
-        return session.query(Publication).filter(Publication.category_id.in_(ids)).count()
+        ids = [item.id for item in descendants] + [category_id]
+        return (
+            session.query(Publication)
+            .filter(
+                Publication.site_id == category.site_id,
+                Publication.category_id.in_(ids),
+            )
+            .count()
+        )

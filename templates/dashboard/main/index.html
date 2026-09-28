@@ -5,11 +5,11 @@
     <header class="admin-page__header">
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">JSInteractive</span>
-            <h1 class="admin-page__title">Обзор</h1>
-            <p class="admin-page__description">Состояние публичного сайта, фоновых процессов и Workspace Organizer control plane.</p>
+            <h1 class="admin-page__title">Центр управления</h1>
+            <p class="admin-page__description">Одна админка для публичных сайтов, контента и сервисного контура Workspace Organizer.</p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('index') }}" target="_blank" rel="noopener">Открыть сайт ↗</a>
+            <a class="btn secondary" href="{{ url_for('index') }}" target="_blank" rel="noopener">Открыть основной сайт ↗</a>
         </div>
     </header>
 
@@ -18,20 +18,21 @@
         <div class="admin-card metric-card"><div class="metric-card__label">PostgreSQL</div><div class="metric-card__value metric-status {{ 'is-ok' if database_ok else 'is-error' }}">{{ 'Работает' if database_ok else 'Ошибка' }}</div></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Redis</div><div class="metric-card__value metric-status {{ 'is-ok' if redis_ok else 'is-error' }}">{{ 'Работает' if redis_ok else 'Недоступен' }}</div></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Фоновые задачи</div><div class="metric-card__value metric-status {{ 'is-ok' if background.ok else 'is-error' }}">{{ 'Работают' if background.ok else 'Нет heartbeat' }}</div><small class="metric-card__meta">{% if background.ok %}Beat → Worker · {{ background.age_seconds }} сек. назад{% else %}{{ background.reason }}{% endif %}</small></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Сайты</div><div class="metric-card__value">{{ active_site_count }} / {{ site_count }}</div><small class="metric-card__meta">активных / всего</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Публикации</div><div class="metric-card__value">{{ total_publications }}</div><small class="metric-card__meta">{{ published_count }} опубликовано · {{ draft_count }} черновиков</small></div>
-        <div class="admin-card metric-card"><div class="metric-card__label">Категории</div><div class="metric-card__value">{{ category_count }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Рубрики</div><div class="metric-card__value">{{ category_count }}</div></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Лицензии</div><div class="metric-card__value">{{ active_license_count }} / {{ license_count }}</div><small class="metric-card__meta">active / всего</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Релизы Workspace</div><div class="metric-card__value">{{ release_count }}</div></div>
     </section>
 
     <section class="admin-grid admin-grid--2">
         <article class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Контент</h2><p class="admin-card__description">Публикации, кейсы, changelog и структура каталога.</p></div></div>
-            <div class="admin-card__body"><div class="admin-actions" style="justify-content:flex-start;"><a class="btn primary" href="{{ url_for('admin.publication.index') }}">Управление контентом</a><a class="btn secondary" href="{{ url_for('admin.publication.create') }}">Новая публикация</a></div></div>
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Публичные сайты</h2><p class="admin-card__description">Витрины, их бренд, SEO, API и привязанный контент.</p></div></div>
+            <div class="admin-card__body"><div class="admin-actions"><a class="btn primary" href="{{ url_for('admin.sites.index') }}">Управление сайтами</a><a class="btn secondary" href="{{ url_for('admin.publication.index') }}">Контент</a></div></div>
         </article>
         <article class="admin-card">
             <div class="admin-card__header"><div><h2 class="admin-card__title">Workspace Organizer</h2><p class="admin-card__description">Установки, права на обновления и immutable release artifacts.</p></div></div>
-            <div class="admin-card__body"><div class="admin-actions" style="justify-content:flex-start;"><a class="btn primary" href="{{ url_for('admin.licenses.index') }}">Лицензии</a><a class="btn secondary" href="{{ url_for('admin.releases.index') }}">Релизы</a></div><p class="admin-form-note" style="margin-top:16px;">Private signing keys остаются офлайн. Панель хранит только public trust roots.</p></div>
+            <div class="admin-card__body"><div class="admin-actions"><a class="btn primary" href="{{ url_for('admin.licenses.index') }}">Лицензии</a><a class="btn secondary" href="{{ url_for('admin.releases.index') }}">Релизы</a></div><p class="admin-form-note">Private signing keys остаются офлайн. Панель хранит только public trust roots.</p></div>
         </article>
     </section>
 </div>

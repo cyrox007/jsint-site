@@ -1,0 +1,99 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}{{ site.name }} | Сайты{% endblock %}
+{% block content %}
+{% set brand = site_settings.brand %}
+{% set seo = site_settings.seo %}
+{% set contact = site_settings.contact %}
+{% set hero = site_settings.hero %}
+{% set home = site_settings.home %}
+{% set footer = site_settings.footer %}
+<div class="admin-page site-editor">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Сайт · {{ site.key }}</span>
+            <h1 class="admin-page__title">{{ site.name }}</h1>
+            <p class="admin-page__description">Настройки витрины и публичного API. Контент хранится отдельно для каждого сайта.</p>
+        </div>
+        <div class="admin-page__actions">
+            <a class="btn secondary" href="{{ url_for('admin.sites.index') }}">К списку</a>
+            <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=site.id) }}">Контент</a>
+        </div>
+    </header>
+
+    <form method="post" class="site-editor__form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Сайт</h2><p class="admin-card__description">Служебные параметры витрины.</p></div></div>
+            <div class="admin-card__body admin-form site-form-grid">
+                <label>Название<input name="name" maxlength="160" value="{{ site.name }}" required></label>
+                <label>Ключ<input value="{{ site.key }}" disabled><small>Ключ используется в API и после создания не меняется.</small></label>
+                <label>Публичный URL<input name="base_url" value="{{ site.base_url or '' }}" placeholder="https://example.ru"></label>
+                <label>Тема<input name="theme_key" maxlength="80" value="{{ site.theme_key }}"></label>
+                <label class="switch"><input type="checkbox" name="is_active" {% if site.is_active %}checked{% endif %}><span class="slider"></span><span class="label">Сайт активен</span></label>
+                <label class="switch"><input type="checkbox" name="is_default" {% if site.is_default %}checked{% endif %}><span class="slider"></span><span class="label">Основной сайт встроенной витрины</span></label>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Бренд и SEO</h2><p class="admin-card__description">То, что раньше было жёстко записано в шаблонах.</p></div></div>
+            <div class="admin-card__body admin-form site-form-grid">
+                <label>Название бренда<input name="brand_name" value="{{ brand.name }}"></label>
+                <label>Подпись бренда<input name="brand_subtitle" value="{{ brand.subtitle }}"></label>
+                <label>Название сайта для OpenGraph<input name="seo_site_name" value="{{ seo.site_name }}"></label>
+                <label>Title по умолчанию<input name="seo_title" maxlength="255" value="{{ seo.title }}"></label>
+                <label class="site-field-wide">Meta description<textarea name="seo_description" rows="3" maxlength="320">{{ seo.description }}</textarea></label>
+                <label>Email<input name="contact_email" type="email" value="{{ contact.email }}"></label>
+                <label>GitHub / внешняя ссылка<input name="github_url" value="{{ contact.github_url }}"></label>
+                <label class="site-field-wide">Навигация<textarea name="navigation" rows="4">{% for item in site_settings.navigation %}{{ item.label }}|{{ item.href }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea><small>Одна строка: Название|ссылка</small></label>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Первый экран</h2><p class="admin-card__description">Главный экран встроенного публичного сайта.</p></div></div>
+            <div class="admin-card__body admin-form site-form-grid">
+                <label>Маркер<input name="hero_badge" value="{{ hero.badge }}"></label>
+                <label>Заголовок<input name="hero_title" value="{{ hero.title }}"></label>
+                <label class="site-field-wide">Акцентная строка<input name="hero_accent" value="{{ hero.accent }}"></label>
+                <label class="site-field-wide">Описание<textarea name="hero_description" rows="6">{{ hero.description }}</textarea></label>
+                <label class="site-field-wide">Строки терминала<textarea name="hero_terminal_lines" rows="6">{{ hero.terminal_lines|join('\n') }}</textarea></label>
+                <label class="site-field-wide">Теги<input name="hero_tags" value="{{ hero.tags|join(', ') }}"><small>Через запятую.</small></label>
+                <label class="site-field-wide">Подпись<input name="hero_note" value="{{ hero.note }}"></label>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Секции главной</h2><p class="admin-card__description">Текстовые блоки собственного фронта JSInteractive.</p></div></div>
+            <div class="admin-card__body admin-form site-form-grid">
+                <label>Заголовок подхода<input name="philosophy_title" value="{{ home.philosophy_title }}"></label>
+                <label>Подзаголовок подхода<input name="philosophy_subtitle" value="{{ home.philosophy_subtitle }}"></label>
+                <label class="site-field-wide">Текст подхода<textarea name="philosophy_text" rows="7">{{ home.philosophy_text }}</textarea></label>
+                <label>Заголовок публикаций<input name="systems_title" value="{{ home.systems_title }}"></label>
+                <label>Подзаголовок публикаций<input name="systems_subtitle" value="{{ home.systems_subtitle }}"></label>
+                <label class="site-field-wide">Заголовок блока «О студии»<input name="about_title" value="{{ home.about_title }}"></label>
+                <label>Карточка 1 — заголовок<input name="about_card_1_title" value="{{ home.about_cards[0].title if home.about_cards else '' }}"></label>
+                <label>Карточка 2 — заголовок<input name="about_card_2_title" value="{{ home.about_cards[1].title if home.about_cards|length > 1 else '' }}"></label>
+                <label>Карточка 1 — текст<textarea name="about_card_1_text" rows="5">{{ home.about_cards[0].text if home.about_cards else '' }}</textarea></label>
+                <label>Карточка 2 — текст<textarea name="about_card_2_text" rows="5">{{ home.about_cards[1].text if home.about_cards|length > 1 else '' }}</textarea></label>
+                <label class="switch site-field-wide"><input type="checkbox" name="resume_enabled" {% if home.resume_enabled %}checked{% endif %}><span class="slider"></span><span class="label">Показывать текущий блок опыта работы</span></label>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">Подвал и API</h2><p class="admin-card__description">Контакты витрины и разрешённые origin для внешних фронтов.</p></div></div>
+            <div class="admin-card__body admin-form site-form-grid">
+                <label class="site-field-wide">Описание в подвале<input name="footer_description" value="{{ footer.description }}"></label>
+                <label>Локация<input name="footer_location" value="{{ footer.location }}"></label>
+                <label>Нижняя подпись<input name="footer_note" value="{{ footer.note }}"></label>
+                <label class="site-field-wide">Разрешённые origin публичного API<textarea name="api_allowed_origins" rows="4">{% for origin in site_settings.api.allowed_origins %}{{ origin }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea><small>Например https://logos.example.ru. По одному адресу на строку.</small></label>
+            </div>
+        </section>
+
+        <div class="site-editor__save">
+            <button type="submit" class="btn primary">Сохранить настройки</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -22,12 +22,14 @@ def create_app() -> Flask:
 
     from views.public.home import routers as home_router
     from views.public.articles import routers as article_router
+    from views.public import api as public_api
     from views.public import seo as public_seo
     from views.auth import router as auth_router
     from views.dashboard.main import router as d_main_router
     from views.dashboard.blog import routers as d_blog_router
     from views.dashboard.catalog import routers as d_catalog_router
     from views.dashboard.control_plane import router as d_control_plane_router
+    from views.dashboard.sites import router as d_sites_router
     from views import notes_api
 
     app = Flask(__name__, static_folder="static")
@@ -46,8 +48,7 @@ def create_app() -> Flask:
     )
 
     if config.BEHIND_PROXY:
-        # Безопасно только когда WSGI-порт доступен исключительно доверенному
-        # reverse proxy (рекомендуемый production deployment).
+        # WSGI-порт должен быть доступен только доверенному reverse proxy.
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
             x_for=1,
@@ -61,11 +62,13 @@ def create_app() -> Flask:
 
     home_router.install(app)
     article_router.install(app)
+    public_api.install(app)
     auth_router.install(app)
     d_main_router.install(app)
     d_blog_router.install(app)
     d_catalog_router.install(app)
     d_control_plane_router.install(app)
+    d_sites_router.install(app)
     notes_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])

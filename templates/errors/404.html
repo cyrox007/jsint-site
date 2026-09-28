@@ -1,10 +1,9 @@
 {% extends "public/^core/base.html" %}
-{% block title %}Страница не найдена | +УЛЬТРА{% endblock %}
 {% block content %}
-<section>
-  <div class="container" style="max-width:760px; padding-top:80px; padding-bottom:80px;">
-    <h1 style="font-size:clamp(2.4rem,7vw,5rem); margin-bottom:18px;">404</h1>
-    <p style="color:var(--muted); margin-bottom:28px;">Такой страницы нет или она была перемещена.</p>
+<section class="error-page">
+  <div class="container error-page__inner">
+    <h1>404</h1>
+    <p>Такой страницы нет или она была перемещена.</p>
     <a class="btn btn-primary" href="{{ url_for('index') }}">На главную</a>
   </div>
 </section>
