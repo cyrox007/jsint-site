@@ -1,15 +1,17 @@
 {% set hero = block.settings if block is defined and block.settings else {} %}
 <section class="hero">
+    <div class="hero-orbit hero-orbit--one" aria-hidden="true"></div>
+    <div class="hero-orbit hero-orbit--two" aria-hidden="true"></div>
     <div class="container">
         <div class="hero-grid">
             <div class="hero-copy">
                 {% if hero.badge %}
-                <div class="hero-badge"><span>●</span><span>{{ hero.badge }}</span></div>
+                <div class="hero-badge"><span class="hero-badge__dot"></span><span>{{ hero.badge }}</span></div>
                 {% endif %}
 
                 <h1>
-                    {{ hero.title }}
-                    {% if hero.accent %}<br><span class="gradient">{{ hero.accent }}</span>{% endif %}
+                    <span class="hero-title-main">{{ hero.title }}</span>
+                    {% if hero.accent %}<span class="gradient">{{ hero.accent }}</span>{% endif %}
                 </h1>
 
                 {% if hero.description %}
@@ -18,46 +20,54 @@
 
                 <div class="hero-actions">
                     {% if site.settings.contact.github_url %}
-                    <a href="{{ site.settings.contact.github_url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    <a href="{{ site.settings.contact.github_url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
                     {% endif %}
-                    <a href="#systems" class="btn btn-secondary">Публикации</a>
+                    <a href="#systems" class="btn btn-secondary">Смотреть материалы</a>
                     {% if site.settings.contact.email %}
                     <a href="mailto:{{ site.settings.contact.email }}" class="btn btn-secondary">Связаться</a>
                     {% endif %}
                 </div>
 
+                {% if hero.tags %}
+                <div class="hero-tags" aria-label="Основные направления">
+                    {% for tag in hero.tags %}<span>{{ tag }}</span>{% endfor %}
+                </div>
+                {% endif %}
+
                 {% if hero.note %}<div class="hero-note">{{ hero.note }}</div>{% endif %}
             </div>
 
-            <div class="hero-card" aria-label="Направления работы">
-                <div class="terminal-noise"></div>
-                <div class="terminal-glow"></div>
-                <div class="terminal-header" aria-hidden="true"><span></span><span></span><span></span></div>
+            <aside class="hero-console" aria-label="Направления работы">
+                <div class="hero-console__top">
+                    <div>
+                        <span class="hero-console__eyebrow">system / overview</span>
+                        <strong>Рабочий контур</strong>
+                    </div>
+                    <span class="hero-console__status">online</span>
+                </div>
 
+                {% if hero.terminal_lines %}
                 <div class="terminal-body">
                     {% for line in hero.terminal_lines %}
                     <div class="terminal-line">
-                        <span class="prompt {{ 'success' if loop.last else '' }}">></span>
+                        <span class="prompt {{ 'success' if loop.last else '' }}">{{ '%02d'|format(loop.index) }}</span>
                         <span>{{ line }}</span>
                     </div>
                     {% endfor %}
                 </div>
+                {% endif %}
 
                 {% if hero.metrics %}
                 <div class="metrics-grid">
                     {% for metric in hero.metrics %}
-                    <div class="metric"><small>{{ metric.label }}</small><strong>{{ metric.value }}</strong></div>
+                    <div class="metric">
+                        <small>{{ metric.label }}</small>
+                        <strong>{{ metric.value }}</strong>
+                    </div>
                     {% endfor %}
                 </div>
                 {% endif %}
-
-                {% if hero.tags %}
-                <div class="hero-stack" aria-label="Основные направления">
-                    {% for tag in hero.tags %}<span class="tech">{{ tag }}</span>{% endfor %}
-                </div>
-                {% endif %}
-                <div class="activity-beam"></div>
-            </div>
+            </aside>
         </div>
     </div>
 </section>

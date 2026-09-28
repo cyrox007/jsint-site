@@ -4,19 +4,25 @@
 
 {% block content %}
 <article class="article-detail container">
+    <a class="article-back" href="{{ url_for('index') }}#systems">← Все материалы</a>
+
     <header class="article-header">
+        <div class="article-header__top">
+            <span class="section-kicker">Материал</span>
+            {% if publication.category %}<span class="article-category">{{ publication.category.title }}</span>{% endif %}
+        </div>
         <h1>{{ publication.title }}</h1>
+
         <div class="article-meta">
             <span>{{ publication.published_at.strftime('%d.%m.%Y') if publication.published_at else publication.created_at.strftime('%d.%m.%Y') }}</span>
-            {% if publication.category %}<span>Категория: <strong>{{ publication.category.title }}</strong></span>{% endif %}
             {% if publication.technologies %}
             <span class="article-tech-list">
-                Стек:
                 {% for tech in publication.technologies %}<span class="tech-badge">{{ tech.name }}</span>{% endfor %}
             </span>
             {% endif %}
         </div>
     </header>
+
     <div class="article-content">{{ publication.content|safe_rich_text }}</div>
 </article>
 {% endblock %}
