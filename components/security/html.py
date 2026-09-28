@@ -8,7 +8,7 @@ from markupsafe import Markup
 
 
 _ALLOWED_TAGS = {
-    "p", "br", "strong", "b", "em", "i", "u", "s",
+    "p", "br", "strong", "b", "em", "i", "u", "s", "sub", "sup",
     "blockquote", "pre", "code", "h2", "h3", "h4", "h5", "h6",
     "ul", "ol", "li", "a", "img",
 }
