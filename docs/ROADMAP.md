@@ -7,7 +7,7 @@
 Базовая production-линия включает:
 
 - публикации и категории;
-- закрытую single-admin CMS;
+- закрытую CMS с allowlist администраторов и управлением пользователями;
 - dashboard «Обзор»;
 - PostgreSQL + Redis health;
 - CSRF/rate-limit/security headers;
