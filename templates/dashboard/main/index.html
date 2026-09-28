@@ -24,6 +24,50 @@
         <div class="admin-card metric-card"><div class="metric-card__label">Рубрики · {{ selected_site.name }}</div><div class="metric-card__value">{{ category_count }}</div><small class="metric-card__meta">только текущая витрина</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Лицензии</div><div class="metric-card__value">{{ active_license_count }} / {{ license_count }}</div><small class="metric-card__meta">active / всего</small></div>
         <div class="admin-card metric-card"><div class="metric-card__label">Релизы Workspace</div><div class="metric-card__value">{{ release_count }}</div></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Установки на связи</div><div class="metric-card__value">{{ operator_monitor.active_installations }}</div><small class="metric-card__meta">контакт ≤ 15 минут</small></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Истекают обновления</div><div class="metric-card__value">{{ operator_monitor.expiring_licenses }}</div><small class="metric-card__meta">в ближайшие 30 дней</small></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Ошибки updater</div><div class="metric-card__value {{ 'metric-status is-error' if operator_monitor.artifact_errors_24h else '' }}">{{ operator_monitor.artifact_errors_24h }}</div><small class="metric-card__meta">за последние 24 часа</small></div>
+        <div class="admin-card metric-card"><div class="metric-card__label">Отказы по правам</div><div class="metric-card__value {{ 'metric-status is-error' if operator_monitor.denied_access_24h else '' }}">{{ operator_monitor.denied_access_24h }}</div><small class="metric-card__meta">revoked / expired · 24 часа</small></div>
+    </section>
+
+    <section class="admin-grid admin-grid--2">
+        <article class="admin-card">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Последние релизы</h2>
+                    <p class="admin-card__description">Последние зарегистрированные артефакты Workspace Organizer.</p>
+                </div>
+                <a class="btn secondary btn-small" href="{{ url_for('admin.releases.index') }}">Все релизы</a>
+            </div>
+            <div class="admin-card__body">
+                {% for release in operator_monitor.latest_releases %}
+                <div class="dashboard-release-line">
+                    <div>
+                        <strong>{{ release.version }}</strong>
+                        <span>{{ release.channel }} · code {{ release.version_code }}</span>
+                    </div>
+                    <span class="status-badge {{ 'status-badge--success' if release.is_active else '' }}">{{ 'В ленте' if release.is_active else 'Отключён' }}</span>
+                </div>
+                {% else %}
+                <div class="admin-empty"><strong>Релизов пока нет</strong><span>После первой публикации они появятся здесь.</span></div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="admin-card">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Операторский аудит</h2>
+                    <p class="admin-card__description">Append-only журнал действий и отказов machine API.</p>
+                </div>
+            </div>
+            <div class="admin-card__body">
+                <p class="admin-form-note">Политика хранения: не менее {{ operator_monitor.retention_days }} дней. Секреты, токены, activation codes и private key material в журнал не записываются.</p>
+                <div class="admin-actions">
+                    <a class="btn primary" href="{{ url_for('admin.control-plane.audit') }}">Открыть журнал</a>
+                </div>
+            </div>
+        </article>
     </section>
 
     <section class="admin-grid admin-grid--2">
