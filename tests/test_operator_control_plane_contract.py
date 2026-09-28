@@ -173,6 +173,17 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('manifest_bytes = str(payload.get("manifest_bytes", ""))', views)
 
 
+    def test_runtime_updaters_never_enable_database_e2e(self):
+        checkout = self.read("update.sh")
+        release_lib = self.read("deploy/release-lib.sh")
+
+        self.assertIn("ALLOW_DATABASE_E2E_TESTS=false", checkout)
+        self.assertIn("ALLOW_DATABASE_E2E_TESTS=false", release_lib)
+        self.assertIn("Candidate checkout подтверждён", checkout)
+        self.assertIn("Сверяйте HEAD, а не только название ветки", checkout)
+        self.assertNotIn("ALLOW_DATABASE_E2E_TESTS=true", checkout)
+        self.assertNotIn("ALLOW_DATABASE_E2E_TESTS=true", release_lib)
+
     def test_database_e2e_refuses_non_test_database(self):
         e2e = self.read("tests/test_notes_update_delivery_e2e.py")
         ci = self.read(".github/workflows/ci.yml")

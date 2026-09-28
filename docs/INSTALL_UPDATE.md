@@ -128,7 +128,7 @@ Installer:
 6. создаёт deployment repository;
 7. собирает immutable release и отдельный venv;
 8. выполняет Alembic migrations;
-9. запускает unit/HTTP smoke tests;
+9. запускает unit/HTTP smoke tests с принудительно отключёнными database E2E;
 10. запускает production healthcheck;
 11. атомарно создаёт `current`;
 12. устанавливает systemd service;
@@ -198,6 +198,23 @@ sudo bash /opt/jsint-site/current/deploy/update.sh \
   --ref=v0.1.1 \
   --keep-releases=5
 ```
+
+### Важное про `dev` и rollback
+
+Название локальной Git-ветки не подтверждает, что на сервере запущен её актуальный commit.
+
+Checkout-updater при неуспешном обновлении возвращает рабочее дерево на предыдущий commit. Локальная ветка при этом может по-прежнему называться `dev`. Поэтому диагностика всегда должна сравнивать точный `HEAD` с `origin/dev`:
+
+```bash
+git fetch origin
+git branch --show-current
+git rev-parse HEAD
+git rev-parse origin/dev
+```
+
+Updater теперь сам печатает `branch`, текущий `HEAD` и целевой commit до обновления, после candidate checkout и после rollback.
+
+Database E2E никогда не запускаются runtime-updater'ом с рабочими PostgreSQL credentials. Полный E2E выполняется только в GitHub Actions, где явно используются `DB_NAME=jsint_test` и `ALLOW_DATABASE_E2E_TESTS=true`.
 
 ### Что делает updater
 
