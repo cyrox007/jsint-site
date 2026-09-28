@@ -165,5 +165,57 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('manifest_bytes = str(payload.get("manifest_bytes", ""))', views)
 
 
+    def test_control_plane_audit_is_append_only_and_filterable(self):
+        model = self.read("models/control_plane.py")
+        migration = self.read("alembic/versions/d4e9a61b7c20_control_plane_audit.py")
+        service = self.read("services/control_plane_audit.py")
+        router = self.read("views/dashboard/control_plane/router.py")
+        template = self.read("templates/dashboard/control_plane/audit.html")
+        views = self.read("views/dashboard/control_plane/views.py")
+
+        self.assertIn("class ControlPlaneAuditRecord", model)
+        self.assertIn("reject_control_plane_audit_mutation", migration)
+        self.assertIn("BEFORE UPDATE OR DELETE", migration)
+        self.assertIn("ControlPlaneAuditService.list_records", views)
+        self.assertIn("admin.control-plane.audit", router)
+        self.assertIn("Журнал операций", template)
+        self.assertIn("installation_id", service)
+        self.assertIn("license_id", service)
+        self.assertIn("release_id", service)
+        self.assertIn("actor_label", service)
+        self.assertNotIn("activation_code", service.split("blocked =", 1)[0])
+
+    def test_dashboard_has_operational_control_plane_metrics(self):
+        views = self.read("views/dashboard/main/views.py")
+        template = self.read("templates/dashboard/main/index.html")
+        service = self.read("services/control_plane_audit.py")
+
+        self.assertIn("ControlPlaneAuditService.dashboard", views)
+        self.assertIn("Установки на связи", template)
+        self.assertIn("Истекают обновления", template)
+        self.assertIn("Ошибки updater", template)
+        self.assertIn("Отказы по правам", template)
+        self.assertIn("active_installations", service)
+        self.assertIn("artifact_errors_24h", service)
+        self.assertIn("denied_access_24h", service)
+
+    def test_release_preflight_and_feed_state_are_visible(self):
+        views = self.read("views/dashboard/control_plane/views.py")
+        template = self.read("templates/dashboard/control_plane/releases.html")
+
+        self.assertIn("def _release_preflight", views)
+        self.assertIn("version_code", views)
+        self.assertIn("channel_state", views)
+        self.assertIn("Текущее состояние update feed", template)
+        self.assertIn("Предрелизная проверка остановила выпуск", template)
+        self.assertIn("Текущая голова канала", template)
+        self.assertIn("Снять с ленты", template)
+
+    def test_machine_api_audits_failed_artifact_access(self):
+        api = self.read("views/notes_api.py")
+        self.assertIn("ControlPlaneAuditService.machine_failure", api)
+        self.assertIn('action="machine.artifact_denied"', api)
+        self.assertNotIn("credential=", api)
+
 if __name__ == "__main__":
     unittest.main()
