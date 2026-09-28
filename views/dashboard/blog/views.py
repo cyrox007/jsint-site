@@ -23,6 +23,7 @@ from services.publication_profile import (
     profile_for_editor,
     public_profile,
     schemas_for_site,
+    set_profile,
 )
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
@@ -33,7 +34,7 @@ def _site_from_raw(db_session: Session, raw: str | None, *, fallback: bool = Tru
     return resolve_admin_site(db_session, raw, fallback=fallback)
 
 
-def _publication_payload(schema_cls, site):
+def _publication_payload(schema_cls, site, existing_extra_data: dict | None = None):
     content = sanitize_rich_text(request.form.get("content", "").strip())
     source_type = request.form.get("source-type", "article").strip()
     profile_schemas = schemas_for_site(site.key)
@@ -45,13 +46,11 @@ def _publication_payload(schema_cls, site):
             for field in selected_schema.fields
         }
 
-    extra_data = {
-        "seo_title": request.form.get("seo_title", "").strip()[:255],
-        "seo_description": request.form.get("seo_description", "").strip()[:320],
-    }
+    extra_data = dict(existing_extra_data or {})
+    extra_data["seo_title"] = request.form.get("seo_title", "").strip()[:255]
+    extra_data["seo_description"] = request.form.get("seo_description", "").strip()[:320]
     profile = build_profile(site.key, source_type, profile_values)
-    if profile is not None:
-        extra_data["profile"] = profile
+    extra_data = set_profile(extra_data, site.key, profile)
 
     return schema_cls(
         site_id=site.id,
@@ -131,6 +130,12 @@ def _sync_additional_placements(
                 publication_id=publication.id,
                 site_id=site.id,
             )
+            publication.extra_data = set_profile(
+                publication.extra_data,
+                site.key,
+                None,
+            )
+            db_session.add(publication)
             continue
 
         category_raw = request.form.get(f"{prefix}_category_id", "").strip()
@@ -148,6 +153,24 @@ def _sync_additional_placements(
             category_id=category_id,
             is_published=request.form.get(f"{prefix}_published") == "on",
         )
+
+        schema = schemas_for_site(site.key).get(publication.source_type)
+        profile = None
+        if schema is not None:
+            values = {
+                field.name: request.form.get(
+                    f"{prefix}_profile_{field.name}",
+                    "",
+                )
+                for field in schema.fields
+            }
+            profile = build_profile(site.key, publication.source_type, values)
+        publication.extra_data = set_profile(
+            publication.extra_data,
+            site.key,
+            profile,
+        )
+        db_session.add(publication)
 
 
 class PublicationListPage(MethodView):
@@ -493,7 +516,21 @@ class UpdatePost(MethodView):
             media_assets=MediaService.list_for_site(db_session, selected_site.id),
             media_service=MediaService,
             profile_schemas=schemas_for_site(selected_site.key),
-            profile_data=profile_for_editor(publication_model.extra_data),
+            profile_data=profile_for_editor(
+                publication_model.extra_data,
+                selected_site.key,
+            ),
+            profile_schemas_by_site={
+                str(site.id): schemas_for_site(site.key)
+                for site in sites
+            },
+            profile_data_by_site={
+                str(site.id): profile_for_editor(
+                    publication_model.extra_data,
+                    site.key,
+                )
+                for site in sites
+            },
         )
 
     @login_required
@@ -507,7 +544,11 @@ class UpdatePost(MethodView):
             abort(404)
 
         try:
-            data = _publication_payload(PublicationUpdate, selected_site)
+            data = _publication_payload(
+                PublicationUpdate,
+                selected_site,
+                publication_model.extra_data,
+            )
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
@@ -566,7 +607,7 @@ class PreviewPost(MethodView):
                 "dashboard/publication/preview.html",
                 publication=publication,
                 selected_site=site_model,
-                profile=public_profile(extra),
+                profile=public_profile(extra, site_model.key),
                 preview_edit_url=edit_url,
             )
 
