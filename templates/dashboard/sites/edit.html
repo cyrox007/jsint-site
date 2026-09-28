@@ -81,6 +81,12 @@
                 <label>Заголовок<input name="hero_title" value="{{ hero.title }}"></label>
                 <label class="site-field-wide">Акцентная строка<input name="hero_accent" value="{{ hero.accent }}"></label>
                 <label class="site-field-wide">Описание<textarea name="hero_description" rows="6">{{ hero.description }}</textarea></label>
+                <label>Кнопка GitHub<input name="hero_github_label" value="{{ hero.github_label }}"></label>
+                <label>Кнопка материалов<input name="hero_materials_label" value="{{ hero.materials_label }}"></label>
+                <label>Кнопка контакта<input name="hero_contact_label" value="{{ hero.contact_label }}"></label>
+                <label>Подпись консоли<input name="hero_console_eyebrow" value="{{ hero.console_eyebrow }}"></label>
+                <label>Заголовок консоли<input name="hero_console_title" value="{{ hero.console_title }}"></label>
+                <label>Статус консоли<input name="hero_console_status" value="{{ hero.console_status }}"></label>
                 <label class="site-field-wide">Строки терминала<textarea name="hero_terminal_lines" rows="6">{{ hero.terminal_lines|join('\n') }}</textarea></label>
                 <label class="site-field-wide">Метрики<textarea name="hero_metrics" rows="5">{% for metric in hero.get('metrics', []) %}{{ metric.label }}|{{ metric.value }}{% if not loop.last %}
 {% endif %}{% endfor %}</textarea><small>Одна строка: Название|Значение</small></label>
@@ -97,11 +103,16 @@
                 </div>
             </div>
             <div class="admin-card__body admin-form site-form-grid">
+                <label>Маркер подхода<input name="philosophy_kicker" value="{{ philosophy.kicker }}"></label>
                 <label>Заголовок подхода<input name="philosophy_title" value="{{ philosophy.title }}"></label>
                 <label>Подзаголовок подхода<input name="philosophy_subtitle" value="{{ philosophy.subtitle }}"></label>
                 <label class="site-field-wide">Текст подхода<textarea name="philosophy_text" rows="7">{{ philosophy.text }}</textarea></label>
+                <label>Маркер публикаций<input name="systems_kicker" value="{{ systems.kicker }}"></label>
                 <label>Заголовок публикаций<input name="systems_title" value="{{ systems.title }}"></label>
                 <label>Подзаголовок публикаций<input name="systems_subtitle" value="{{ systems.subtitle }}"></label>
+                <label>Текст ссылки публикации<input name="systems_article_label" value="{{ systems.article_label }}"></label>
+                <label>Текст пустой ленты<input name="systems_empty_text" value="{{ systems.empty_text }}"></label>
+                <label>Маркер блока «О проекте»<input name="about_kicker" value="{{ about.kicker }}"></label>
                 <label class="site-field-wide">Заголовок блока «О студии»<input name="about_title" value="{{ about.title }}"></label>
                 <label>Карточка 1 — заголовок<input name="about_card_1_title" value="{{ about.cards[0].title if about.cards else '' }}"></label>
                 <label>Карточка 2 — заголовок<input name="about_card_2_title" value="{{ about.cards[1].title if about.cards|length > 1 else '' }}"></label>
@@ -153,8 +164,9 @@
             </div>
             <div class="admin-card__body admin-form">
                 <div class="site-form-grid">
+                    <label>Маркер секции<input name="resume_kicker" value="{{ resume_settings.kicker or '04 / Практика' }}"></label>
                     <label>Заголовок<input name="resume_title" value="{{ resume_settings.title or 'Опыт работы' }}"></label>
-                    <label>Подзаголовок<input name="resume_subtitle" value="{{ resume_settings.subtitle or '' }}"></label>
+                    <label class="site-field-wide">Подзаголовок<input name="resume_subtitle" value="{{ resume_settings.subtitle or '' }}"></label>
                 </div>
 
                 <div class="resume-editor-list">
