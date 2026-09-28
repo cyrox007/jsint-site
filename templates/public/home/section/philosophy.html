@@ -1,10 +1,18 @@
 {% set philosophy = block.settings if block is defined and block.settings else {} %}
 <section class="philosophy" id="philosophy">
     <div class="container">
-        <h2 class="section-title">{{ philosophy.title or 'Подход' }}</h2>
-        <p class="section-subtitle">{{ philosophy.subtitle or '' }}</p>
-        <div class="glass-card section-copy">
-            <p>{{ philosophy.text or '' }}</p>
+        <div class="philosophy-layout">
+            <div class="section-heading section-heading--stacked">
+                <div>
+                    <span class="section-kicker">01 / Принципы</span>
+                    <h2 class="section-title">{{ philosophy.title or 'Подход' }}</h2>
+                </div>
+                {% if philosophy.subtitle %}<p class="section-subtitle">{{ philosophy.subtitle }}</p>{% endif %}
+            </div>
+            <div class="glass-card section-copy">
+                <span class="section-copy__mark" aria-hidden="true">“</span>
+                <p>{{ philosophy.text or '' }}</p>
+            </div>
         </div>
     </div>
 </section>
