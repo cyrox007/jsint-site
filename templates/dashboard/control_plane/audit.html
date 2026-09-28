@@ -60,6 +60,7 @@
                         <strong>{{ item.action }}</strong>
                         <span class="status-badge {{ 'status-badge--success' if item.outcome == 'success' else 'status-badge--danger' }}">{{ item.outcome }}</span>
                         <span class="status-badge">{{ item.actor_kind }}</span>
+                        {% if item.actor_label %}<span class="status-badge status-badge--info">{{ item.actor_label }}</span>{% endif %}
                     </div>
                     <time datetime="{{ item.created_at.isoformat() }}">{{ item.created_at.strftime('%d.%m.%Y %H:%M:%S UTC') }}</time>
                 </div>
