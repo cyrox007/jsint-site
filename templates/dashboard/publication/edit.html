@@ -466,6 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mediaDialog = document.querySelector('[data-media-dialog]');
     const mediaOpen = document.querySelector('[data-open-media]');
     const mediaClose = document.querySelector('[data-close-media]');
+    let mediaEditorId = 'publication-content';
     let dirty = false;
 
     const markDirty = () => {
@@ -502,15 +503,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (mediaOpen && mediaDialog) {
-        mediaOpen.addEventListener('click', () => mediaDialog.showModal());
+        mediaOpen.addEventListener('click', () => {
+            mediaEditorId = 'publication-content';
+            mediaDialog.showModal();
+        });
     }
+
+    document.addEventListener('jsint-editor-media-request', event => {
+        if (!mediaDialog) {
+            return;
+        }
+        mediaEditorId = event.detail && event.detail.fieldId
+            ? event.detail.fieldId
+            : 'publication-content';
+        mediaDialog.showModal();
+    });
     if (mediaClose && mediaDialog) {
         mediaClose.addEventListener('click', () => mediaDialog.close());
     }
 
     document.querySelectorAll('[data-media-url]').forEach(button => {
         button.addEventListener('click', () => {
-            const quill = window.jsintEditors && window.jsintEditors['publication-content'];
+            const quill = window.jsintEditors && window.jsintEditors[mediaEditorId];
             if (!quill) {
                 return;
             }
@@ -531,8 +545,20 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('change', markDirty);
         form.addEventListener('submit', () => {
             dirty = false;
+            form.dataset.submitting = 'true';
         });
     }
+
+    document.addEventListener('keydown', event => {
+        const saveShortcut = (event.ctrlKey || event.metaKey)
+            && event.key.toLowerCase() === 's';
+        if (!saveShortcut || !form || form.dataset.submitting === 'true') {
+            return;
+        }
+
+        event.preventDefault();
+        form.requestSubmit();
+    });
 
     document.addEventListener('jsint-editor-change', markDirty);
     window.addEventListener('beforeunload', event => {
