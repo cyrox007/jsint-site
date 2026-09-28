@@ -54,6 +54,8 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('url_for("admin.publication.preview"', controller)
         self.assertIn("data-open-media", template)
         self.assertIn("data-profile-settings", template)
+        self.assertIn("profile_schemas_by_site", controller)
+        self.assertIn("placement_{{ target_site.id }}_profile_", template)
         self.assertIn("beforeunload", template)
 
     def test_legacy_catalog_redirects_to_content(self):
