@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import with_db_session
 from models.categories import Category
 from models.publication import Publication
+from services.page import PageService
 from services.site import SiteService
 
 
@@ -73,6 +74,36 @@ def _publication_payload(publication: Publication, *, include_content: bool) -> 
 def site_config(db_session: Session, site_key: str):
     site = _site_or_404(db_session, site_key)
     return _api_response(site, {"site": SiteService.public_config(site)})
+
+
+@with_db_session
+def site_page(db_session: Session, site_key: str, page_slug: str):
+    site = _site_or_404(db_session, site_key)
+    page = PageService.get_page(
+        db_session,
+        site.id,
+        page_slug,
+        published_only=True,
+    )
+    if page is None:
+        abort(404)
+
+    return _api_response(
+        site,
+        {
+            "site": {"key": site.key, "name": site.name},
+            "page": {
+                "slug": page.slug,
+                "title": page.title,
+                "seo": {
+                    "title": page.seo_title,
+                    "description": page.seo_description,
+                },
+                "blocks": PageService.public_blocks(page),
+                "updated_at": page.updated_at.isoformat() if page.updated_at else None,
+            },
+        },
+    )
 
 
 @with_db_session
@@ -169,6 +200,12 @@ def install(app: Flask) -> None:
         "/api/public/v1/sites/<string:site_key>",
         endpoint="public.api.site",
         view_func=site_config,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/public/v1/sites/<string:site_key>/pages/<string:page_slug>",
+        endpoint="public.api.page",
+        view_func=site_page,
         methods=["GET"],
     )
     app.add_url_rule(

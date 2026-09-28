@@ -51,6 +51,15 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertIn('"X-Robots-Tag"', api)
         self.assertIn('"total": total', api)
 
+    def test_public_api_exposes_published_pages(self):
+        api = self.read("views/public/api.py")
+        self.assertIn("/pages/<string:page_slug>", api)
+        self.assertIn("PageService.public_blocks(page)", api)
+
+    def test_resume_uses_dict_get_for_items_key(self):
+        template = self.read("templates/public/home/section/resume.html")
+        self.assertIn("resume.get('items', [])", template)
+
 
 if __name__ == "__main__":
     unittest.main()

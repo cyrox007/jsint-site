@@ -1,11 +1,11 @@
 {% set resume = block.settings if block is defined and block.settings else {} %}
-{% set resume_items = resume.items if resume.items is defined else [] %}
+{% set resume_items = resume.get('items', []) %}
 {% if resume_items %}
 <section class="resume-section" id="resume">
     <div class="container">
-        <h2 class="section-title">{{ resume.title or 'Опыт работы' }}</h2>
-        {% if resume.subtitle %}
-        <p class="section-subtitle">{{ resume.subtitle }}</p>
+        <h2 class="section-title">{{ resume.get('title') or 'Опыт работы' }}</h2>
+        {% if resume.get('subtitle') %}
+        <p class="section-subtitle">{{ resume.get('subtitle') }}</p>
         {% endif %}
 
         <div class="resume-timeline">
