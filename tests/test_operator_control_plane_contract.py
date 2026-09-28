@@ -194,6 +194,17 @@ class OperatorControlPlaneContractTests(unittest.TestCase):
         self.assertIn('ALLOW_DATABASE_E2E_TESTS: "true"', ci)
         self.assertIn("DB_NAME: jsint_test", ci)
 
+    def test_control_plane_audit_migration_accepts_existing_compatible_table(self):
+        migration = self.read("alembic/versions/d4e9a61b7c20_control_plane_audit.py")
+
+        self.assertIn("inspector.has_table(_TABLE)", migration)
+        self.assertIn("_verify_existing_table(inspector)", migration)
+        self.assertIn("_ensure_indexes(bind)", migration)
+        self.assertIn("CREATE OR REPLACE FUNCTION reject_control_plane_audit_mutation", migration)
+        self.assertIn("DROP TRIGGER IF EXISTS trg_control_plane_audit_immutable", migration)
+        self.assertIn("Данные не удаляем и таблицу не пересоздаём", migration)
+        self.assertIn("не соответствует миграции", migration)
+
     def test_control_plane_audit_is_append_only_and_filterable(self):
         model = self.read("models/control_plane.py")
         migration = self.read("alembic/versions/d4e9a61b7c20_control_plane_audit.py")
