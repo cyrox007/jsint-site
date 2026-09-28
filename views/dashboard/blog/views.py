@@ -14,7 +14,13 @@ from models.categories import Category
 from models.publication import Publication
 from schemas.publication import PublicationCreate, PublicationUpdate
 from services.catalog import CatalogService
+from services.media import MediaService
 from services.publication import PublicationService
+from services.publication_profile import (
+    build_profile,
+    profile_for_editor,
+    schemas_for_site,
+)
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 from utils.validation import validate_slug
@@ -24,18 +30,33 @@ def _site_from_raw(db_session: Session, raw: str | None, *, fallback: bool = Tru
     return resolve_admin_site(db_session, raw, fallback=fallback)
 
 
-def _publication_payload(schema_cls, site_id: UUID):
+def _publication_payload(schema_cls, site):
     content = sanitize_rich_text(request.form.get("content", "").strip())
+    source_type = request.form.get("source-type", "article").strip()
+    profile_schemas = schemas_for_site(site.key)
+    selected_schema = profile_schemas.get(source_type)
+    profile_values = {}
+    if selected_schema is not None:
+        profile_values = {
+            field.name: request.form.get(f"profile_{field.name}", "")
+            for field in selected_schema.fields
+        }
+
+    extra_data = {
+        "seo_title": request.form.get("seo_title", "").strip()[:255],
+        "seo_description": request.form.get("seo_description", "").strip()[:320],
+    }
+    profile = build_profile(site.key, source_type, profile_values)
+    if profile is not None:
+        extra_data["profile"] = profile
+
     return schema_cls(
-        site_id=site_id,
+        site_id=site.id,
         title=request.form.get("title", "").strip(),
         slug=request.form.get("slug", "").strip(),
         content=content,
-        source_type=request.form.get("source-type", "article").strip(),
-        extra_data={
-            "seo_title": request.form.get("seo_title", "").strip()[:255],
-            "seo_description": request.form.get("seo_description", "").strip()[:320],
-        },
+        source_type=source_type,
+        extra_data=extra_data,
         category_id=request.form.get("category_id", ""),
         author_id=session.get("user_id"),
         is_published=request.form.get("is_published") == "on",
@@ -359,6 +380,10 @@ class CreatePost(MethodView):
             categories=categories,
             selected_category_id=selected_category_id,
             selected_site=selected_site,
+            media_assets=MediaService.list_for_site(db_session, selected_site.id),
+            media_service=MediaService,
+            profile_schemas=schemas_for_site(selected_site.key),
+            profile_data={},
         )
 
     @login_required
@@ -373,7 +398,7 @@ class CreatePost(MethodView):
             abort(400)
 
         try:
-            data = _publication_payload(PublicationCreate, selected_site.id)
+            data = _publication_payload(PublicationCreate, selected_site)
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
@@ -474,6 +499,10 @@ class UpdatePost(MethodView):
             placements_by_site=placements_by_site,
             categories_by_site=categories_by_site,
             preview_url=preview_url,
+            media_assets=MediaService.list_for_site(db_session, selected_site.id),
+            media_service=MediaService,
+            profile_schemas=schemas_for_site(selected_site.key),
+            profile_data=profile_for_editor(publication_model.extra_data),
         )
 
     @login_required
@@ -487,7 +516,7 @@ class UpdatePost(MethodView):
             abort(404)
 
         try:
-            data = _publication_payload(PublicationUpdate, selected_site.id)
+            data = _publication_payload(PublicationUpdate, selected_site)
         except (ValidationError, ValueError) as exc:
             message = _validation_message(exc) if isinstance(exc, ValidationError) else str(exc)
             flash(message, "error")
