@@ -3,7 +3,7 @@
     <div class="container">
         <div class="section-heading">
             <div>
-                <span class="section-kicker">02 / Материалы</span>
+                <span class="section-kicker">{{ systems.kicker or '02 / Материалы' }}</span>
                 <h2 class="section-title">{{ systems.title or 'Публикации' }}</h2>
             </div>
             {% if systems.subtitle %}<p class="section-subtitle">{{ systems.subtitle }}</p>{% endif %}
@@ -24,13 +24,13 @@
                     </div>
                     {% if article.category %}
                     <a href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) }}" class="project-link">
-                        Открыть материал <span>↗</span>
+                        {{ systems.article_label or 'Открыть материал' }} <span>↗</span>
                     </a>
                     {% endif %}
                 </article>
                 {% endfor %}
             {% else %}
-                <div class="public-empty"><p>Пока нет опубликованных материалов.</p></div>
+                <div class="public-empty"><p>{{ systems.empty_text or 'Пока нет опубликованных материалов.' }}</p></div>
             {% endif %}
         </div>
     </div>
