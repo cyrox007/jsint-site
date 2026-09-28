@@ -762,6 +762,19 @@ class NotesControlPlane:
         if existing is not None:
             raise ControlPlaneError("Релиз с таким channel/version_code уже зарегистрирован")
 
+        channel_head = (
+            session.query(ReleaseRecord)
+            .filter(ReleaseRecord.channel == manifest["channel"])
+            .order_by(ReleaseRecord.version_code.desc())
+            .first()
+        )
+        if channel_head is not None and manifest["version_code"] <= channel_head.version_code:
+            raise ControlPlaneError(
+                "version_code нового релиза должен быть выше всех ранее зарегистрированных версий канала",
+                status=409,
+                code="release_version_not_newer",
+            )
+
         name = f"release-{manifest['version_code']}"
         record = ReleaseRecord(
             channel=manifest["channel"],
