@@ -44,6 +44,27 @@ class LicenseRecord(Database.Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
 
 
+class ControlPlaneAuditRecord(Database.Base):
+    __tablename__ = "control_plane_audit"
+
+    id: Mapped[UUIDType] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    actor_kind: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    actor_user_id: Mapped[UUIDType | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(96), nullable=False, index=True)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False, default="success", index=True)
+    target_type: Mapped[str | None] = mapped_column(String(48), nullable=True, index=True)
+    target_id: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    installation_id: Mapped[UUIDType | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    license_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    release_id: Mapped[UUIDType | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
+
+
 class ReleaseRecord(Database.Base):
     __tablename__ = "release_registry"
     __table_args__ = (
