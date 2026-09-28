@@ -53,42 +53,48 @@ Machine API:
 
 Подробнее: `docs/CONTROL_PLANE.md`.
 
-## Следующий этап — аудит операторских действий
+## Реализовано — аудит операторских действий
 
-Нужно добавить:
+Добавлен append-only журнал control plane:
 
-- отдельный immutable audit log административных операций control plane;
-- кто и когда импортировал/отозвал лицензию;
-- кто зарегистрировал release;
-- журнал повторной выдачи activation code;
-- фильтрацию по installation/license/release;
-- retention policy для operator audit.
+- фиксируются выпуск и импорт лицензии;
+- фиксируется изменение статуса лицензии;
+- фиксируется повторная выдача activation code без сохранения самого кода;
+- фиксируются подготовка, публикация и включение/отключение релиза;
+- сохраняется снимок email оператора и его UUID;
+- доступны фильтры по действию, результату, installation/license/release;
+- machine API пишет только ошибки выдачи artifacts и код причины;
+- PostgreSQL trigger запрещает UPDATE и DELETE записей журнала;
+- политика хранения задаётся `OPERATOR_AUDIT_RETENTION_DAYS`, автоматического удаления из приложения нет.
 
-Audit не должен хранить signed tokens, activation codes, credentials или private key material.
+Журнал не хранит signed tokens, activation codes, credentials, private key material или их содержимое.
 
-## Следующий этап — мониторинг
+## Реализовано — мониторинг
 
-Dashboard расширяется operational cards:
+Dashboard показывает:
 
-- количество активных installations;
-- лицензии с близким `updates_until`;
+- количество installations, связывавшихся не более 15 минут назад;
+- лицензии, у которых `updates_until` истекает в ближайшие 30 дней;
 - последние опубликованные releases;
-- ошибки выдачи update artifacts;
-- попытки доступа с revoked/expired entitlement;
-- состояние PostgreSQL/Redis/Celery/control plane storage.
+- ошибки выдачи update artifacts за 24 часа;
+- отдельный счётчик отказов revoked/expired entitlement;
+- PostgreSQL, Redis и Celery heartbeat;
+- состояние control plane через его существующий healthcheck.
 
-Мониторинг не должен получать содержимое пользовательских Notes/Messenger данных.
+Мониторинг использует только технические метаданные update-контуров и не получает содержимое пользовательских Notes/Messenger данных.
 
-## Следующий этап — удобство release ceremony
+## Реализовано — release ceremony
 
-Можно добавить:
+Обычный выпуск теперь включает:
 
-- preflight-страницу перед регистрацией релиза;
-- отображение source SHA и package SHA крупным отдельным блоком;
-- сравнение нового version_code с текущим channel head;
-- предупреждение при публикации prerelease в stable;
-- read-only страницу feed state;
-- ручное выключение release из выдачи без удаления immutable записи.
+- server-side preflight перед подписью manifest;
+- сравнение нового `version_code` с активной головой канала;
+- остановку выпуска при несовместимом preflight;
+- предупреждение, если имя stable-версии похоже на prerelease;
+- отображение текущих голов stable/beta/alpha и фактических manifest/signature;
+- source SHA и package SHA-256 в карточках релизов;
+- ручное выключение release из feed без удаления immutable записи;
+- журналирование подготовки, публикации и изменения статуса релиза.
 
 Private signing material по-прежнему не переносится в web-приложение.
 
