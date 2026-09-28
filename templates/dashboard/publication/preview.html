@@ -1,0 +1,54 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Предпросмотр · {{ publication.title }}{% endblock %}
+{% block content %}
+<div class="admin-page publication-neutral-preview">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Предпросмотр внешней витрины · {{ selected_site.name }}</span>
+            <h1 class="admin-page__title">Проверка данных публикации</h1>
+            <p class="admin-page__description">
+                Это нейтральный предпросмотр содержимого. Финальный дизайн и SEO формирует внешний frontend {{ selected_site.name }}.
+            </p>
+        </div>
+        <div class="admin-page__actions">
+            <a class="btn secondary" href="{{ preview_edit_url }}">← В редактор</a>
+            {% if selected_site.base_url %}
+            <a class="btn secondary" href="{{ selected_site.base_url }}" target="_blank" rel="noopener noreferrer">Открыть витрину ↗</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <article class="publication-neutral-preview__document">
+        <div class="publication-neutral-preview__meta">
+            <span>{{ publication.source_type }}</span>
+            {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
+            <span>{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span>
+        </div>
+        <h2>{{ publication.title }}</h2>
+        <div class="publication-neutral-preview__content">{{ publication.content|safe_rich_text }}</div>
+
+        {% if profile %}
+        <section class="publication-neutral-preview__profile">
+            <div>
+                <strong>Структурированные данные</strong>
+                <span>{{ profile.schema }}@{{ profile.version }}</span>
+            </div>
+            <dl>
+                {% for key, value in profile.data.items() %}
+                <div>
+                    <dt>{{ key }}</dt>
+                    <dd>
+                        {% if value is iterable and value is not string %}
+                            {{ value|join(', ') }}
+                        {% else %}
+                            {{ value }}
+                        {% endif %}
+                    </dd>
+                </div>
+                {% endfor %}
+            </dl>
+        </section>
+        {% endif %}
+    </article>
+</div>
+{% endblock %}
