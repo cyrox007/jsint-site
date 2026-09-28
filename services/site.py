@@ -27,6 +27,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
             "+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, "
             "аудит и архитектура web-систем."
         ),
+        "image_url": "",
+        "locale": "ru_RU",
+        "robots_index": True,
+        "yandex_verification": "725d05a47d08b13d",
     },
     "contact": {
         "email": "cyrox007@gmail.com",
@@ -61,11 +65,20 @@ DEFAULT_SETTINGS: dict[str, Any] = {
             {"label": "Инфраструктура", "value": "Независимая"},
             {"label": "Подход", "value": "Production-first"},
         ],
-        "tags": ["Realtime", "WebSocket", "Backend", "Архитектура", "Инфраструктура", "Аудит систем"],
+        "tags": [
+            "Realtime",
+            "WebSocket",
+            "Backend",
+            "Архитектура",
+            "Инфраструктура",
+            "Аудит систем",
+        ],
     },
     "home": {
         "philosophy_title": "Философия",
-        "philosophy_subtitle": "Сложные backend-системы, realtime взаимодействие и независимая инфраструктура.",
+        "philosophy_subtitle": (
+            "Сложные backend-системы, realtime взаимодействие и независимая инфраструктура."
+        ),
         "philosophy_text": (
             "+УЛЬТРА — это не просто персональное портфолио, а независимая инженерная мини-студия, "
             "ориентированная на создание, доработку и восстановление сложных web-систем.\n\n"
@@ -92,6 +105,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
                 ),
             },
         ],
+        # Поле сохранено для обратной совместимости. Видимость секций теперь задают page_blocks.
         "resume_enabled": True,
     },
     "footer": {
@@ -204,6 +218,12 @@ class SiteService:
             is_default=False,
         )
         session.add(site)
+        session.flush()
+
+        # Новая витрина сразу получает управляемую главную страницу.
+        from services.page import PageService
+
+        PageService.create_default_home(session, site.id)
         session.commit()
         session.refresh(site)
         return site

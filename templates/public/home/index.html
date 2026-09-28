@@ -1,11 +1,28 @@
 {% extends "public/^core/base.html" %}
 
 {% block content %}
-{% include 'public/home/section/hero.html' %}
-{% include 'public/home/section/philosophy.html' %}
-{% include 'public/home/section/systems.html' %}
-{% include 'public/home/section/about.html' %}
-{% if site.settings.home.resume_enabled %}
-    {% include 'public/home/section/resume.html' %}
+{% if home_blocks %}
+    {% for block in home_blocks %}
+        {% if block.type == "hero" %}
+            {% include 'public/home/section/hero.html' %}
+        {% elif block.type == "philosophy" %}
+            {% include 'public/home/section/philosophy.html' %}
+        {% elif block.type == "systems" %}
+            {% include 'public/home/section/systems.html' %}
+        {% elif block.type == "about" %}
+            {% include 'public/home/section/about.html' %}
+        {% elif block.type == "resume" %}
+            {% include 'public/home/section/resume.html' %}
+        {% endif %}
+    {% endfor %}
+{% else %}
+    {# Обратная совместимость на случай незавершённой миграции. #}
+    {% include 'public/home/section/hero.html' %}
+    {% include 'public/home/section/philosophy.html' %}
+    {% include 'public/home/section/systems.html' %}
+    {% include 'public/home/section/about.html' %}
+    {% if site.settings.home.resume_enabled %}
+        {% include 'public/home/section/resume.html' %}
+    {% endif %}
 {% endif %}
 {% endblock %}

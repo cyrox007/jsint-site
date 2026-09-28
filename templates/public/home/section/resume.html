@@ -1,156 +1,46 @@
-<!-- templates/home/section/resume.html -->
+{% set resume = block.settings if block is defined and block.settings else {} %}
+{% set resume_items = resume.items if resume.items is defined else [] %}
+{% if resume_items %}
 <section class="resume-section" id="resume">
-	<div class="container">
-		<h2 class="section-title">Опыт работы</h2>
-		<p class="section-subtitle">
-			Более 5 лет коммерческой разработки и поддержки ИТ-инфраструктуры
-		</p>
+    <div class="container">
+        <h2 class="section-title">{{ resume.title or 'Опыт работы' }}</h2>
+        {% if resume.subtitle %}
+        <p class="section-subtitle">{{ resume.subtitle }}</p>
+        {% endif %}
 
-		<div class="resume-timeline">
+        <div class="resume-timeline">
+            {% for item in resume_items %}
+            <article class="resume-item card">
+                <div class="resume-header">
+                    <div class="resume-company">
+                        <h3>{{ item.company }}</h3>
+                        {% if item.period %}<span class="resume-period">{{ item.period }}</span>{% endif %}
+                    </div>
+                    {% if item.position %}<div class="resume-position">{{ item.position }}</div>{% endif %}
+                </div>
 
-			<div class="resume-item card">
-				<div class="resume-header">
-					<div class="resume-company">
-						<h3>Мебельный Рай</h3>
-						<span class="resume-period">Июнь 2026 — настоящее время</span>
-					</div>
-					<div class="resume-position">Tech Lead / Веб-архитектор</div>
-				</div>
-				<div class="resume-body">
-					<p>
-						Технический лидер и архитектор всего веб-направления компании. Отвечаю за стратегию разработки,
-						выбор стека, управление командой и интеграцию всех веб-систем с бизнес-процессами.
-					</p>
-					<ul class="resume-achievements">
-						<li>Создание и развитие веб-инфраструктуры компании с нуля: архитектура, стек, CI/CD.</li>
-						<li>Управление внешними подрядчиками (дизайнеры, бэкенд-разработчики, фронтенд-специалисты) —
-							постановка задач, контроль качества, приёмка работ.</li>
-						<li>Проектирование и реализация интеграций между сайтами, 1С и внешними сервисами (CRM,
-							платёжные системы).</li>
-						<li>Оптимизация производительности, аудит безопасности и масштабирование существующих решений.
-						</li>
-						<li>Бюджетирование IT-проектов, согласование оплат и поиск оптимальных технических решений.</li>
-						<li>Выстраивание коммуникации между бизнесом (руководство) и IT-командой — перевод технических
-							задач на язык бизнеса.</li>
-					</ul>
-					<div class="resume-tech">
-						<span class="tech">PHP</span>
-						<!-- <span class="tech">Python</span>
-						<span class="tech">Flask</span>
-						<span class="tech">FastAPI</span> -->
-						<span class="tech">Laravel</span>
-						<!-- <span class="tech">WordPress</span>
-						<span class="tech">1С-Битрикс</span> -->
-						<span class="tech">JavaScript</span>
-						<!-- <span class="tech">Vue.js</span> -->
-						<span class="tech">React</span>
-						<span class="tech">MySQL</span>
-						<span class="tech">REST API</span>
-						<span class="tech">Git</span>
-						<span class="tech">Linux</span>
-						<span class="tech">Docker</span>
-						<span class="tech">CI/CD</span>
-					</div>
-				</div>
-			</div>
+                <div class="resume-body">
+                    {% if item.description %}<p>{{ item.description }}</p>{% endif %}
 
-			<!-- Опыт 1: Wondersoft -->
-			<div class="resume-item card">
-				<div class="resume-header">
-					<div class="resume-company">
-						<h3>Wondersoft</h3>
-						<span class="resume-period">Февраль 2022 — Декабрь 2025 (3 года 11 месяцев)</span>
-					</div>
-					<div class="resume-position">Full-Stack разработчик / Ведущий разработчик</div>
-				</div>
-				<div class="resume-body">
-					<p>Разработка, сопровождение и развитие веб-проектов для коммерческих и корпоративных заказчиков.
-						Выступал основным техническим специалистом в большинстве проектов.</p>
-					<ul class="resume-achievements">
-						<li>Поддержка и аудит проектов на PHP-стеке (WordPress, 1С-Битрикс, Laravel).</li>
-						<li>Разработка REST API, интеграция с CRM и платёжными системами.</li>
-						<li>Оптимизация производительности и рефакторинг легаси-кода.</li>
-						<li>Проектирование и разработка административных панелей и внутренних инструментов.</li>
-					</ul>
-					<div class="resume-tech">
-						<span class="tech">PHP</span>
-						<span class="tech">WordPress</span>
-						<span class="tech">1С-Битрикс</span>
-						<span class="tech">Laravel</span>
-						<span class="tech">JavaScript</span>
-						<span class="tech">Vue.js</span>
-						<span class="tech">MySQL</span>
-						<span class="tech">REST API</span>
-						<span class="tech">Git</span>
-						<span class="tech">Linux</span>
-					</div>
-				</div>
-			</div>
+                    {% if item.achievements %}
+                    <ul class="resume-achievements">
+                        {% for achievement in item.achievements %}
+                        <li>{{ achievement }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
 
-			<!-- Опыт 2: ГУЗ Чаплыгинская РБ -->
-			<div class="resume-item card">
-				<div class="resume-header">
-					<div class="resume-company">
-						<h3>ГУЗ Чаплыгинская РБ</h3>
-						<span class="resume-period">Сентябрь 2024 — Июнь 2026 (1 год 10 месяцев)</span>
-					</div>
-					<div class="resume-position">Специалист по информационным технологиям / Системный администратор
-					</div>
-				</div>
-				<div class="resume-body">
-					<p>Обеспечение бесперебойной работы ИТ-инфраструктуры медицинского учреждения, техническая поддержка
-						сотрудников и сопровождение специализированного медицинского ПО.</p>
-					<ul class="resume-achievements">
-						<li>Администрирование рабочих станций (Windows, RedOS) и локальной сети.</li>
-						<li>Поддержка медицинской информационной системы «Квазар».</li>
-						<li>Настройка ЭЦП и государственных информационных сервисов.</li>
-						<li>Удалённое и выездное устранение неисправностей в удалённых подразделениях (ФАП).</li>
-					</ul>
-					<div class="resume-tech">
-						<span class="tech">Windows</span>
-						<span class="tech">RedOS</span>
-						<span class="tech">МИС «Квазар»</span>
-						<span class="tech">TCP/IP</span>
-						<span class="tech">Active Directory</span>
-						<span class="tech">ЭЦП</span>
-					</div>
-				</div>
-			</div>
-
-			<!-- Опыт 3: BeBrainee -->
-			<div class="resume-item card">
-				<div class="resume-header">
-					<div class="resume-company">
-						<h3>BeBrainee</h3>
-						<span class="resume-period">Сентябрь 2021 — Декабрь 2022 (1 год 4 месяца)</span>
-					</div>
-					<div class="resume-position">Frontend-разработчик / Fullstack-разработчик</div>
-				</div>
-				<div class="resume-body">
-					<p>Разработка и сопровождение веб-приложений на Python-стеке. Расширение зоны ответственности от
-						frontend до fullstack.</p>
-					<ul class="resume-achievements">
-						<li>Разработка пользовательских интерфейсов (HTML, CSS, JavaScript, Vue.js).</li>
-						<li>Интеграция с backend на Flask, FastAPI.</li>
-						<li>Работа с шаблонизатором Jinja2 и серверным рендерингом.</li>
-						<li>Поддержка legacy-кода на PHP и Laravel.</li>
-					</ul>
-					<div class="resume-tech">
-						<span class="tech">Python</span>
-						<span class="tech">Flask</span>
-						<span class="tech">FastAPI</span>
-						<span class="tech">PHP</span>
-						<span class="tech">Laravel</span>
-						<span class="tech">JavaScript</span>
-						<span class="tech">Vue.js</span>
-						<span class="tech">React</span>
-						<span class="tech">Jinja2</span>
-						<span class="tech">REST API</span>
-						<span class="tech">Git</span>
-					</div>
-				</div>
-			</div>
-
-		</div>
-	</div>
+                    {% if item.technologies %}
+                    <div class="resume-tech" aria-label="Технологии">
+                        {% for technology in item.technologies %}
+                        <span class="tech">{{ technology }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
 </section>
+{% endif %}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timezone
 from urllib.parse import urljoin
+from xml.sax.saxutils import escape
 
 from flask import Response
 from sqlalchemy.orm import Session
@@ -14,20 +15,32 @@ from settings import config
 
 @with_db_session
 def robots_txt(db_session: Session) -> Response:
-    site = SiteService.public_config(SiteService.get_default(db_session))
+    site_model = SiteService.get_default(db_session)
+    site = SiteService.public_config(site_model)
     base_url = site["base_url"] or config.SITE_BASE_URL
-    body = "\n".join(
-        [
+    allow_indexing = bool(site["settings"]["seo"].get("robots_index", True))
+
+    if allow_indexing:
+        rules = [
             "User-agent: *",
             "Allow: /",
             f"Disallow: {config.ADMIN_ROUTE_PREFIX}/",
             f"Disallow: {config.NOTES_UPDATE_API_PREFIX}/",
+            "Disallow: /api/",
             "Disallow: /healthz",
             f"Sitemap: {base_url}/sitemap.xml",
             "",
         ]
-    )
-    return Response(body, mimetype="text/plain")
+    else:
+        rules = [
+            "User-agent: *",
+            "Disallow: /",
+            "",
+        ]
+
+    response = Response("\n".join(rules), mimetype="text/plain")
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @with_db_session
@@ -65,7 +78,7 @@ def sitemap_xml(db_session: Session) -> Response:
     ]
     for location, lastmod in urls:
         parts.append("  <url>")
-        parts.append(f"    <loc>{location}</loc>")
+        parts.append(f"    <loc>{escape(location)}</loc>")
         if lastmod:
             parts.append(f"    <lastmod>{lastmod}</lastmod>")
         parts.append("  </url>")

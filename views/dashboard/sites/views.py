@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import login_required, with_db_session
 from models.categories import Category
 from models.publication import Publication
-from models.site import Site
+from services.page import HOME_BLOCK_LABELS, HOME_BLOCK_TYPES, PageService
 from services.site import SiteService
 
 
@@ -26,6 +26,21 @@ def _safe_href(value: str) -> str:
     if parsed.scheme in {"http", "https", "mailto"}:
         return value
     raise ValueError(f"Недопустимая ссылка: {value}")
+
+
+def _safe_http_url(value: str) -> str:
+    value = value.strip()
+    if not value:
+        return ""
+    parsed = urlparse(value)
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise ValueError(f"Недопустимый URL: {value}")
+    return value
 
 
 def _parse_navigation(value: str) -> list[dict[str, str]]:
@@ -66,6 +81,10 @@ def _settings_from_form(current: dict) -> dict:
         "site_name": request.form.get("seo_site_name", "").strip()[:160],
         "title": request.form.get("seo_title", "").strip()[:255],
         "description": request.form.get("seo_description", "").strip()[:320],
+        "image_url": _safe_http_url(request.form.get("seo_image_url", ""))[:1000],
+        "locale": request.form.get("seo_locale", "ru_RU").strip()[:20] or "ru_RU",
+        "robots_index": request.form.get("seo_robots_index") == "on",
+        "yandex_verification": request.form.get("seo_yandex_verification", "").strip()[:120],
     }
     settings["contact"] = {
         "email": request.form.get("contact_email", "").strip()[:255],
@@ -84,7 +103,11 @@ def _settings_from_form(current: dict) -> dict:
             "description": request.form.get("hero_description", "").strip()[:3000],
             "note": request.form.get("hero_note", "").strip()[:300],
             "terminal_lines": _lines(request.form.get("hero_terminal_lines", ""))[:8],
-            "tags": [item.strip()[:80] for item in request.form.get("hero_tags", "").split(",") if item.strip()][:16],
+            "tags": [
+                item.strip()[:80]
+                for item in request.form.get("hero_tags", "").split(",")
+                if item.strip()
+            ][:16],
         }
     )
     settings["hero"] = hero
@@ -107,7 +130,7 @@ def _settings_from_form(current: dict) -> dict:
         "systems_subtitle": request.form.get("systems_subtitle", "").strip()[:500],
         "about_title": request.form.get("about_title", "").strip()[:160],
         "about_cards": about_cards,
-        "resume_enabled": request.form.get("resume_enabled") == "on",
+        "resume_enabled": current.get("home", {}).get("resume_enabled", True),
     }
     settings["footer"] = {
         "description": request.form.get("footer_description", "").strip()[:500],
@@ -118,6 +141,53 @@ def _settings_from_form(current: dict) -> dict:
         "allowed_origins": _parse_origins(request.form.get("api_allowed_origins", "")),
     }
     return settings
+
+
+def _block_states_from_form() -> dict[str, dict]:
+    states: dict[str, dict] = {}
+    for block_type in HOME_BLOCK_TYPES:
+        raw_position = request.form.get(f"block_{block_type}_position", "100").strip()
+        try:
+            position = int(raw_position)
+        except ValueError as exc:
+            raise ValueError("Порядок блоков должен быть целым числом") from exc
+        states[block_type] = {
+            "position": position,
+            "enabled": request.form.get(f"block_{block_type}_enabled") == "on",
+        }
+    return states
+
+
+def _resume_settings_from_form() -> dict:
+    items: list[dict] = []
+    for index in range(8):
+        company = request.form.get(f"resume_{index}_company", "").strip()
+        if not company:
+            continue
+        items.append(
+            {
+                "company": company[:200],
+                "period": request.form.get(f"resume_{index}_period", "").strip()[:200],
+                "position": request.form.get(f"resume_{index}_position", "").strip()[:240],
+                "description": request.form.get(f"resume_{index}_description", "").strip()[:4000],
+                "achievements": _lines(
+                    request.form.get(f"resume_{index}_achievements", "")
+                )[:20],
+                "technologies": [
+                    item.strip()[:80]
+                    for item in request.form.get(
+                        f"resume_{index}_technologies",
+                        "",
+                    ).split(",")
+                    if item.strip()
+                ][:30],
+            }
+        )
+    return {
+        "title": request.form.get("resume_title", "").strip()[:160] or "Опыт работы",
+        "subtitle": request.form.get("resume_subtitle", "").strip()[:500],
+        "items": items,
+    }
 
 
 class SiteListPage(MethodView):
@@ -160,10 +230,24 @@ class SiteEditPage(MethodView):
         site = SiteService.get_by_id(db_session, site_id)
         if site is None:
             abort(404)
+
+        home_page = PageService.get_page(db_session, site.id, "home")
+        home_blocks = PageService.list_blocks(home_page) if home_page is not None else []
+        resume_block = next(
+            (item for item in home_blocks if item.block_type == "resume"),
+            None,
+        )
+        resume_settings = resume_block.settings if resume_block is not None else {}
+
         return render_template(
             "dashboard/sites/edit.html",
             site=site,
             site_settings=SiteService.settings(site),
+            home_page=home_page,
+            home_blocks=home_blocks,
+            block_labels=HOME_BLOCK_LABELS,
+            resume_settings=resume_settings,
+            resume_items=resume_settings.get("items", []),
         )
 
     @login_required
@@ -175,6 +259,9 @@ class SiteEditPage(MethodView):
 
         try:
             settings = _settings_from_form(SiteService.settings(site))
+            block_states = _block_states_from_form()
+            resume_settings = _resume_settings_from_form()
+
             SiteService.update(
                 db_session,
                 site,
@@ -185,9 +272,17 @@ class SiteEditPage(MethodView):
                 is_active=request.form.get("is_active") == "on",
                 is_default=request.form.get("is_default") == "on",
             )
+            PageService.update_home(
+                db_session,
+                site.id,
+                seo_title=request.form.get("home_seo_title", ""),
+                seo_description=request.form.get("home_seo_description", ""),
+                block_states=block_states,
+                resume_settings=resume_settings,
+            )
         except ValueError as exc:
             flash(str(exc), "error")
             return redirect(url_for("admin.sites.edit", site_id=site_id))
 
-        flash("Настройки сайта сохранены", "success")
+        flash("Настройки сайта и структура главной сохранены", "success")
         return redirect(url_for("admin.sites.edit", site_id=site_id))

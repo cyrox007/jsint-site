@@ -12,11 +12,14 @@
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">Сайт · {{ site.key }}</span>
             <h1 class="admin-page__title">{{ site.name }}</h1>
-            <p class="admin-page__description">Настройки витрины и публичного API. Контент хранится отдельно для каждого сайта.</p>
+            <p class="admin-page__description">Настройки витрины, SEO, структуры главной и публичного API.</p>
         </div>
         <div class="admin-page__actions">
             <a class="btn secondary" href="{{ url_for('admin.sites.index') }}">К списку</a>
             <a class="btn secondary" href="{{ url_for('admin.publication.index', site_id=site.id) }}">Контент</a>
+            {% if site.base_url %}
+            <a class="btn secondary" href="{{ site.base_url }}" target="_blank" rel="noopener noreferrer">Открыть сайт</a>
+            {% endif %}
         </div>
     </header>
 
@@ -24,7 +27,12 @@
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
         <section class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Сайт</h2><p class="admin-card__description">Служебные параметры витрины.</p></div></div>
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Сайт</h2>
+                    <p class="admin-card__description">Служебные параметры витрины.</p>
+                </div>
+            </div>
             <div class="admin-card__body admin-form site-form-grid">
                 <label>Название<input name="name" maxlength="160" value="{{ site.name }}" required></label>
                 <label>Ключ<input value="{{ site.key }}" disabled><small>Ключ используется в API и после создания не меняется.</small></label>
@@ -36,13 +44,22 @@
         </section>
 
         <section class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Бренд и SEO</h2><p class="admin-card__description">То, что раньше было жёстко записано в шаблонах.</p></div></div>
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Бренд и SEO</h2>
+                    <p class="admin-card__description">Название, поисковая выдача и карточки при публикации ссылок.</p>
+                </div>
+            </div>
             <div class="admin-card__body admin-form site-form-grid">
                 <label>Название бренда<input name="brand_name" value="{{ brand.name }}"></label>
                 <label>Подпись бренда<input name="brand_subtitle" value="{{ brand.subtitle }}"></label>
                 <label>Название сайта для OpenGraph<input name="seo_site_name" value="{{ seo.site_name }}"></label>
-                <label>Title по умолчанию<input name="seo_title" maxlength="255" value="{{ seo.title }}"></label>
+                <label>Locale OpenGraph<input name="seo_locale" value="{{ seo.locale or 'ru_RU' }}" placeholder="ru_RU"></label>
+                <label class="site-field-wide">Title по умолчанию<input name="seo_title" maxlength="255" value="{{ seo.title }}"></label>
                 <label class="site-field-wide">Meta description<textarea name="seo_description" rows="3" maxlength="320">{{ seo.description }}</textarea></label>
+                <label class="site-field-wide">OpenGraph-изображение<input name="seo_image_url" value="{{ seo.image_url or '' }}" placeholder="https://example.ru/og.jpg"><small>Абсолютный HTTPS/HTTP URL. Используется также для Twitter Cards.</small></label>
+                <label>Yandex verification<input name="seo_yandex_verification" value="{{ seo.yandex_verification or '' }}"></label>
+                <label class="switch"><input type="checkbox" name="seo_robots_index" {% if seo.robots_index %}checked{% endif %}><span class="slider"></span><span class="label">Разрешать индексацию сайта</span></label>
                 <label>Email<input name="contact_email" type="email" value="{{ contact.email }}"></label>
                 <label>GitHub / внешняя ссылка<input name="github_url" value="{{ contact.github_url }}"></label>
                 <label class="site-field-wide">Навигация<textarea name="navigation" rows="4">{% for item in site_settings.navigation %}{{ item.label }}|{{ item.href }}{% if not loop.last %}
@@ -51,7 +68,12 @@
         </section>
 
         <section class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Первый экран</h2><p class="admin-card__description">Главный экран встроенного публичного сайта.</p></div></div>
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Первый экран</h2>
+                    <p class="admin-card__description">Главный экран встроенного публичного сайта.</p>
+                </div>
+            </div>
             <div class="admin-card__body admin-form site-form-grid">
                 <label>Маркер<input name="hero_badge" value="{{ hero.badge }}"></label>
                 <label>Заголовок<input name="hero_title" value="{{ hero.title }}"></label>
@@ -64,7 +86,12 @@
         </section>
 
         <section class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Секции главной</h2><p class="admin-card__description">Текстовые блоки собственного фронта JSInteractive.</p></div></div>
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Секции главной</h2>
+                    <p class="admin-card__description">Текстовые блоки собственного frontend.</p>
+                </div>
+            </div>
             <div class="admin-card__body admin-form site-form-grid">
                 <label>Заголовок подхода<input name="philosophy_title" value="{{ home.philosophy_title }}"></label>
                 <label>Подзаголовок подхода<input name="philosophy_subtitle" value="{{ home.philosophy_subtitle }}"></label>
@@ -76,12 +103,85 @@
                 <label>Карточка 2 — заголовок<input name="about_card_2_title" value="{{ home.about_cards[1].title if home.about_cards|length > 1 else '' }}"></label>
                 <label>Карточка 1 — текст<textarea name="about_card_1_text" rows="5">{{ home.about_cards[0].text if home.about_cards else '' }}</textarea></label>
                 <label>Карточка 2 — текст<textarea name="about_card_2_text" rows="5">{{ home.about_cards[1].text if home.about_cards|length > 1 else '' }}</textarea></label>
-                <label class="switch site-field-wide"><input type="checkbox" name="resume_enabled" {% if home.resume_enabled %}checked{% endif %}><span class="slider"></span><span class="label">Показывать текущий блок опыта работы</span></label>
             </div>
         </section>
 
         <section class="admin-card">
-            <div class="admin-card__header"><div><h2 class="admin-card__title">Подвал и API</h2><p class="admin-card__description">Контакты витрины и разрешённые origin для внешних фронтов.</p></div></div>
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Структура главной</h2>
+                    <p class="admin-card__description">Порядок и видимость блоков хранятся отдельно от шаблона. Это позволяет менять композицию без правки кода.</p>
+                </div>
+            </div>
+            <div class="admin-card__body">
+                <div class="admin-form site-form-grid site-page-seo">
+                    <label>SEO title главной<input name="home_seo_title" value="{{ home_page.seo_title if home_page else '' }}" placeholder="{{ seo.title }}"></label>
+                    <label>SEO description главной<textarea name="home_seo_description" rows="3" placeholder="{{ seo.description }}">{{ home_page.seo_description if home_page else '' }}</textarea></label>
+                </div>
+
+                <div class="site-block-list">
+                    {% for block in home_blocks %}
+                    <div class="site-block-row">
+                        <div class="site-block-row__name">
+                            <strong>{{ block_labels.get(block.block_type, block.block_type) }}</strong>
+                            <span>{{ block.block_type }}</span>
+                        </div>
+                        <label>Порядок
+                            <input type="number" min="0" max="9999" step="10" name="block_{{ block.block_type }}_position" value="{{ block.position }}">
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" name="block_{{ block.block_type }}_enabled" {% if block.is_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                            <span class="label">Показывать</span>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Опыт работы</h2>
+                    <p class="admin-card__description">Содержимое секции больше не хранится в HTML-шаблоне.</p>
+                </div>
+            </div>
+            <div class="admin-card__body admin-form">
+                <div class="site-form-grid">
+                    <label>Заголовок<input name="resume_title" value="{{ resume_settings.title or 'Опыт работы' }}"></label>
+                    <label>Подзаголовок<input name="resume_subtitle" value="{{ resume_settings.subtitle or '' }}"></label>
+                </div>
+
+                <div class="resume-editor-list">
+                    {% for index in range(8) %}
+                        {% set item = resume_items[index] if index < resume_items|length else {} %}
+                        <details class="resume-editor-item" {% if item %}open{% endif %}>
+                            <summary>
+                                <span>Позиция {{ index + 1 }}</span>
+                                <strong>{{ item.company if item else 'Новая позиция' }}</strong>
+                            </summary>
+                            <div class="resume-editor-item__body site-form-grid">
+                                <label>Компания<input name="resume_{{ index }}_company" value="{{ item.company if item else '' }}"></label>
+                                <label>Период<input name="resume_{{ index }}_period" value="{{ item.period if item else '' }}"></label>
+                                <label class="site-field-wide">Должность<input name="resume_{{ index }}_position" value="{{ item.position if item else '' }}"></label>
+                                <label class="site-field-wide">Описание<textarea name="resume_{{ index }}_description" rows="4">{{ item.description if item else '' }}</textarea></label>
+                                <label class="site-field-wide">Достижения<textarea name="resume_{{ index }}_achievements" rows="6">{% if item and item.achievements %}{{ item.achievements|join('\n') }}{% endif %}</textarea><small>Одно достижение на строку.</small></label>
+                                <label class="site-field-wide">Технологии<input name="resume_{{ index }}_technologies" value="{% if item and item.technologies %}{{ item.technologies|join(', ') }}{% endif %}"><small>Через запятую.</small></label>
+                            </div>
+                        </details>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="admin-card">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">Подвал и API</h2>
+                    <p class="admin-card__description">Контакты витрины и разрешённые origin для внешних frontend.</p>
+                </div>
+            </div>
             <div class="admin-card__body admin-form site-form-grid">
                 <label class="site-field-wide">Описание в подвале<input name="footer_description" value="{{ footer.description }}"></label>
                 <label>Локация<input name="footer_location" value="{{ footer.location }}"></label>
@@ -92,7 +192,7 @@
         </section>
 
         <div class="site-editor__save">
-            <button type="submit" class="btn primary">Сохранить настройки</button>
+            <button type="submit" class="btn primary">Сохранить всё</button>
         </div>
     </form>
 </div>

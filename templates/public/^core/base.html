@@ -7,6 +7,7 @@
     <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#060816">
+
     {% set has_site = site is defined and site %}
     {% set site_settings = site.settings if has_site else {} %}
     {% set seo_defaults = site_settings.seo if has_site else {} %}
@@ -14,27 +15,56 @@
     {% set page_description = seo_description if seo_description is defined and seo_description else (seo_defaults.description if has_site else "") %}
     {% set site_base_url = site.base_url if has_site and site.base_url else config.SITE_BASE_URL %}
     {% set page_canonical = canonical_url if canonical_url is defined and canonical_url else (site_base_url ~ request.path) %}
+    {% set should_index = has_site and seo_defaults.robots_index and not (seo_noindex is defined and seo_noindex) %}
+
     <title>{{ page_title }}</title>
     <meta name="description" content="{{ page_description }}">
+    <meta name="robots" content="{{ 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' if should_index else 'noindex,nofollow' }}">
     <link rel="canonical" href="{{ page_canonical }}">
+
     <meta property="og:title" content="{{ page_title }}">
     <meta property="og:description" content="{{ page_description }}">
     <meta property="og:url" content="{{ page_canonical }}">
     <meta property="og:type" content="{{ og_type if og_type is defined and og_type else 'website' }}">
     <meta property="og:site_name" content="{{ seo_defaults.site_name if has_site else 'JSInteractive' }}">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:locale" content="{{ seo_defaults.locale if has_site else 'ru_RU' }}">
+    {% if has_site and seo_defaults.image_url %}
+    <meta property="og:image" content="{{ seo_defaults.image_url }}">
+    {% endif %}
+
+    <meta name="twitter:card" content="{{ 'summary_large_image' if has_site and seo_defaults.image_url else 'summary' }}">
     <meta name="twitter:title" content="{{ page_title }}">
     <meta name="twitter:description" content="{{ page_description }}">
-    <meta name="yandex-verification" content="725d05a47d08b13d">
+    {% if has_site and seo_defaults.image_url %}
+    <meta name="twitter:image" content="{{ seo_defaults.image_url }}">
+    {% endif %}
+
+    {% if has_site and seo_defaults.yandex_verification %}
+    <meta name="yandex-verification" content="{{ seo_defaults.yandex_verification }}">
+    {% endif %}
+
+    {% if has_site %}
+        {% set structured_data = {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": seo_defaults.site_name or site.name,
+            "url": site_base_url,
+            "description": page_description
+        } %}
+        <script type="application/ld+json">{{ structured_data|tojson }}</script>
+    {% endif %}
+
     <style>
         {% include 'public/styles.css' %}
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Перейти к содержанию</a>
+
     {% if has_site %}{% include 'public/^shared/header/index.html' %}{% endif %}
 
-    <main>
+    <main id="main-content" tabindex="-1">
         {% block content %}{% endblock %}
     </main>
 

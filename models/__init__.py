@@ -3,7 +3,8 @@ from models.technology import Technology
 from models.users import User
 from models.site import Site
 
-# 2. Контентные модели
+# 2. Публичные страницы и контент
+from models.page import Page, PageBlock
 from models.categories import Category
 from models.publication import Publication
 from models.task import Task
@@ -14,6 +15,8 @@ from models.control_plane import LicenseRecord, ReleaseRecord
 __all__ = [
     "User",
     "Site",
+    "Page",
+    "PageBlock",
     "Category",
     "Technology",
     "Publication",

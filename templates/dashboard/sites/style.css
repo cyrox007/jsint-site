@@ -8,4 +8,14 @@
 .site-editor__save{position:sticky;bottom:18px;display:flex;justify-content:flex-end;z-index:5}
 .site-editor__save .btn{box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .admin-form small{display:block;margin-top:6px;color:var(--muted);font-size:.8rem}
-@media(max-width:800px){.site-create-form,.site-form-grid{grid-template-columns:1fr}.site-field-wide{grid-column:auto}}
+.site-page-seo{margin-bottom:22px}
+.site-block-list{display:grid;gap:10px}
+.site-block-row{display:grid;grid-template-columns:minmax(180px,1fr) 140px 170px;gap:16px;align-items:end;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-soft,rgba(255,255,255,.025))}
+.site-block-row__name{align-self:center;display:flex;flex-direction:column;gap:2px}
+.site-block-row__name span{color:var(--muted);font-size:.78rem;font-family:monospace}
+.resume-editor-list{display:grid;gap:12px;margin-top:18px}
+.resume-editor-item{border:1px solid var(--border);border-radius:14px;background:var(--surface-soft,rgba(255,255,255,.025));overflow:hidden}
+.resume-editor-item summary{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer}
+.resume-editor-item summary span{color:var(--muted);font-size:.82rem}
+.resume-editor-item__body{padding:0 16px 16px}
+@media(max-width:800px){.site-create-form,.site-form-grid{grid-template-columns:1fr}.site-field-wide{grid-column:auto}.site-block-row{grid-template-columns:1fr}.resume-editor-item summary{align-items:flex-start;flex-direction:column}}

@@ -21,14 +21,18 @@ def _site_or_404(db_session: Session, site_key: str):
 def _api_response(site, payload, status: int = 200):
     response = jsonify(payload)
     response.status_code = status
-    response.headers["Cache-Control"] = "public, max-age=60"
+    response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=300"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    response.add_etag()
 
     origin = request.headers.get("Origin", "").rstrip("/")
     allowed_origins = SiteService.settings(site).get("api", {}).get("allowed_origins", [])
     if origin and origin in allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET"
         response.headers["Vary"] = "Origin"
+
+    response.make_conditional(request)
     return response
 
 
@@ -105,7 +109,14 @@ def site_publications(db_session: Session, site_key: str):
     if category_slug:
         category = Category.get_by_slug(db_session, category_slug, site.id)
         if category is None:
-            return _api_response(site, {"site": {"key": site.key}, "items": []})
+            return _api_response(
+                site,
+                {
+                    "site": {"key": site.key},
+                    "items": [],
+                    "pagination": {"limit": 20, "offset": 0, "total": 0},
+                },
+            )
         query = query.filter(Publication.category_id == category.id)
 
     source_type = request.args.get("type", "").strip()
@@ -118,13 +129,14 @@ def site_publications(db_session: Session, site_key: str):
     except ValueError:
         abort(400)
 
+    total = query.order_by(None).count()
     publications = query.offset(offset).limit(limit).all()
     return _api_response(
         site,
         {
             "site": {"key": site.key, "name": site.name},
             "items": [_publication_payload(item, include_content=False) for item in publications],
-            "pagination": {"limit": limit, "offset": offset},
+            "pagination": {"limit": limit, "offset": offset, "total": total},
         },
     )
 
