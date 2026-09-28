@@ -172,8 +172,10 @@ prepare_release() {
 
 run_release_tests() {
     local release_dir="$1"
-    log "Запуск unit/HTTP smoke tests в ${release_dir}."
-    run_release "${release_dir}" "${release_dir}/.venv/bin/python" -m unittest discover -s tests -v
+    log "Запуск unit/HTTP smoke tests в ${release_dir}. Database E2E для рабочей БД отключены."
+    run_release "${release_dir}" \
+        env ALLOW_DATABASE_E2E_TESTS=false \
+        "${release_dir}/.venv/bin/python" -m unittest discover -s tests -v
 }
 
 run_migrations() {
