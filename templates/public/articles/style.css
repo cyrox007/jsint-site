@@ -1,9 +1,181 @@
-.article-detail{max-width:860px;margin:0 auto;padding-top:130px;padding-bottom:80px}
-.article-header h1{font-size:clamp(2.3rem,6vw,4.4rem);line-height:1.05;letter-spacing:-.05em;margin-bottom:22px}
-.article-meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.92rem;margin-bottom:36px;border-bottom:1px solid var(--border);padding-bottom:18px}
-.article-tech-list{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.tech-badge{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:999px;padding:2px 10px;font-size:.8rem;color:var(--muted)}
-.article-content{font-size:1.06rem;line-height:1.85;color:var(--text)}
-.article-content p,.article-content ul,.article-content ol,.article-content blockquote{margin-bottom:1.2em}
-.article-content h2,.article-content h3{margin:1.6em 0 .7em}
-.article-content a{color:var(--accent)}
+.article-detail {
+    max-width: 980px;
+    margin: 0 auto;
+    padding-top: 150px;
+    padding-bottom: 100px;
+}
+
+.article-back {
+    display: inline-flex;
+    margin-bottom: 42px;
+    color: #78909f;
+    font-size: .82rem;
+    font-weight: 720;
+}
+
+.article-back:hover {
+    color: var(--accent);
+    transform: translateX(-3px);
+}
+
+.article-header {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+    padding: clamp(28px, 5vw, 54px);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(167,139,250,.13), transparent 34%),
+        linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+}
+
+.article-header::after {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    right: -90px;
+    bottom: -120px;
+    border-radius: 50%;
+    background: rgba(94,234,212,.09);
+    filter: blur(45px);
+}
+
+.article-header__top {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 26px;
+}
+
+.article-category {
+    padding: 6px 10px;
+    border: 1px solid rgba(167,139,250,.18);
+    border-radius: 9px;
+    background: rgba(167,139,250,.06);
+    color: #cfc4ff;
+    font-size: .68rem;
+    font-weight: 760;
+}
+
+.article-header h1 {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin-bottom: 26px;
+    font-size: clamp(2.8rem, 7vw, 6.2rem);
+    line-height: .95;
+    letter-spacing: -.06em;
+}
+
+.article-meta {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: #718695;
+    font-size: .78rem;
+}
+
+.article-tech-list {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tech-badge {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(255,255,255,.025);
+    color: #8da1ae;
+    font-size: .68rem;
+}
+
+.article-content {
+    padding: clamp(26px, 5vw, 56px);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    background: rgba(255,255,255,.018);
+    color: #cbd8df;
+    font-size: clamp(1rem, 1.4vw, 1.08rem);
+    line-height: 1.9;
+}
+
+.article-content p,
+.article-content ul,
+.article-content ol,
+.article-content blockquote {
+    margin-bottom: 1.35em;
+}
+
+.article-content h2,
+.article-content h3 {
+    margin: 1.8em 0 .72em;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: -.035em;
+}
+
+.article-content h2 {
+    font-size: clamp(1.7rem, 3vw, 2.4rem);
+}
+
+.article-content h3 {
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.article-content a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(94,234,212,.35);
+    text-underline-offset: 4px;
+}
+
+.article-content blockquote {
+    padding: 18px 22px;
+    border-left: 2px solid var(--accent);
+    border-radius: 0 16px 16px 0;
+    background: rgba(94,234,212,.045);
+    color: #dce8ed;
+}
+
+.article-content code {
+    padding: .15em .4em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(255,255,255,.04);
+}
+
+.article-content pre {
+    overflow-x: auto;
+    margin-bottom: 1.4em;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: #061018;
+}
+
+@media (max-width: 640px) {
+    .article-detail {
+        padding-top: 120px;
+        padding-bottom: 64px;
+    }
+
+    .article-header,
+    .article-content {
+        border-radius: 22px;
+    }
+
+    .article-header__top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
