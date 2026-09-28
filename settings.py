@@ -99,6 +99,10 @@ class Config:
     NOTES_RELEASE_DEFAULT_REQUIRES_PHP = os.getenv(
         "NOTES_RELEASE_DEFAULT_REQUIRES_PHP", "8.1.0"
     ).strip()
+    OPERATOR_AUDIT_RETENTION_DAYS = max(
+        30,
+        int(os.getenv("OPERATOR_AUDIT_RETENTION_DAYS", "730")),
+    )
 
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
