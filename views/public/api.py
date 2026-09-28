@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, jsonify, request, url_for
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import with_db_session
 from models.categories import Category
+from services.media import MediaService
 from services.page import PageService
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
@@ -45,6 +46,28 @@ def _category_payload(category: Category) -> dict:
         "title": category.title,
         "slug": category.slug,
         "description": category.description,
+    }
+
+
+def _media_payload(asset) -> dict:
+    filename = MediaService.public_filename(asset)
+    return {
+        "id": str(asset.id),
+        "name": asset.original_name,
+        "mime_type": asset.mime_type,
+        "size_bytes": asset.size_bytes,
+        "alt_text": asset.alt_text,
+        "path": url_for(
+            "public.media.file",
+            asset_id=asset.id,
+            filename=filename,
+        ),
+        "url": url_for(
+            "public.media.file",
+            asset_id=asset.id,
+            filename=filename,
+            _external=True,
+        ),
     }
 
 
@@ -101,6 +124,23 @@ def site_page(db_session: Session, site_key: str, page_slug: str):
                 "blocks": PageService.public_blocks(page),
                 "updated_at": page.updated_at.isoformat() if page.updated_at else None,
             },
+        },
+    )
+
+
+@with_db_session
+def site_media(db_session: Session, site_key: str):
+    site = _site_or_404(db_session, site_key)
+    assets = [
+        asset
+        for asset in MediaService.list_for_site(db_session, site.id)
+        if asset.is_public
+    ]
+    return _api_response(
+        site,
+        {
+            "site": {"key": site.key, "name": site.name},
+            "items": [_media_payload(asset) for asset in assets],
         },
     )
 
@@ -201,6 +241,12 @@ def install(app: Flask) -> None:
         "/api/public/v1/sites/<string:site_key>/pages/<string:page_slug>",
         endpoint="public.api.page",
         view_func=site_page,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/api/public/v1/sites/<string:site_key>/media",
+        endpoint="public.api.media",
+        view_func=site_media,
         methods=["GET"],
     )
     app.add_url_rule(

@@ -149,6 +149,37 @@ class MediaService:
         return asset
 
     @classmethod
+    def update_asset(
+        cls,
+        session: Session,
+        *,
+        asset: MediaAsset,
+        site_ids: list[UUID],
+        alt_text: str,
+    ) -> MediaAsset:
+        unique_ids = list(dict.fromkeys(site_ids))
+        if not unique_ids:
+            raise ValueError("Медиафайл должен быть привязан хотя бы к одному сайту")
+
+        sites = (
+            session.query(Site)
+            .filter(Site.id.in_(unique_ids))
+            .order_by(Site.name.asc())
+            .all()
+        )
+        if len(sites) != len(unique_ids):
+            raise ValueError("Один из выбранных сайтов не найден")
+
+        asset.sites = sites
+        if asset.owner_site_id not in {site.id for site in sites}:
+            asset.owner_site_id = sites[0].id
+        asset.alt_text = alt_text.strip()[:500] or None
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+        return asset
+
+    @classmethod
     def detach_or_delete(
         cls,
         session: Session,
