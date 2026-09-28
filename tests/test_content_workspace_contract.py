@@ -25,7 +25,8 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         template = self.read("templates/dashboard/publication/index.html")
         controller = self.read("views/dashboard/blog/views.py")
         self.assertIn('name="site_id"', template)
-        self.assertIn('filters: dict = {"site_id": selected_site.id', controller)
+        self.assertIn("PublicationChannelService.list_for_admin", controller)
+        self.assertIn("site_id=selected_site.id", controller)
         self.assertIn("Category.site_id == selected_site.id", controller)
 
     def test_publication_controller_handles_category_crud(self):
@@ -33,7 +34,7 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('if action == "create_category"', controller)
         self.assertIn('if action == "update_category"', controller)
         self.assertIn('if action == "delete_category"', controller)
-        self.assertIn('filters["category_ids"]', controller)
+        self.assertIn("category_ids=category_ids", controller)
 
     def test_parent_category_filter_includes_descendants(self):
         model = self.read("models/publication.py")
