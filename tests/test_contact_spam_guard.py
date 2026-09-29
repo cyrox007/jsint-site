@@ -24,9 +24,13 @@ class ContactSpamGuardTests(unittest.TestCase):
             ):
                 nonce = ContactSpamGuard.issue_challenge()
 
-            with patch(
-                "components.security.contact_rate_limit.time.time",
-                return_value=1004,
+            with (
+                patch.object(config, "CONTACT_FORM_MIN_SECONDS", 3),
+                patch.object(config, "CONTACT_FORM_TTL_SECONDS", 30),
+                patch(
+                    "components.security.contact_rate_limit.time.time",
+                    return_value=1004,
+                ),
             ):
                 self.assertTrue(ContactSpamGuard.consume_challenge(nonce))
                 self.assertFalse(ContactSpamGuard.consume_challenge(nonce))
@@ -42,9 +46,13 @@ class ContactSpamGuardTests(unittest.TestCase):
                 ),
             ):
                 nonce = ContactSpamGuard.issue_challenge()
-            with patch(
-                "components.security.contact_rate_limit.time.time",
-                return_value=1001,
+            with (
+                patch.object(config, "CONTACT_FORM_MIN_SECONDS", 3),
+                patch.object(config, "CONTACT_FORM_TTL_SECONDS", 30),
+                patch(
+                    "components.security.contact_rate_limit.time.time",
+                    return_value=1001,
+                ),
             ):
                 self.assertFalse(ContactSpamGuard.consume_challenge(nonce))
 
@@ -58,9 +66,13 @@ class ContactSpamGuardTests(unittest.TestCase):
                 ),
             ):
                 nonce = ContactSpamGuard.issue_challenge()
-            with patch(
-                "components.security.contact_rate_limit.time.time",
-                return_value=1031,
+            with (
+                patch.object(config, "CONTACT_FORM_MIN_SECONDS", 3),
+                patch.object(config, "CONTACT_FORM_TTL_SECONDS", 30),
+                patch(
+                    "components.security.contact_rate_limit.time.time",
+                    return_value=1031,
+                ),
             ):
                 self.assertFalse(ContactSpamGuard.consume_challenge(nonce))
 
