@@ -71,6 +71,11 @@ class Config:
 
     AUTH_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("AUTH_RATE_LIMIT_ATTEMPTS", "5")))
     AUTH_RATE_LIMIT_WINDOW_SECONDS = max(30, int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300")))
+    CONTACT_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("CONTACT_RATE_LIMIT_ATTEMPTS", "5")))
+    CONTACT_RATE_LIMIT_WINDOW_SECONDS = max(
+        60,
+        int(os.getenv("CONTACT_RATE_LIMIT_WINDOW_SECONDS", "3600")),
+    )
 
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
     SITE_BASE_URL = os.getenv(
