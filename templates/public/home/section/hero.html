@@ -23,13 +23,8 @@
                 {% endif %}
 
                 <div class="hero-actions">
-                    {% if site.settings.contact.github_url %}
-                    <a href="{{ site.settings.contact.github_url }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">{{ hero.github_label or 'GitHub' }} <span aria-hidden="true">↗</span></a>
-                    {% endif %}
+                    <a href="{{ url_for('contact') }}" class="btn btn-primary">{{ hero.contact_label or 'Связаться' }}</a>
                     <a href="#systems" class="btn btn-secondary">{{ hero.materials_label or 'Смотреть материалы' }}</a>
-                    {% if site.settings.contact.email %}
-                    <a href="mailto:{{ site.settings.contact.email }}" class="btn btn-secondary">{{ hero.contact_label or 'Связаться' }}</a>
-                    {% endif %}
                 </div>
 
                 {% if hero.tags %}
