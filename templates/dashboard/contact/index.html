@@ -1,0 +1,57 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Обращения | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page contact-inbox">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Публичный сайт · {{ selected_site.name }}</span>
+            <h1 class="admin-page__title">Обращения</h1>
+            <p class="admin-page__description">Сообщения из защищённой формы обратной связи. Контактные данные доступны только администраторам.</p>
+        </div>
+    </header>
+
+    <nav class="contact-inbox__filters" aria-label="Фильтр обращений">
+        <a class="btn {{ 'primary' if not selected_status else 'secondary' }}" href="{{ url_for('admin.contact.index', site_id=selected_site.id) }}">Все</a>
+        <a class="btn {{ 'primary' if selected_status == 'new' else 'secondary' }}" href="{{ url_for('admin.contact.index', site_id=selected_site.id, status='new') }}">Новые · {{ counts.new }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'read' else 'secondary' }}" href="{{ url_for('admin.contact.index', site_id=selected_site.id, status='read') }}">Прочитанные · {{ counts.read }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'archived' else 'secondary' }}" href="{{ url_for('admin.contact.index', site_id=selected_site.id, status='archived') }}">Архив · {{ counts.archived }}</a>
+    </nav>
+
+    <div class="contact-inbox__list">
+        {% for item in messages %}
+        <article class="admin-card contact-message {{ 'contact-message--new' if item.status == 'new' else '' }}">
+            <div class="contact-message__head">
+                <div>
+                    <div class="contact-message__title">
+                        <strong>{{ item.subject or 'Без темы' }}</strong>
+                        <span class="status-badge {{ 'status-badge--success' if item.status == 'new' else '' }}">{{ item.status }}</span>
+                    </div>
+                    <span>{{ item.name }} · {{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </div>
+                <code>{{ item.reply_to }}</code>
+            </div>
+
+            <div class="contact-message__body">{{ item.message }}</div>
+
+            <form method="post" class="contact-message__actions">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="message_id" value="{{ item.id }}">
+                {% if item.status == 'new' %}
+                <button class="btn secondary btn-small" type="submit" name="action" value="read">Отметить прочитанным</button>
+                {% endif %}
+                {% if item.status != 'archived' %}
+                <button class="btn secondary btn-small" type="submit" name="action" value="archive">В архив</button>
+                {% else %}
+                <button class="btn secondary btn-small" type="submit" name="action" value="reopen">Вернуть в новые</button>
+                {% endif %}
+            </form>
+        </article>
+        {% else %}
+        <div class="admin-empty">
+            <strong>Обращений нет</strong>
+            <span>Новые сообщения из публичной формы появятся здесь.</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
