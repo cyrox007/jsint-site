@@ -121,12 +121,7 @@ def _settings_from_form(current: dict) -> dict:
         "robots_index": request.form.get("seo_robots_index") == "on",
         "yandex_verification": request.form.get("seo_yandex_verification", "").strip()[:120],
     }
-    settings["contact"] = {
-        "email": request.form.get("contact_email", "").strip()[:255],
-        "github_url": _safe_href(request.form.get("github_url", "").strip())
-        if request.form.get("github_url", "").strip()
-        else "",
-    }
+    settings.pop("contact", None)
     settings["navigation"] = _navigation_from_form()
     settings.pop("hero", None)
     settings.pop("home", None)
@@ -276,7 +271,6 @@ def _home_block_settings_from_form() -> dict[str, dict]:
             "accent": request.form.get("hero_accent", "").strip()[:240],
             "description": request.form.get("hero_description", "").strip()[:3000],
             "note": request.form.get("hero_note", "").strip()[:300],
-            "github_label": request.form.get("hero_github_label", "").strip()[:80] or "GitHub",
             "materials_label": request.form.get("hero_materials_label", "").strip()[:120] or "Смотреть материалы",
             "contact_label": request.form.get("hero_contact_label", "").strip()[:80] or "Связаться",
             "console_eyebrow": request.form.get("hero_console_eyebrow", "").strip()[:120] or "system / overview",

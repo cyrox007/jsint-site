@@ -3,3 +3,4 @@
 {% include 'public/^shared/footer/style.css' %}
 {% include 'public/home/style.css' %}
 {% include 'public/articles/style.css' %}
+{% include 'public/contact/style.css' %}

@@ -19,6 +19,27 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("+УЛЬТРА", response.get_data(as_text=True))
 
+    def test_contact_page_is_protected_and_has_no_public_email(self):
+        response = self.client.get("/contact", base_url=self.base)
+        html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name="_csrf_token"', html)
+        self.assertIn("no-store", response.headers.get("Cache-Control", ""))
+        self.assertNotIn("mailto:", html.lower())
+        self.assertNotIn("github.com", html.lower())
+
+        rejected = self.client.post(
+            "/contact",
+            base_url=self.base,
+            data={
+                "name": "Тест",
+                "reply_to": "test@example.com",
+                "message": "Это тестовое сообщение достаточной длины.",
+            },
+        )
+        self.assertEqual(rejected.status_code, 400)
+
     def test_public_seo_headers_and_canonical(self):
         response = self.client.get("/", base_url=self.base)
         html = response.get_data(as_text=True)
@@ -87,6 +108,7 @@ class ApplicationSmokeTests(unittest.TestCase):
             "dashboard/publication/preview.html",
             "dashboard/users/index.html",
             "dashboard/control_plane/audit.html",
+            "dashboard/contact/index.html",
             "dashboard/catalog/index.html",
             "dashboard/catalog/edit.html",
             "dashboard/sites/index.html",

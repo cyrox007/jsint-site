@@ -22,6 +22,7 @@ def create_app() -> Flask:
 
     from views.public.home import routers as home_router
     from views.public.articles import routers as article_router
+    from views.public.contact import routers as contact_router
     from views.public import api as public_api
     from views.public import media as public_media
     from views.public import seo as public_seo
@@ -34,6 +35,7 @@ def create_app() -> Flask:
     from views.dashboard.media import router as d_media_router
     from views.dashboard.pages import router as d_pages_router
     from views.dashboard.users import router as d_users_router
+    from views.dashboard.contact import router as d_contact_router
     from views import notes_api
 
     app = Flask(__name__, static_folder="static")
@@ -86,6 +88,7 @@ def create_app() -> Flask:
 
     home_router.install(app)
     article_router.install(app)
+    contact_router.install(app)
     public_api.install(app)
     public_media.install(app)
     auth_router.install(app)
@@ -97,6 +100,7 @@ def create_app() -> Flask:
     d_media_router.install(app)
     d_pages_router.install(app)
     d_users_router.install(app)
+    d_contact_router.install(app)
     notes_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])

@@ -49,7 +49,7 @@ def apply_security_headers(response):
             "max-age=31536000",
         )
 
-    if request.path.startswith(config.ADMIN_ROUTE_PREFIX):
+    if request.path.startswith(config.ADMIN_ROUTE_PREFIX) or request.path == "/contact":
         response.headers["Cache-Control"] = "no-store, private"
         response.headers["Pragma"] = "no-cache"
 
