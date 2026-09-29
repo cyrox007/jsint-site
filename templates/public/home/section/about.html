@@ -1,21 +1,26 @@
 {% set about = block.settings if block is defined and block.settings else {} %}
+{% set about_cards = about.get('cards', []) %}
+{% if about_cards %}
 <section class="about-section" id="about">
     <div class="container">
         <div class="section-heading">
             <div>
                 <span class="section-kicker">{{ about.kicker or '03 / Контекст' }}</span>
-                <h2 class="section-title">{{ about.title or 'О проекте' }}</h2>
+                <h2 class="section-title">{{ about.title or 'О студии' }}</h2>
             </div>
         </div>
 
         <div class="about-grid">
-            {% for card in about.get('cards', []) %}
+            {% for card in about_cards %}
+            {% if card.title or card.text %}
             <article class="glass-card about-card">
                 <span class="about-card__index">{{ '%02d'|format(loop.index) }}</span>
-                <h3>{{ card.title }}</h3>
-                <p>{{ card.text }}</p>
+                {% if card.title %}<h3>{{ card.title }}</h3>{% endif %}
+                {% if card.text %}<p>{{ card.text }}</p>{% endif %}
             </article>
+            {% endif %}
             {% endfor %}
         </div>
     </div>
 </section>
+{% endif %}
