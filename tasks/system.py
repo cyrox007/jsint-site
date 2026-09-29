@@ -8,8 +8,9 @@ from services.yandex_indexing import YandexIndexingService
     ignore_result=True,
 )
 def background_heartbeat():
-    """End-to-end heartbeat proving Beat -> broker -> Worker -> Redis."""
+    """Сквозная проверка Beat -> broker -> Worker -> Redis."""
     return record_background_heartbeat()
+
 
 @celery_app.task(
     name="tasks.system.notify_yandex_indexnow",
