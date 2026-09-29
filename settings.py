@@ -109,6 +109,10 @@ class Config:
         int(os.getenv("CONTACT_FORM_TTL_SECONDS", "1800")),
     )
     CONTACT_MAX_URLS = max(0, int(os.getenv("CONTACT_MAX_URLS", "3")))
+    CONTACT_MAX_REQUEST_BYTES = max(
+        4096,
+        min(64 * 1024, int(os.getenv("CONTACT_MAX_REQUEST_BYTES", "16384"))),
+    )
     CONTACT_TURNSTILE_SITE_KEY = os.getenv("CONTACT_TURNSTILE_SITE_KEY", "").strip()
     CONTACT_TURNSTILE_SECRET_KEY = os.getenv("CONTACT_TURNSTILE_SECRET_KEY", "").strip()
     CONTACT_TURNSTILE_REQUIRED = _env_bool("CONTACT_TURNSTILE_REQUIRED", False)
