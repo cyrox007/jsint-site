@@ -32,10 +32,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "robots_index": True,
         "yandex_verification": "725d05a47d08b13d",
     },
-    "contact": {
-        "email": "cyrox007@gmail.com",
-        "github_url": "https://github.com/cyrox007",
-    },
+    "contact": {},
     "navigation": [
         {"label": "Системы", "href": "#systems"},
         {"label": "Подход", "href": "#philosophy"},
@@ -206,6 +203,8 @@ class SiteService:
     @classmethod
     def public_config(cls, site: Site) -> dict:
         settings = cls.settings(site)
+        # Личные контакты и старые внешние ссылки не входят в публичную конфигурацию.
+        settings["contact"] = {}
         return {
             "id": str(site.id),
             "key": site.key,
