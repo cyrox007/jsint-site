@@ -235,6 +235,8 @@ class PageService:
         result: list[dict] = []
         for item in navigation:
             href = str(item.get("href") or "").strip()
+            if not href or href == "#":
+                continue
             if href.startswith("#") and href[1:] not in anchors:
                 continue
             result.append(item)
