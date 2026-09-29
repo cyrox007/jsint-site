@@ -12,30 +12,73 @@
     </div>
 </div>
 {% endif %}
-<article class="article-detail container">
-    {% if preview_mode %}
-    <a class="article-back" href="{{ preview_edit_url }}">← В редактор</a>
-    {% else %}
-    <a class="article-back" href="{{ url_for('index') }}#systems">← Все материалы</a>
-    {% endif %}
 
-    <header class="article-header">
-        <div class="article-header__top">
-            <span class="section-kicker">Материал</span>
-            {% if publication.category %}<span class="article-category">{{ publication.category.title }}</span>{% endif %}
-        </div>
-        <h1>{{ publication.title }}</h1>
-
-        <div class="article-meta">
-            <span>{{ publication.published_at.strftime('%d.%m.%Y') if publication.published_at else publication.created_at.strftime('%d.%m.%Y') }}</span>
-            {% if publication.technologies %}
-            <span class="article-tech-list">
-                {% for tech in publication.technologies %}<span class="tech-badge">{{ tech.name }}</span>{% endfor %}
-            </span>
+<article class="article-detail">
+    <div class="container article-shell">
+        <div class="article-toolbar">
+            {% if preview_mode %}
+            <a class="article-back" href="{{ preview_edit_url }}">← В редактор</a>
+            {% elif home_has_systems is defined and home_has_systems %}
+            <a class="article-back" href="{{ url_for('index') }}#systems">← Все материалы</a>
+            {% else %}
+            <a class="article-back" href="{{ url_for('index') }}">← На главную</a>
             {% endif %}
+            <span class="article-toolbar__type">Публикация</span>
         </div>
-    </header>
 
-    <div class="article-content">{{ publication.content|safe_rich_text }}</div>
+        <header class="article-hero">
+            <div class="article-hero__main">
+                <div class="article-hero__eyebrow">
+                    <span class="section-kicker">Материал</span>
+                    {% if publication.category %}
+                    <span class="article-category">{{ publication.category.title }}</span>
+                    {% endif %}
+                </div>
+
+                <h1>{{ publication.title }}</h1>
+
+                {% if article_excerpt %}
+                <p class="article-lead">{{ article_excerpt }}</p>
+                {% endif %}
+            </div>
+
+            <div class="article-facts" aria-label="Информация о публикации">
+                <div class="article-fact">
+                    <span>Дата</span>
+                    <strong>{{ publication.published_at.strftime('%d.%m.%Y') if publication.published_at else publication.created_at.strftime('%d.%m.%Y') }}</strong>
+                </div>
+                <div class="article-fact">
+                    <span>Чтение</span>
+                    <strong>{{ reading_minutes or 1 }} мин</strong>
+                </div>
+                {% if publication.category %}
+                <div class="article-fact">
+                    <span>Раздел</span>
+                    <strong>{{ publication.category.title }}</strong>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if publication.technologies %}
+            <div class="article-tech-list" aria-label="Технологии">
+                {% for tech in publication.technologies %}
+                <span class="tech-badge">{{ tech.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </header>
+
+        <div class="article-layout">
+            <aside class="article-rail" aria-label="Навигация по материалу">
+                <span class="article-rail__label">Материал</span>
+                <strong>{{ publication.title }}</strong>
+                <div class="article-rail__rule"></div>
+                {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
+                <span>{{ reading_minutes or 1 }} мин чтения</span>
+            </aside>
+
+            <div class="article-content">{{ publication.content|safe_rich_text }}</div>
+        </div>
+    </div>
 </article>
 {% endblock %}
