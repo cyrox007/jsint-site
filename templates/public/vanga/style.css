@@ -1,0 +1,180 @@
+.vanga-demo {
+    padding: clamp(48px, 8vw, 96px) 20px 80px;
+}
+
+.vanga-demo__shell {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+}
+
+.vanga-demo__intro {
+    max-width: 760px;
+    margin-bottom: 32px;
+}
+
+.vanga-demo__eyebrow,
+.vanga-result__label {
+    display: inline-block;
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    opacity: .68;
+}
+
+.vanga-demo h1 {
+    margin: 0 0 14px;
+    font-size: clamp(42px, 7vw, 76px);
+    line-height: .95;
+}
+
+.vanga-demo__intro p {
+    max-width: 680px;
+    font-size: clamp(17px, 2vw, 21px);
+    line-height: 1.55;
+    opacity: .78;
+}
+
+.vanga-demo__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+.vanga-demo__status span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.vanga-demo__status.is-ready { color: #4fbf8f; }
+.vanga-demo__status.is-down { color: #d98282; }
+
+.vanga-demo__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr);
+    gap: 20px;
+}
+
+.vanga-card {
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, .045);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, .18);
+}
+
+.vanga-form {
+    display: grid;
+    gap: 16px;
+    padding: clamp(22px, 4vw, 36px);
+}
+
+.vanga-form label {
+    display: grid;
+    gap: 7px;
+}
+
+.vanga-form label > span {
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.vanga-form small {
+    opacity: .55;
+}
+
+.vanga-form input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, .18);
+    color: inherit;
+    font: inherit;
+}
+
+.vanga-form input:focus {
+    outline: 2px solid rgba(135, 180, 255, .45);
+    outline-offset: 1px;
+}
+
+.vanga-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.vanga-form button {
+    margin-top: 4px;
+    padding: 14px 18px;
+    border: 0;
+    border-radius: 12px;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.vanga-form button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.vanga-result {
+    min-height: 360px;
+    padding: clamp(24px, 4vw, 38px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.vanga-result__rating {
+    font-size: clamp(76px, 11vw, 128px);
+    line-height: .9;
+    letter-spacing: -.07em;
+}
+
+.vanga-result__scale {
+    margin: 6px 0 28px;
+    opacity: .55;
+}
+
+.vanga-result h2 {
+    margin: 0 0 10px;
+    font-size: clamp(24px, 3vw, 34px);
+}
+
+.vanga-result p,
+.vanga-demo__note {
+    line-height: 1.6;
+    opacity: .7;
+}
+
+.vanga-demo__note {
+    margin: 20px 4px 0;
+    font-size: 13px;
+}
+
+@media (max-width: 800px) {
+    .vanga-demo__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vanga-form__row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .vanga-result {
+        min-height: 260px;
+    }
+}
+
+@media (max-width: 520px) {
+    .vanga-form__row {
+        grid-template-columns: 1fr;
+    }
+}
