@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from flask import redirect, render_template, request, url_for
+from flask import abort, redirect, render_template, request, url_for
 from flask.views import MethodView
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -93,6 +93,12 @@ class ContactPage(MethodView):
         )
 
     def post(self, db_session: Session):
+        if (
+            request.content_length is not None
+            and request.content_length > config.CONTACT_MAX_REQUEST_BYTES
+        ):
+            abort(413)
+
         site_model = SiteService.get_default(db_session)
 
         if ContactSpamGuard.volume_blocked():
