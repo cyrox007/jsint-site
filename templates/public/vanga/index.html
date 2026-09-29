@@ -1,0 +1,80 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/vanga/style.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<section class="vanga-demo">
+    <div class="vanga-demo__shell">
+        <div class="vanga-demo__intro">
+            <span class="vanga-demo__eyebrow">Демонстрационный проект</span>
+            <h1>КиноВанга</h1>
+            <p>Модель оценивает ожидаемый рейтинг фильма по году, длительности, жанру, режиссёру и актёрскому составу.</p>
+            <div class="vanga-demo__status {{ 'is-ready' if service_ready else 'is-down' }}">
+                <span></span>{{ service_status }}
+            </div>
+        </div>
+
+        <div class="vanga-demo__grid">
+            <form class="vanga-card vanga-form" method="post" action="{{ url_for('vanga_demo') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+                <label>
+                    <span>Название фильма</span>
+                    <input name="title" maxlength="240" required value="{{ form.title }}" placeholder="The Odyssey">
+                </label>
+
+                <label>
+                    <span>Режиссёр</span>
+                    <input name="director" maxlength="240" required value="{{ form.director }}" placeholder="Christopher Nolan">
+                </label>
+
+                <div class="vanga-form__row">
+                    <label>
+                        <span>Год</span>
+                        <input name="year" type="number" min="1888" max="2100" required value="{{ form.year }}" placeholder="2026">
+                    </label>
+                    <label>
+                        <span>Длительность, мин</span>
+                        <input name="runtime" type="number" min="1" max="1000" required value="{{ form.runtime }}" placeholder="173">
+                    </label>
+                </div>
+
+                <label>
+                    <span>Жанры</span>
+                    <input name="genres" maxlength="300" required value="{{ form.genres }}" placeholder="adventure, drama">
+                </label>
+
+                <label>
+                    <span>Актёры</span>
+                    <input name="actors" maxlength="700" value="{{ form.actors }}" placeholder="Matt Damon, Tom Holland, Anne Hathaway">
+                    <small>До пяти имён, через запятую.</small>
+                </label>
+
+                <button type="submit" {{ 'disabled' if not service_ready }}>Получить прогноз</button>
+            </form>
+
+            <div class="vanga-card vanga-result">
+                {% if prediction %}
+                    <span class="vanga-result__label">Прогноз модели</span>
+                    <strong class="vanga-result__rating">{{ prediction.rating }}</strong>
+                    <span class="vanga-result__scale">из 10</span>
+                    <h2>{{ prediction.title }}</h2>
+                    <p>{{ prediction.explanation }}</p>
+                {% elif demo_error %}
+                    <span class="vanga-result__label">Ошибка</span>
+                    <h2>Прогноз не получен</h2>
+                    <p>{{ demo_error }}</p>
+                {% else %}
+                    <span class="vanga-result__label">Как это работает</span>
+                    <h2>Заполните параметры фильма</h2>
+                    <p>Форма отправляется на JSInteractive, а сайт обращается к закрытому Vanga API на сервере. Сам сервис модели наружу не публикуется.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="vanga-demo__note">Это экспериментальная модель и демонстрация ML-пайплайна, а не профессиональная оценка фильма.</p>
+    </div>
+</section>
+{% endblock %}
