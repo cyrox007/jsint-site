@@ -19,14 +19,12 @@
             </nav>
             {% endif %}
 
-            {% if settings.contact.email %}
             <div class="nav-actions">
-                <a href="mailto:{{ settings.contact.email }}" class="nav-cta">
+                <a href="{{ url_for('contact') }}" class="nav-cta">
                     <span class="nav-cta__dot" aria-hidden="true"></span>
                     Связаться
                 </a>
             </div>
-            {% endif %}
         </div>
     </div>
 </header>
