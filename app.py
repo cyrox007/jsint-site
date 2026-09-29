@@ -105,6 +105,13 @@ def create_app() -> Flask:
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
     app.add_url_rule("/sitemap.xml", endpoint="sitemap", view_func=public_seo.sitemap_xml, methods=["GET"])
+    if config.YANDEX_INDEXNOW_KEY:
+        app.add_url_rule(
+            f"/{config.YANDEX_INDEXNOW_KEY}.txt",
+            endpoint="yandex_indexnow_key",
+            view_func=public_seo.indexnow_key,
+            methods=["GET"],
+        )
     app.add_url_rule("/healthz", endpoint="healthz", view_func=healthcheck, methods=["GET"])
 
     @app.errorhandler(404)
