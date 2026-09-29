@@ -53,8 +53,11 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.get_data(as_text=True)
         self.assertIn("User-agent: *", body)
-        self.assertIn(f"Disallow: {config.ADMIN_ROUTE_PREFIX}/", body)
-        self.assertIn("Disallow: /contact", body)
+        self.assertIn("Disallow: /api/", body)
+        self.assertIn("Disallow: /healthz", body)
+        self.assertIn("Clean-param:", body)
+        self.assertNotIn(config.ADMIN_ROUTE_PREFIX, body)
+        self.assertNotIn("Disallow: /contact", body)
         self.assertIn(f"Sitemap: {config.SITE_BASE_URL}/sitemap.xml", body)
 
     def test_sitemap_xml(self):

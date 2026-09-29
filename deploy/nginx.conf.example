@@ -1,7 +1,18 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name jsinteractive.ru;
+    server_name jsinteractive.ru www.jsinteractive.ru;
+
+    return 301 https://jsinteractive.ru$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.jsinteractive.ru;
+
+    ssl_certificate /etc/letsencrypt/live/jsinteractive.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/jsinteractive.ru/privkey.pem;
 
     return 301 https://jsinteractive.ru$request_uri;
 }

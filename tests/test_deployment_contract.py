@@ -84,6 +84,19 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('"${PG_DUMP_BIN}"', updater)
         self.assertIn('"${PG_RESTORE_BIN}"', updater)
 
+    def test_nginx_redirects_www_to_canonical_host(self):
+        checkout = self.read("deploy/checkout/nginx.conf.example")
+        release = self.read("deploy/nginx.conf.example")
+
+        for nginx in (checkout, release):
+            self.assertIn("server_name jsinteractive.ru www.jsinteractive.ru", nginx)
+            self.assertIn("server_name www.jsinteractive.ru", nginx)
+            self.assertIn(
+                "return 301 https://jsinteractive.ru$request_uri;",
+                nginx,
+            )
+            self.assertIn("server_name jsinteractive.ru;", nginx)
+
     def test_checkout_release_storage_is_writable_for_web_uploads(self):
         setup = self.read("deploy/checkout/setup.sh")
         updater = self.read("update.sh")

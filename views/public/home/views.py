@@ -1,4 +1,6 @@
-from flask import render_template
+from datetime import timezone
+
+from flask import make_response, render_template
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
@@ -40,14 +42,35 @@ class MainPage(MethodView):
         )
         canonical_url = f"{site['base_url']}/" if site["base_url"] else None
 
-        return render_template(
-            "public/home/index.html",
-            site=site,
-            articles=articles,
-            home_page=page,
-            home_blocks=home_blocks,
-            home_anchor_ids=home_anchor_ids,
-            seo_title=seo_title,
-            seo_description=seo_description,
-            canonical_url=canonical_url,
+        response = make_response(
+            render_template(
+                "public/home/index.html",
+                site=site,
+                articles=articles,
+                home_page=page,
+                home_blocks=home_blocks,
+                home_anchor_ids=home_anchor_ids,
+                seo_title=seo_title,
+                seo_description=seo_description,
+                canonical_url=canonical_url,
+            )
         )
+
+        modified_candidates = [
+            site_model.updated_at,
+            page.updated_at if page is not None else None,
+            *[
+                article.updated_at or article.published_at or article.created_at
+                for article in articles
+            ],
+        ]
+        modified = [value for value in modified_candidates if value is not None]
+        if modified:
+            normalized = [
+                value.replace(tzinfo=timezone.utc)
+                if value.tzinfo is None
+                else value.astimezone(timezone.utc)
+                for value in modified
+            ]
+            response.last_modified = max(normalized)
+        return response
