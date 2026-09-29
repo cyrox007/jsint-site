@@ -10,6 +10,12 @@ from utils.validation import validate_slug
 
 
 HOME_BLOCK_TYPES = ("hero", "philosophy", "systems", "about", "resume")
+HOME_BLOCK_ANCHORS = {
+    "philosophy": "philosophy",
+    "systems": "systems",
+    "about": "about",
+    "resume": "resume",
+}
 GENERIC_BLOCK_TYPES = ("rich_text", "publication_feed", "callout", "links")
 GENERIC_BLOCK_LABELS = {
     "rich_text": "Текстовый блок",
@@ -183,15 +189,72 @@ class PageService:
 
     @classmethod
     def public_blocks(cls, page: Page) -> list[dict]:
-        return [
-            {
-                "id": str(block.id),
-                "type": block.block_type,
-                "position": block.position,
-                "settings": block.settings or {},
-            }
-            for block in cls.list_blocks(page, enabled_only=True)
-        ]
+        result: list[dict] = []
+        for block in cls.list_blocks(page, enabled_only=True):
+            settings = block.settings or {}
+            if block.block_type == "philosophy" and not str(settings.get("text") or "").strip():
+                continue
+            if block.block_type == "about" and not any(
+                item.get("title") or item.get("text")
+                for item in settings.get("cards", [])
+                if isinstance(item, dict)
+            ):
+                continue
+            if block.block_type == "resume" and not any(
+                item.get("company") or item.get("position") or item.get("description")
+                for item in settings.get("items", [])
+                if isinstance(item, dict)
+            ):
+                continue
+
+            result.append(
+                {
+                    "id": str(block.id),
+                    "type": block.block_type,
+                    "position": block.position,
+                    "settings": settings,
+                }
+            )
+        return result
+
+    @staticmethod
+    def home_anchor_ids(blocks: list[dict]) -> set[str]:
+        return {
+            HOME_BLOCK_ANCHORS[block["type"]]
+            for block in blocks
+            if block.get("type") in HOME_BLOCK_ANCHORS
+        }
+
+    @classmethod
+    def filter_navigation(
+        cls,
+        navigation: list[dict],
+        blocks: list[dict],
+    ) -> list[dict]:
+        anchors = cls.home_anchor_ids(blocks)
+        result: list[dict] = []
+        for item in navigation:
+            href = str(item.get("href") or "").strip()
+            if href.startswith("#") and href[1:] not in anchors:
+                continue
+            result.append(item)
+        return result
+
+    @classmethod
+    def apply_public_navigation(
+        cls,
+        session: Session,
+        site_id: UUID,
+        site: dict,
+    ) -> tuple[list[dict], set[str]]:
+        home = cls.get_page(session, site_id, "home", published_only=True)
+        blocks = cls.public_blocks(home) if home is not None else []
+        anchors = cls.home_anchor_ids(blocks)
+        site["settings"]["navigation"] = cls.filter_navigation(
+            site["settings"].get("navigation", []),
+            blocks,
+        )
+        return blocks, anchors
 
     @classmethod
     def update_home(
