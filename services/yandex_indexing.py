@@ -51,10 +51,16 @@ class YandexIndexingService:
         # Импорт внутри метода не создаёт цикл при регистрации Celery-задач.
         from celery_app import celery_app
 
-        celery_app.send_task(
-            "tasks.system.notify_yandex_indexnow",
-            args=[normalized],
-        )
+        try:
+            celery_app.send_task(
+                "tasks.system.notify_yandex_indexnow",
+                args=[normalized],
+            )
+        except Exception as exc:
+            logger.warning(
+                "Не удалось поставить IndexNow в фоновую очередь: %s",
+                type(exc).__name__,
+            )
 
     @classmethod
     def notify(cls, urls: list[str]) -> dict[str, int]:
