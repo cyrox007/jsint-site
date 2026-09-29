@@ -1,4 +1,5 @@
 {% set philosophy = block.settings if block is defined and block.settings else {} %}
+{% if philosophy.text %}
 <section class="philosophy" id="philosophy">
     <div class="container">
         <div class="philosophy-layout">
@@ -11,8 +12,9 @@
             </div>
             <div class="glass-card section-copy">
                 <span class="section-copy__mark" aria-hidden="true">“</span>
-                <p>{{ philosophy.text or '' }}</p>
+                <p>{{ philosophy.text }}</p>
             </div>
         </div>
     </div>
 </section>
+{% endif %}

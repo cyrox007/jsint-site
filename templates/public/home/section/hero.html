@@ -1,21 +1,25 @@
 {% set hero = block.settings if block is defined and block.settings else {} %}
+{% set hero_title = hero.title or site.settings.brand.name or site.name %}
+{% set hero_badge = hero.badge or site.settings.brand.subtitle %}
+{% set hero_description = hero.description or site.settings.seo.description %}
+{% set hero_has_console = hero.terminal_lines or hero.metrics %}
 <section class="hero">
     <div class="hero-orbit hero-orbit--one" aria-hidden="true"></div>
     <div class="hero-orbit hero-orbit--two" aria-hidden="true"></div>
     <div class="container">
-        <div class="hero-grid">
+        <div class="hero-grid{% if not hero_has_console %} hero-grid--solo{% endif %}">
             <div class="hero-copy">
-                {% if hero.badge %}
-                <div class="hero-badge"><span class="hero-badge__dot"></span><span>{{ hero.badge }}</span></div>
+                {% if hero_badge %}
+                <div class="hero-badge"><span class="hero-badge__dot"></span><span>{{ hero_badge }}</span></div>
                 {% endif %}
 
                 <h1>
-                    <span class="hero-title-main">{{ hero.title }}</span>
+                    <span class="hero-title-main">{{ hero_title }}</span>
                     {% if hero.accent %}<span class="gradient">{{ hero.accent }}</span>{% endif %}
                 </h1>
 
-                {% if hero.description %}
-                <p class="hero-description">{{ hero.description }}</p>
+                {% if hero_description %}
+                <p class="hero-description">{{ hero_description }}</p>
                 {% endif %}
 
                 <div class="hero-actions">
@@ -37,6 +41,7 @@
                 {% if hero.note %}<div class="hero-note">{{ hero.note }}</div>{% endif %}
             </div>
 
+            {% if hero_has_console %}
             <aside class="hero-console" aria-label="Направления работы">
                 <div class="hero-console__top">
                     <div>
@@ -68,6 +73,7 @@
                 </div>
                 {% endif %}
             </aside>
+            {% endif %}
         </div>
     </div>
 </section>
