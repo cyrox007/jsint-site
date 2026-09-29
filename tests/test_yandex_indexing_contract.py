@@ -11,10 +11,15 @@ class YandexIndexingContractTests(unittest.TestCase):
 
     def test_webmaster_verification_has_system_fallback(self):
         settings = self.read("settings.py")
+        app = self.read("app.py")
         template = self.read("templates/public/^core/base.html")
 
         self.assertIn("YANDEX_WEBMASTER_VERIFICATION", settings)
         self.assertIn("725d05a47d08b13d", settings)
+        self.assertIn(
+            "YANDEX_WEBMASTER_VERIFICATION=config.YANDEX_WEBMASTER_VERIFICATION",
+            app,
+        )
         self.assertIn("seo_defaults.yandex_verification or config.YANDEX_WEBMASTER_VERIFICATION", template)
         self.assertIn('name="yandex-verification"', template)
 
@@ -68,6 +73,7 @@ class YandexIndexingContractTests(unittest.TestCase):
 
         self.assertIn("YandexIndexingService.notify(urls)", command)
         self.assertIn("Передано URL в IndexNow", command)
+        self.assertIn("sys.path.insert", command)
         self.assertIn(".venv/bin/python tools/reindex_yandex.py", docs)
 
 
