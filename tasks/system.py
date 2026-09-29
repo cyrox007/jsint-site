@@ -22,4 +22,3 @@ def background_heartbeat():
 def notify_yandex_indexnow(urls):
     """Сообщает Яндексу об изменённых публичных URL через IndexNow."""
     return YandexIndexingService.notify(list(urls or []))
-\n
