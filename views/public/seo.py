@@ -28,6 +28,7 @@ def robots_txt(db_session: Session) -> Response:
             f"Disallow: {config.NOTES_UPDATE_API_PREFIX}/",
             "Disallow: /api/",
             "Disallow: /healthz",
+            "Disallow: /contact",
             f"Sitemap: {base_url}/sitemap.xml",
             "",
         ]
