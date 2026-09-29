@@ -54,6 +54,7 @@ class ApplicationSmokeTests(unittest.TestCase):
         body = response.get_data(as_text=True)
         self.assertIn("User-agent: *", body)
         self.assertIn(f"Disallow: {config.ADMIN_ROUTE_PREFIX}/", body)
+        self.assertIn("Disallow: /contact", body)
         self.assertIn(f"Sitemap: {config.SITE_BASE_URL}/sitemap.xml", body)
 
     def test_sitemap_xml(self):
