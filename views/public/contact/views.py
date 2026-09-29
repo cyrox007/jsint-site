@@ -85,6 +85,9 @@ class ContactPage(MethodView):
             context["values"] = values
             return render_template("public/contact/index.html", **context), 400
 
+        # Сначала фиксируем лимит: при обязательном Redis форма не должна
+        # сохранить сообщение и затем вернуть 500 из-за недоступной защиты.
+        ContactRateLimiter.record_submission()
         db_session.add(
             ContactMessage(
                 site_id=site_model.id,
@@ -96,5 +99,4 @@ class ContactPage(MethodView):
             )
         )
         db_session.commit()
-        ContactRateLimiter.record_submission()
         return redirect(url_for("contact", sent="1"))
