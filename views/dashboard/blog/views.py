@@ -27,6 +27,7 @@ from services.publication_profile import (
 )
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
+from services.yandex_indexing import YandexIndexingService
 from utils.validation import validate_slug
 
 
@@ -112,6 +113,70 @@ def _tree_with_counts(items: list[dict], direct_counts: dict[str, int]) -> list[
         )
         result.append(node)
     return result
+
+
+def _site_public_base(site) -> str:
+    return (SiteService.public_config(site).get("base_url") or "").rstrip("/")
+
+
+def _publication_public_urls(
+    db_session: Session,
+    publication_id: UUID,
+) -> list[str]:
+    urls: set[str] = set()
+    for placement in PublicationChannelService.list_placements(
+        db_session,
+        publication_id,
+    ):
+        if not placement.is_published or placement.category is None:
+            continue
+        site = SiteService.get_by_id(db_session, placement.site_id)
+        if site is None or not site.is_active:
+            continue
+        base_url = _site_public_base(site)
+        if not base_url:
+            continue
+        urls.add(f"{base_url}/")
+        urls.add(
+            f"{base_url}/category/{placement.category.slug}/article/{placement.slug}"
+        )
+    return sorted(urls)
+
+
+def _category_public_urls(
+    db_session: Session,
+    site,
+    category_id: UUID,
+    *,
+    category_slug: str | None = None,
+) -> list[str]:
+    base_url = _site_public_base(site)
+    if not base_url:
+        return []
+
+    urls: set[str] = {f"{base_url}/"}
+    offset = 0
+    while True:
+        batch = PublicationChannelService.list_public(
+            db_session,
+            site_id=site.id,
+            category_id=category_id,
+            limit=100,
+            offset=offset,
+        )
+        if not batch:
+            break
+        for publication in batch:
+            if publication.category is None:
+                continue
+            slug = category_slug or publication.category.slug
+            urls.add(
+                f"{base_url}/category/{slug}/article/{publication.slug}"
+            )
+        if len(batch) < 100:
+            break
+        offset += len(batch)
+    return sorted(urls)
 
 
 def _sync_additional_placements(
@@ -326,6 +391,13 @@ class PublicationListPage(MethodView):
             if category is None:
                 abort(404)
 
+            previous_index_urls = _category_public_urls(
+                db_session,
+                selected_site,
+                category_id,
+                category_slug=category.slug,
+            )
+
             updated = CatalogService.update_category(
                 db_session,
                 category_id,
@@ -337,6 +409,14 @@ class PublicationListPage(MethodView):
                 },
             )
             if updated:
+                current_index_urls = _category_public_urls(
+                    db_session,
+                    selected_site,
+                    category_id,
+                )
+                YandexIndexingService.enqueue(
+                    previous_index_urls + current_index_urls
+                )
                 flash("Рубрика обновлена", "success")
                 return _content_redirect(
                     site_id=selected_site.id,
@@ -444,6 +524,9 @@ class CreatePost(MethodView):
             flash("Не удалось создать публикацию", "error")
             return redirect(url_for("admin.publication.create", site_id=selected_site.id))
 
+        YandexIndexingService.enqueue(
+            _publication_public_urls(db_session, publication.id)
+        )
         flash("Публикация сохранена", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
 
@@ -564,6 +647,8 @@ class UpdatePost(MethodView):
             flash("На этом сайте уже есть публикация с таким URL", "error")
             return redirect(url_for("admin.publication.edit", id=id))
 
+        previous_index_urls = _publication_public_urls(db_session, id)
+
         publication = PublicationService.update_publication(
             db_session,
             id,
@@ -582,6 +667,11 @@ class UpdatePost(MethodView):
             db_session.rollback()
             flash(str(exc), "error")
             return redirect(url_for("admin.publication.edit", id=id))
+
+        current_index_urls = _publication_public_urls(db_session, id)
+        YandexIndexingService.enqueue(
+            previous_index_urls + current_index_urls
+        )
 
         flash("Публикация и размещения сохранены", "success")
         return redirect(url_for("admin.publication.edit", id=publication.id))
@@ -638,8 +728,10 @@ class DeletePost(MethodView):
 
         site_id = publication.site_id
         return_category_id = publication.category_id
+        previous_index_urls = _publication_public_urls(db_session, id)
         if not PublicationService.delete_publication(db_session, id):
             flash("Публикация не найдена", "error")
         else:
+            YandexIndexingService.enqueue(previous_index_urls)
             flash("Публикация удалена", "success")
         return _content_redirect(site_id=site_id, category_id=return_category_id)
