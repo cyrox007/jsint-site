@@ -133,6 +133,9 @@ class Config:
     ).strip().rstrip("/")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    VANGA_DEMO_URL = os.getenv("VANGA_DEMO_URL", "http://127.0.0.1:9100").strip().rstrip("/")
+    VANGA_DEMO_TIMEOUT_SECONDS = max(1, min(30, int(os.getenv("VANGA_DEMO_TIMEOUT_SECONDS", "10"))))
+
     NOTES_CONTROL_PLANE_ENABLED = _env_bool("NOTES_CONTROL_PLANE_ENABLED", False)
     NOTES_UPDATE_API_PREFIX = os.getenv("NOTES_UPDATE_API_PREFIX", "/api/notes/v1").strip().rstrip("/")
     NOTES_UPDATE_BASE_URL = os.getenv("NOTES_UPDATE_BASE_URL", "").strip()
