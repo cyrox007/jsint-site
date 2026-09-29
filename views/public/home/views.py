@@ -1,4 +1,6 @@
-from datetime import timezone\n\nfrom flask import make_response, render_template
+from datetime import timezone
+
+from flask import make_response, render_template
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
