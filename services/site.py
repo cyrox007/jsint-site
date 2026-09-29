@@ -14,6 +14,16 @@ from settings import config
 
 DEFAULT_SITE_KEY = "jsinteractive"
 SITE_KEY_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+PUBLIC_BLOCKED_LINK_HOSTS = {
+    "github.com",
+    "www.github.com",
+    "gitlab.com",
+    "www.gitlab.com",
+    "bitbucket.org",
+    "www.bitbucket.org",
+    "codeberg.org",
+    "www.codeberg.org",
+}
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "brand": {
@@ -203,8 +213,14 @@ class SiteService:
     @classmethod
     def public_config(cls, site: Site) -> dict:
         settings = cls.settings(site)
-        # Личные контакты и старые внешние ссылки не входят в публичную конфигурацию.
+        # Личные контакты и старые git-ссылки не входят в публичную конфигурацию.
         settings["contact"] = {}
+        settings["navigation"] = [
+            item
+            for item in settings.get("navigation", [])
+            if (urlparse(item.get("href", "")).hostname or "").lower()
+            not in PUBLIC_BLOCKED_LINK_HOSTS
+        ]
         return {
             "id": str(site.id),
             "key": site.key,
