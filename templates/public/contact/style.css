@@ -1,0 +1,16 @@
+.contact-page{padding:clamp(130px,14vw,180px) 0 90px;min-height:80svh}
+.contact-page__container{display:grid;grid-template-columns:minmax(0,.75fr) minmax(420px,1.05fr);gap:clamp(36px,6vw,78px);align-items:start}
+.contact-intro h1{margin:14px 0 20px;font-size:clamp(3.2rem,7vw,6rem);line-height:.9;letter-spacing:-.07em}
+.contact-intro>p{max-width:560px;color:#9eb0bd;font-size:1.02rem;line-height:1.75}
+.contact-security{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}.contact-security span{padding:7px 10px;border:1px solid var(--border);border-radius:999px;color:#7f96a6;font:600 .68rem/1.2 "JetBrains Mono","SFMono-Regular",Consolas,monospace}
+.contact-card{padding:clamp(24px,4vw,40px);border-radius:24px}
+.contact-form{display:grid;gap:18px}.contact-form label{display:grid;gap:8px;color:#dce8ee;font-size:.78rem;font-weight:750;letter-spacing:.02em}
+.contact-form input,.contact-form textarea{width:100%;box-sizing:border-box;padding:13px 14px;color:#edf7fa;background:rgba(7,16,24,.72);border:1px solid var(--border);border-radius:11px;outline:none;font:inherit;line-height:1.5;transition:border-color .2s ease,box-shadow .2s ease}
+.contact-form textarea{resize:vertical;min-height:180px}.contact-form input:focus,.contact-form textarea:focus{border-color:rgba(94,234,212,.62);box-shadow:0 0 0 3px rgba(94,234,212,.08)}
+.contact-form small,.contact-form__footer p{color:#708795;font-size:.7rem;line-height:1.55}
+.contact-form__footer{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:4px}.contact-form__footer p{max-width:420px;margin:0}
+.contact-errors{margin-bottom:18px;padding:14px 16px;border:1px solid rgba(248,113,113,.34);border-radius:11px;background:rgba(127,29,29,.13);color:#fca5a5}.contact-errors strong{color:#fecaca}.contact-errors ul{margin:8px 0 0;padding-left:18px;font-size:.78rem;line-height:1.55}
+.contact-success{display:grid;gap:12px;min-height:260px;align-content:center}.contact-success strong{font-size:1.5rem;color:#e9f9f7}.contact-success p{margin:0;color:#9eb0bd;line-height:1.7}.contact-success .btn{width:fit-content;margin-top:8px}
+.contact-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+@media(max-width:850px){.contact-page__container{grid-template-columns:1fr}.contact-intro h1{font-size:clamp(3rem,13vw,5rem)}}
+@media(max-width:560px){.contact-page{padding:108px 0 60px}.contact-card{padding:20px}.contact-form__footer{align-items:stretch;flex-direction:column}.contact-form__footer .btn{width:100%}}
