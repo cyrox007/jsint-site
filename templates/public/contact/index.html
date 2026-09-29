@@ -1,5 +1,11 @@
 {% extends "public/^core/base.html" %}
 
+{% block extra_head %}
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <section class="contact-page">
     <div class="container contact-page__container">
@@ -11,9 +17,8 @@
                 обращение попадёт напрямую в закрытую административную панель.
             </p>
             <div class="contact-security">
-                <span>CSRF-защита</span>
-                <span>Ограничение частоты</span>
-                <span>Без публикации адреса</span>
+                <span>Защищённая отправка</span>
+                <span>Без публичного адреса</span>
             </div>
         </div>
 
@@ -34,9 +39,12 @@
 
                 <form method="post" class="contact-form" novalidate>
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_contact_nonce" value="{{ contact_nonce }}">
 
                     <div class="contact-honeypot" aria-hidden="true">
                         <label>Сайт<input name="website" tabindex="-1" autocomplete="off"></label>
+                        <label>Сайт компании<input name="company_site" tabindex="-1" autocomplete="off"></label>
+                        <label>Факс<input name="fax_number" tabindex="-1" autocomplete="off"></label>
                     </div>
 
                     <label>
@@ -59,6 +67,15 @@
                         Сообщение
                         <textarea name="message" rows="8" minlength="20" maxlength="5000" required>{{ values.get('message', '') }}</textarea>
                     </label>
+
+                    {% if turnstile_site_key %}
+                    <div class="contact-turnstile">
+                        <div class="cf-turnstile"
+                             data-sitekey="{{ turnstile_site_key }}"
+                             data-action="contact"
+                             data-theme="dark"></div>
+                    </div>
+                    {% endif %}
 
                     <div class="contact-form__footer">
                         <p>Данные используются только для обработки этого обращения и ответа на него.</p>
