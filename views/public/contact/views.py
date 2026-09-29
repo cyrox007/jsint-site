@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import with_db_session
 from components.security.contact_rate_limit import ContactSpamGuard
 from models.contact import ContactMessage
+from services.page import PageService
 from services.site import SiteService
 from settings import config
 
@@ -55,6 +56,11 @@ def _context(
 ) -> dict:
     site_model = SiteService.get_default(db_session)
     site = SiteService.public_config(site_model)
+    PageService.apply_public_navigation(
+        db_session,
+        site_model.id,
+        site,
+    )
     canonical = f"{site['base_url']}/contact" if site["base_url"] else None
     challenge = "" if sent else ContactSpamGuard.issue_challenge()
 
