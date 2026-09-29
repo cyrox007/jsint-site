@@ -41,16 +41,41 @@ class PublicVisualRedesignContractTests(unittest.TestCase):
         self.assertNotIn("Независимая работа с продуктами", about)
         self.assertIn("settings.brand.subtitle", footer)
 
-    def test_article_page_uses_same_visual_language(self):
+    def test_article_page_uses_editorial_visual_language(self):
         template = (
             ROOT / "templates/public/articles/detail.html"
         ).read_text(encoding="utf-8")
         styles = (
             ROOT / "templates/public/articles/style.css"
         ).read_text(encoding="utf-8")
-        self.assertIn("article-category", template)
-        self.assertIn("article-back", template)
-        self.assertIn("radial-gradient", styles)
+        controller = (
+            ROOT / "views/public/articles/views.py"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("article-hero", template)
+        self.assertIn("article-facts", template)
+        self.assertIn("article-layout", template)
+        self.assertIn("article-rail", template)
+        self.assertIn("reading_minutes", template)
+        self.assertIn("math.ceil", controller)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) 260px", styles)
+        self.assertIn("grid-template-columns: 210px minmax(0, 760px)", styles)
+
+    def test_public_navigation_has_smooth_scroll_and_no_dead_hashes(self):
+        page_service = (ROOT / "services/page.py").read_text(encoding="utf-8")
+        script = (ROOT / "static/public/navigation.js").read_text(encoding="utf-8")
+        base = (ROOT / "templates/public/^core/base.html").read_text(encoding="utf-8")
+        hero = (ROOT / "templates/public/home/section/hero.html").read_text(encoding="utf-8")
+        common = (ROOT / "templates/public/^core/common.css").read_text(encoding="utf-8")
+
+        self.assertIn("filter_navigation", page_service)
+        self.assertIn('href == "#"', page_service)
+        self.assertIn("href[1:] not in anchors", page_service)
+        self.assertIn("scrollIntoView", script)
+        self.assertIn("prefers-reduced-motion", script)
+        self.assertIn("public/navigation.js", base)
+        self.assertIn("'systems' in home_anchor_ids", hero)
+        self.assertIn("scroll-behavior: smooth", common)
 
 
 if __name__ == "__main__":

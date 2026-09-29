@@ -71,11 +71,51 @@ class Config:
 
     AUTH_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("AUTH_RATE_LIMIT_ATTEMPTS", "5")))
     AUTH_RATE_LIMIT_WINDOW_SECONDS = max(30, int(os.getenv("AUTH_RATE_LIMIT_WINDOW_SECONDS", "300")))
-    CONTACT_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("CONTACT_RATE_LIMIT_ATTEMPTS", "5")))
+    CONTACT_RATE_LIMIT_ATTEMPTS = max(1, int(os.getenv("CONTACT_RATE_LIMIT_ATTEMPTS", "3")))
     CONTACT_RATE_LIMIT_WINDOW_SECONDS = max(
         60,
-        int(os.getenv("CONTACT_RATE_LIMIT_WINDOW_SECONDS", "3600")),
+        int(os.getenv("CONTACT_RATE_LIMIT_WINDOW_SECONDS", "900")),
     )
+    CONTACT_DAILY_LIMIT_ATTEMPTS = max(
+        CONTACT_RATE_LIMIT_ATTEMPTS,
+        int(os.getenv("CONTACT_DAILY_LIMIT_ATTEMPTS", "10")),
+    )
+    CONTACT_DAILY_LIMIT_WINDOW_SECONDS = max(
+        CONTACT_RATE_LIMIT_WINDOW_SECONDS,
+        int(os.getenv("CONTACT_DAILY_LIMIT_WINDOW_SECONDS", "86400")),
+    )
+    CONTACT_GLOBAL_LIMIT_ATTEMPTS = max(
+        CONTACT_DAILY_LIMIT_ATTEMPTS,
+        int(os.getenv("CONTACT_GLOBAL_LIMIT_ATTEMPTS", "120")),
+    )
+    CONTACT_GLOBAL_LIMIT_WINDOW_SECONDS = max(
+        60,
+        int(os.getenv("CONTACT_GLOBAL_LIMIT_WINDOW_SECONDS", "600")),
+    )
+    CONTACT_REPLY_LIMIT_ATTEMPTS = max(
+        1,
+        int(os.getenv("CONTACT_REPLY_LIMIT_ATTEMPTS", "3")),
+    )
+    CONTACT_DUPLICATE_WINDOW_SECONDS = max(
+        3600,
+        int(os.getenv("CONTACT_DUPLICATE_WINDOW_SECONDS", "604800")),
+    )
+    CONTACT_FORM_MIN_SECONDS = max(
+        1,
+        int(os.getenv("CONTACT_FORM_MIN_SECONDS", "3")),
+    )
+    CONTACT_FORM_TTL_SECONDS = max(
+        300,
+        int(os.getenv("CONTACT_FORM_TTL_SECONDS", "1800")),
+    )
+    CONTACT_MAX_URLS = max(0, int(os.getenv("CONTACT_MAX_URLS", "3")))
+    CONTACT_MAX_REQUEST_BYTES = max(
+        4096,
+        min(64 * 1024, int(os.getenv("CONTACT_MAX_REQUEST_BYTES", "16384"))),
+    )
+    CONTACT_TURNSTILE_SITE_KEY = os.getenv("CONTACT_TURNSTILE_SITE_KEY", "").strip()
+    CONTACT_TURNSTILE_SECRET_KEY = os.getenv("CONTACT_TURNSTILE_SECRET_KEY", "").strip()
+    CONTACT_TURNSTILE_REQUIRED = _env_bool("CONTACT_TURNSTILE_REQUIRED", False)
 
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
     SITE_BASE_URL = os.getenv(
@@ -158,6 +198,20 @@ class Config:
 
         if not os.path.isabs(cls.MEDIA_STORAGE_PATH):
             raise RuntimeError("MEDIA_STORAGE_PATH must be an absolute external path")
+
+        if cls.CONTACT_TURNSTILE_REQUIRED and (
+            not cls.CONTACT_TURNSTILE_SITE_KEY or not cls.CONTACT_TURNSTILE_SECRET_KEY
+        ):
+            raise RuntimeError(
+                "CONTACT_TURNSTILE_REQUIRED требует CONTACT_TURNSTILE_SITE_KEY и "
+                "CONTACT_TURNSTILE_SECRET_KEY"
+            )
+
+        if bool(cls.CONTACT_TURNSTILE_SITE_KEY) != bool(cls.CONTACT_TURNSTILE_SECRET_KEY):
+            raise RuntimeError(
+                "CONTACT_TURNSTILE_SITE_KEY и CONTACT_TURNSTILE_SECRET_KEY должны "
+                "задаваться одновременно"
+            )
 
         if cls.IS_PRODUCTION:
             if parsed_site_url.scheme != "https":

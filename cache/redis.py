@@ -55,6 +55,9 @@ class RedisClient:
     def set(self, key: str, value: str, ex: Optional[int] = None) -> None:
         self.client.set(key, value, ex=ex)
 
+    def set_if_absent(self, key: str, value: str, ttl: int) -> bool:
+        return bool(self.client.set(key, value, ex=ttl, nx=True))
+
     def delete(self, key: str) -> None:
         self.client.delete(key)
 

@@ -28,7 +28,8 @@ class PageBlocksContractTests(unittest.TestCase):
         template = self.read("templates/public/home/index.html")
         view = self.read("views/public/home/views.py")
         self.assertIn("for block in home_blocks", template)
-        self.assertIn("PageService.public_blocks", view)
+        self.assertIn("PageService.apply_public_navigation", view)
+        self.assertIn("public_blocks", self.read("services/page.py"))
 
     def test_page_content_lives_in_block_settings(self):
         service = self.read("services/page.py")

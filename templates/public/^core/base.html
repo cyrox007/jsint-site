@@ -99,6 +99,7 @@
     </noscript>
     {% endif %}
 
+    <script src="{{ url_for('static', filename='public/navigation.js') }}" defer></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
