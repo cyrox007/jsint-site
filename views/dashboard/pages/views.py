@@ -12,6 +12,7 @@ from components.auth.decorator import login_required, with_db_session
 from components.security.html import sanitize_rich_text
 from services.page import GENERIC_BLOCK_LABELS, GENERIC_BLOCK_TYPES, PageService
 from services.site import SiteService
+from services.yandex_indexing import YandexIndexingService
 
 
 def _safe_href(value: str) -> str:
@@ -194,5 +195,14 @@ class PageEdit(MethodView):
 
         except (ValueError, TypeError) as exc:
             flash(str(exc) or "Проверьте данные", "error")
+
+        if page.slug == "home" and page.is_published:
+            site = SiteService.get_by_id(db_session, page.site_id)
+            if site is not None and site.is_active:
+                base_url = (
+                    SiteService.public_config(site).get("base_url") or ""
+                ).rstrip("/")
+                if base_url:
+                    YandexIndexingService.enqueue([f"{base_url}/"])
 
         return redirect(url_for("admin.pages.edit", page_id=page.id))
