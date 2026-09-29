@@ -55,6 +55,36 @@ class ContactFormContractTests(unittest.TestCase):
         self.assertIn("CONTACT_FORM_MIN_SECONDS", settings)
         self.assertIn("CONTACT_TURNSTILE_REQUIRED", settings)
 
+    def test_contact_form_has_animated_progressive_enhancement(self):
+        template = self.read("templates/public/contact/index.html")
+        styles = self.read("templates/public/contact/style.css")
+        common = self.read("templates/public/^core/common.css")
+        script = self.read("static/public/contact.js")
+        view = self.read("views/public/contact/views.py")
+
+        self.assertIn("data-contact-form", template)
+        self.assertIn("data-contact-transmission", template)
+        self.assertIn("data-contact-success", template)
+        self.assertIn("public/contact.js", template)
+        self.assertIn("data-min-seconds", template)
+
+        self.assertIn("contact-transmission__track", styles)
+        self.assertIn("@keyframes contact-scan", styles)
+        self.assertIn("@keyframes contact-success-in", styles)
+        self.assertIn("prefers-reduced-motion", script)
+        self.assertIn("new FormData(form)", script)
+        self.assertIn("'X-Requested-With': 'XMLHttpRequest'", script)
+        self.assertIn("await sleep(antiSpamDelay)", script)
+        self.assertIn("window.turnstile.reset", script)
+
+        self.assertIn("::-webkit-scrollbar-thumb", common)
+        self.assertIn("scrollbar-color", common)
+        self.assertIn("scrollbar-gutter: stable", common)
+
+        self.assertIn("def _interactive_request()", view)
+        self.assertIn("jsonify(", view)
+        self.assertIn('"contact_nonce": ContactSpamGuard.issue_challenge()', view)
+
     def test_spam_checks_happen_before_database_insert(self):
         view = self.read("views/public/contact/views.py")
 
