@@ -19,9 +19,11 @@
     let challengeIssuedAt = performance.now();
     let busy = false;
 
-    const wait = (milliseconds) => new Promise((resolve) => {
-        window.setTimeout(resolve, reducedMotion ? 0 : milliseconds);
+    const sleep = (milliseconds) => new Promise((resolve) => {
+        window.setTimeout(resolve, milliseconds);
     });
+
+    const wait = (milliseconds) => sleep(reducedMotion ? 0 : milliseconds);
 
     const setStage = (label, percent) => {
         statusText.textContent = label;
@@ -124,7 +126,9 @@
             setStage('Проверяем защиту', 34);
 
             if (antiSpamDelay > 0) {
-                await wait(antiSpamDelay);
+                // Это не декоративная задержка: сервер отклоняет слишком быструю
+                // отправку challenge. Поэтому reduced-motion здесь не сокращает время.
+                await sleep(antiSpamDelay);
             } else {
                 await wait(360);
             }
