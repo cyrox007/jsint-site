@@ -105,6 +105,11 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertNotIn("min-height: 100svh", styles)
         self.assertIn("padding: clamp(58px, 6vw, 86px) 0", styles)
 
+    def test_public_base_uses_project_favicon(self):
+        base = self.read("templates/public/^core/base.html")
+        self.assertIn("favicon/favicon.ico", base)
+        self.assertNotIn("icons8-pastel-glyph", base)
+
     def test_public_seo_has_robots_opengraph_and_structured_data(self):
         base = self.read("templates/public/^core/base.html")
         robots = self.read("views/public/seo.py")
