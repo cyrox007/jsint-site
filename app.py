@@ -23,6 +23,7 @@ def create_app() -> Flask:
     from views.public.home import routers as home_router
     from views.public.articles import routers as article_router
     from views.public.contact import routers as contact_router
+    from views.public.vanga import routers as vanga_router
     from views.public import api as public_api
     from views.public import media as public_media
     from views.public import seo as public_seo
@@ -90,6 +91,7 @@ def create_app() -> Flask:
     home_router.install(app)
     article_router.install(app)
     contact_router.install(app)
+    vanga_router.install(app)
     public_api.install(app)
     public_media.install(app)
     auth_router.install(app)
