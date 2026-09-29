@@ -19,7 +19,11 @@ class MainPage(MethodView):
             "home",
             published_only=True,
         )
-        home_blocks = PageService.public_blocks(page) if page is not None else []
+        home_blocks, home_anchor_ids = PageService.apply_public_navigation(
+            db_session,
+            site_model.id,
+            site,
+        )
 
         articles = PublicationChannelService.list_public(
             db_session,
@@ -42,6 +46,7 @@ class MainPage(MethodView):
             articles=articles,
             home_page=page,
             home_blocks=home_blocks,
+            home_anchor_ids=home_anchor_ids,
             seo_title=seo_title,
             seo_description=seo_description,
             canonical_url=canonical_url,
