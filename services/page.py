@@ -37,7 +37,6 @@ HOME_BLOCK_DEFAULTS = {
             "и независимой инфраструктуры."
         ),
         "note": "+УЛЬТРА · backend · realtime · инфраструктура · аудит систем",
-        "github_label": "GitHub",
         "materials_label": "Смотреть материалы",
         "contact_label": "Связаться",
         "console_eyebrow": "system / overview",
