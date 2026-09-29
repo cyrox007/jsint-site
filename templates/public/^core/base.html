@@ -38,8 +38,9 @@
     <meta name="twitter:image" content="{{ seo_defaults.image_url }}">
     {% endif %}
 
-    {% if has_site and seo_defaults.yandex_verification %}
-    <meta name="yandex-verification" content="{{ seo_defaults.yandex_verification }}">
+    {% set yandex_verification = seo_defaults.yandex_verification or config.YANDEX_WEBMASTER_VERIFICATION %}
+    {% if has_site and yandex_verification %}
+    <meta name="yandex-verification" content="{{ yandex_verification }}">
     {% endif %}
 
     {% if has_site %}
@@ -52,6 +53,9 @@
         } %}
         <script type="application/ld+json">{{ structured_data|tojson }}</script>
     {% endif %}
+    {% for structured_data_item in structured_data_items|default([]) %}
+        <script type="application/ld+json">{{ structured_data_item|tojson }}</script>
+    {% endfor %}
 
     <style>
         {% include 'public/styles.css' %}
