@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
 {% block content %}
 {% set brand = site_settings.brand %}
 {% set seo = site_settings.seo %}
-{% set contact = site_settings.contact %}
 {% set hero = home_block_settings.get('hero', {}) %}
 {% set philosophy = home_block_settings.get('philosophy', {}) %}
 {% set systems = home_block_settings.get('systems', {}) %}
@@ -100,8 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label class="site-field-wide">OpenGraph-изображение<input name="seo_image_url" value="{{ seo.image_url or '' }}" placeholder="https://example.ru/og.jpg"><small>Абсолютный HTTPS/HTTP URL. Используется также для Twitter Cards.</small></label>
                 <label>Yandex verification<input name="seo_yandex_verification" value="{{ seo.yandex_verification or '' }}"></label>
                 <label class="switch"><input type="checkbox" name="seo_robots_index" {% if seo.robots_index %}checked{% endif %}><span class="slider"></span><span class="label">Разрешать индексацию сайта</span></label>
-                <label>Email<input name="contact_email" type="email" value="{{ contact.email }}"></label>
-                <label>GitHub / внешняя ссылка<input name="github_url" value="{{ contact.github_url }}"></label>
                 <div class="site-field-wide">
                     <div class="site-list-heading">
                         <div>
@@ -142,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label>Заголовок<input name="hero_title" value="{{ hero.title }}"></label>
                 <label class="site-field-wide">Акцентная строка<input name="hero_accent" value="{{ hero.accent }}"></label>
                 <label class="site-field-wide">Описание<textarea name="hero_description" rows="6">{{ hero.description }}</textarea></label>
-                <label>Кнопка GitHub<input name="hero_github_label" value="{{ hero.github_label }}"></label>
                 <label>Кнопка материалов<input name="hero_materials_label" value="{{ hero.materials_label }}"></label>
                 <label>Кнопка контакта<input name="hero_contact_label" value="{{ hero.contact_label }}"></label>
                 <label>Подпись консоли<input name="hero_console_eyebrow" value="{{ hero.console_eyebrow }}"></label>
