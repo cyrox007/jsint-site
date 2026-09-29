@@ -25,6 +25,7 @@
 html {
     scroll-behavior: smooth;
     scroll-padding-top: 112px;
+    scrollbar-gutter: stable;
 }
 
 body {
