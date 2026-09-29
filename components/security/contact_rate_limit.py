@@ -155,6 +155,11 @@ class ContactSpamGuard:
         return cls._digest(normalized)
 
     @classmethod
+    def storage_fingerprint(cls, fingerprint: str) -> str:
+        bucket = int(time.time()) // config.CONTACT_DUPLICATE_WINDOW_SECONDS
+        return cls._digest(f"{fingerprint}:{bucket}")
+
+    @classmethod
     def reserve_fingerprint(cls, fingerprint: str) -> bool:
         key = cls._counter_key(f"duplicate:{fingerprint}")
         try:
