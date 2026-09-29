@@ -136,6 +136,8 @@ class ContactPage(MethodView):
         if not ContactSpamGuard.reserve_fingerprint(fingerprint):
             return _silent_success()
 
+        storage_fingerprint = ContactSpamGuard.storage_fingerprint(fingerprint)
+
         try:
             # Redis-защита фиксируется до INSERT. При обязательном Redis
             # недоступность защиты не должна приводить к записи в PostgreSQL.
@@ -147,7 +149,7 @@ class ContactPage(MethodView):
                     reply_to=values["reply_to"],
                     subject=values["subject"] or None,
                     message=values["message"],
-                    fingerprint=fingerprint,
+                    fingerprint=storage_fingerprint,
                     status="new",
                 )
             )
