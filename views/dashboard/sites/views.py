@@ -12,6 +12,7 @@ from models.categories import Category
 from models.publication import Publication
 from services.page import HOME_BLOCK_LABELS, HOME_BLOCK_TYPES, PageService
 from services.site import SiteService
+from services.yandex_indexing import YandexIndexingService
 
 
 def _lines(value: str) -> list[str]:
@@ -401,6 +402,12 @@ class SiteEditPage(MethodView):
             db_session.rollback()
             flash(str(exc), "error")
             return redirect(url_for("admin.sites.edit", site_id=site_id))
+
+        public_base_url = (
+            SiteService.public_config(site).get("base_url") or ""
+        ).rstrip("/")
+        if site.is_active and public_base_url:
+            YandexIndexingService.enqueue([f"{public_base_url}/"])
 
         flash("Настройки сайта и структура главной сохранены", "success")
         return redirect(url_for("admin.sites.edit", site_id=site_id))
