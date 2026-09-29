@@ -73,6 +73,38 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertIn("hero.console_title", hero)
         self.assertIn("systems.article_label", systems)
 
+    def test_default_home_has_real_content_without_fake_telemetry(self):
+        service = self.read("services/page.py")
+        self.assertIn('"title": "+УЛЬТРА"', service)
+        self.assertIn('"accent": "архитектура сложных web-систем"', service)
+        self.assertIn("Независимая инженерная мини-студия", service)
+        self.assertIn("Интерактивная инженерия", service)
+        self.assertNotIn('"value": "21ms"', service)
+        self.assertNotIn('"value": "12"', service)
+
+    def test_home_repair_migration_only_fills_empty_default_site_blocks(self):
+        migration = self.read("alembic/versions/e6a1c4d8f930_restore_home_content.py")
+        self.assertIn('down_revision = "d4e9a61b7c20"', migration)
+        self.assertIn("site.is_default IS TRUE", migration)
+        self.assertIn("COALESCE(block.settings ->> 'title', '') = ''", migration)
+        self.assertIn("jsonb_array_length(block.settings -> 'cards') > 0", migration)
+        self.assertIn("Уже заполненные пользователем поля не перезаписываются", migration)
+
+    def test_empty_home_sections_do_not_render_visual_shells(self):
+        hero = self.read("templates/public/home/section/hero.html")
+        philosophy = self.read("templates/public/home/section/philosophy.html")
+        about = self.read("templates/public/home/section/about.html")
+        styles = self.read("templates/public/home/style.css")
+
+        self.assertIn("hero_title = hero.title or site.settings.brand.name or site.name", hero)
+        self.assertIn("hero_description = hero.description or site.settings.seo.description", hero)
+        self.assertIn("hero_has_console", hero)
+        self.assertIn("{% if philosophy.text %}", philosophy)
+        self.assertIn("{% if about_cards %}", about)
+        self.assertIn("hero-grid--solo", styles)
+        self.assertNotIn("min-height: 100svh", styles)
+        self.assertIn("padding: clamp(58px, 6vw, 86px) 0", styles)
+
     def test_public_seo_has_robots_opengraph_and_structured_data(self):
         base = self.read("templates/public/^core/base.html")
         robots = self.read("views/public/seo.py")
