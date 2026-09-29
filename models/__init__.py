@@ -3,6 +3,7 @@ from models.technology import Technology
 from models.users import User
 from models.site import Site
 from models.media import MediaAsset
+from models.contact import ContactMessage
 
 # 2. Публичные страницы и контент
 from models.page import Page, PageBlock
@@ -17,6 +18,7 @@ __all__ = [
     "User",
     "Site",
     "MediaAsset",
+    "ContactMessage",
     "Page",
     "PageBlock",
     "Category",
