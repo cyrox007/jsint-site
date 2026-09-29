@@ -6,14 +6,41 @@ from flask import request
 
 from settings import config
 
+_TURNSTILE_ORIGIN = "https://challenges.cloudflare.com"
 
-def _admin_connect_sources() -> str:
+
+def _turnstile_active() -> bool:
+    return request.path == "/contact" and bool(config.CONTACT_TURNSTILE_SITE_KEY)
+
+
+def _script_sources() -> str:
+    sources = [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://code.jquery.com",
+        "https://mc.yandex.ru",
+    ]
+    if _turnstile_active():
+        sources.append(_TURNSTILE_ORIGIN)
+    return "script-src " + " ".join(sources)
+
+
+def _connect_sources() -> str:
     sources = ["'self'", "https://mc.yandex.ru"]
     if request.path.startswith(config.ADMIN_ROUTE_PREFIX):
         parsed = urlsplit(config.NOTES_OPERATOR_SIGNER_URL)
-        signer_origin = f"{parsed.scheme}://{parsed.netloc}"
-        sources.append(signer_origin)
+        sources.append(f"{parsed.scheme}://{parsed.netloc}")
+    if _turnstile_active():
+        sources.append(_TURNSTILE_ORIGIN)
     return "connect-src " + " ".join(sources)
+
+
+def _frame_sources() -> str:
+    sources = ["'self'"]
+    if _turnstile_active():
+        sources.append(_TURNSTILE_ORIGIN)
+    return "frame-src " + " ".join(sources)
 
 
 def apply_security_headers(response):
@@ -34,10 +61,11 @@ def apply_security_headers(response):
                 "form-action 'self'",
                 "frame-ancestors 'none'",
                 "object-src 'none'",
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com https://mc.yandex.ru",
+                _script_sources(),
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
                 "img-src 'self' data: https://mc.yandex.ru",
-                _admin_connect_sources(),
+                _connect_sources(),
+                _frame_sources(),
                 "font-src 'self' data:",
             ]
         ),
