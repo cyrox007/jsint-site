@@ -118,6 +118,15 @@ class Config:
     CONTACT_TURNSTILE_REQUIRED = _env_bool("CONTACT_TURNSTILE_REQUIRED", False)
 
     YANDEX_METRIKA_ID = os.getenv("YANDEX_METRIKA_ID", "").strip()
+    YANDEX_WEBMASTER_VERIFICATION = os.getenv(
+        "YANDEX_WEBMASTER_VERIFICATION",
+        "725d05a47d08b13d",
+    ).strip()
+    YANDEX_INDEXNOW_ENABLED = _env_bool("YANDEX_INDEXNOW_ENABLED", IS_PRODUCTION)
+    YANDEX_INDEXNOW_KEY = os.getenv(
+        "YANDEX_INDEXNOW_KEY",
+        "jsinteractive-indexnow-725d05a47d08b13d",
+    ).strip()
     SITE_BASE_URL = os.getenv(
         "SITE_BASE_URL",
         "https://jsinteractive.ru" if IS_PRODUCTION else "http://localhost:5000",
@@ -212,6 +221,18 @@ class Config:
                 "CONTACT_TURNSTILE_SITE_KEY и CONTACT_TURNSTILE_SECRET_KEY должны "
                 "задаваться одновременно"
             )
+
+        if cls.YANDEX_WEBMASTER_VERIFICATION and re.fullmatch(
+            r"[A-Za-z0-9_-]{8,128}",
+            cls.YANDEX_WEBMASTER_VERIFICATION,
+        ) is None:
+            raise RuntimeError("Некорректный YANDEX_WEBMASTER_VERIFICATION")
+
+        if cls.YANDEX_INDEXNOW_ENABLED and re.fullmatch(
+            r"[A-Za-z0-9-]{8,128}",
+            cls.YANDEX_INDEXNOW_KEY,
+        ) is None:
+            raise RuntimeError("Некорректный YANDEX_INDEXNOW_KEY")
 
         if cls.IS_PRODUCTION:
             if parsed_site_url.scheme != "https":
