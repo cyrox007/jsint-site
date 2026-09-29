@@ -68,8 +68,6 @@ def robots_txt(db_session: Session) -> Response:
         rules = [
             "User-agent: *",
             "Allow: /",
-            f"Disallow: {config.ADMIN_ROUTE_PREFIX}/",
-            f"Disallow: {config.NOTES_UPDATE_API_PREFIX}/",
             "Disallow: /api/",
             "Disallow: /healthz",
             (
