@@ -37,6 +37,7 @@ def create_app() -> Flask:
     from views.dashboard.users import router as d_users_router
     from views.dashboard.contact import router as d_contact_router
     from views import notes_api
+    from views import demo_api
 
     app = Flask(__name__, static_folder="static")
     app.config.from_mapping(
@@ -103,6 +104,7 @@ def create_app() -> Flask:
     d_users_router.install(app)
     d_contact_router.install(app)
     notes_api.install(app)
+    demo_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
     app.add_url_rule("/sitemap.xml", endpoint="sitemap", view_func=public_seo.sitemap_xml, methods=["GET"])
