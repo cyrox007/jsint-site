@@ -117,7 +117,8 @@ def sitemap_xml(db_session: Session) -> Response:
     )
 
     urls: list[tuple[str, str | None]] = [
-        (f"{base_url}/", _utc_date(home_modified))
+        (f"{base_url}/", _utc_date(home_modified)),
+        (urljoin(f"{base_url}/", "demo/vanga"), None),
     ]
     for publication in publications:
         if publication.category is None:
