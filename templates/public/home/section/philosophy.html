@@ -1,4 +1,4 @@
-{% set philosophy = home_settings.philosophy if home_settings is defined else {} %}
+{% set philosophy = block.settings if block is defined and block.settings else (home_settings.philosophy if home_settings is defined else {}) %}
 <section class="portfolio-approach" id="philosophy">
     <div class="container">
         <div class="portfolio-section-head">
@@ -12,7 +12,7 @@
             <article><span>≋</span><h3>Чистая архитектура</h3><p>Пишу понятный и поддерживаемый код, который можно развивать.</p></article>
             <article><span>∞</span><h3>Долгая поддержка</h3><p>Думаю не только о релизе, но и о стабильности после него.</p></article>
         </div>
-        {% if philosophy.text %}
+        {% if philosophy.text and '+УЛЬТРА' not in philosophy.text %}
         <p class="portfolio-approach__note">{{ philosophy.text|truncate(320, true, '…') }}</p>
         {% endif %}
     </div>
