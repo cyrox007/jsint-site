@@ -1,52 +1,39 @@
-{% set resume = block.settings if block is defined and block.settings else {} %}
+{% set resume = home_settings.resume if home_settings is defined else {} %}
 {% set resume_items = resume.get('items', []) %}
-{% if resume_items %}
-<section class="resume-section" id="resume">
+<section class="portfolio-resume" id="resume">
     <div class="container">
-        <div class="section-heading">
-            <div>
-                <span class="section-kicker">{{ resume.get('kicker') or '04 / Практика' }}</span>
-                <h2 class="section-title">{{ resume.get('title') or 'Опыт работы' }}</h2>
+        <div class="portfolio-resume__panel">
+            <div class="portfolio-resume__intro">
+                <span class="section-kicker">Опыт</span>
+                <h2>Опыт и резюме</h2>
+                <p>{{ resume.get('subtitle') or 'Практический опыт разработки web-приложений, внутренних систем и собственных продуктов. Фокус — на системах, которые можно поддерживать и развивать.' }}</p>
+                <a class="btn btn-primary" href="{{ url_for('contact') }}">Обсудить работу <span>→</span></a>
             </div>
-            {% if resume.get('subtitle') %}<p class="section-subtitle">{{ resume.get('subtitle') }}</p>{% endif %}
-        </div>
-
-        <div class="resume-timeline">
-            {% for item in resume_items %}
-            <article class="resume-item">
-                <div class="resume-marker" aria-hidden="true">{{ '%02d'|format(loop.index) }}</div>
-                <div class="resume-card">
-                    <div class="resume-header">
-                        <div class="resume-company">
-                            <h3>{{ item.company }}</h3>
-                            {% if item.period %}<span class="resume-period">{{ item.period }}</span>{% endif %}
+            <div class="portfolio-resume__timeline">
+                {% if resume_items %}
+                    {% for item in resume_items[:3] %}
+                    <article>
+                        <span>{{ '%02d'|format(loop.index) }}</span>
+                        <div>
+                            <strong>{{ item.position or item.company }}</strong>
+                            <p>{{ item.company }}{% if item.period %} · {{ item.period }}{% endif %}</p>
+                            {% if item.description %}<small>{{ item.description|truncate(110, true, '…') }}</small>{% endif %}
                         </div>
-                        {% if item.position %}<div class="resume-position">{{ item.position }}</div>{% endif %}
-                    </div>
-
-                    <div class="resume-body">
-                        {% if item.description %}<p>{{ item.description }}</p>{% endif %}
-
-                        {% if item.achievements %}
-                        <ul class="resume-achievements">
-                            {% for achievement in item.achievements %}
-                            <li>{{ achievement }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-
-                        {% if item.technologies %}
-                        <div class="resume-tech" aria-label="Технологии">
-                            {% for technology in item.technologies %}
-                            <span class="tech">{{ technology }}</span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <article><span>01</span><div><strong>Разработка сервисов</strong><p>Backend, API, интеграции и внутренние системы.</p></div></article>
+                    <article><span>02</span><div><strong>Продуктовая разработка</strong><p>Проектирование UX, сценариев и архитектуры.</p></div></article>
+                    <article><span>03</span><div><strong>Поддержка и развитие</strong><p>Оптимизация, сопровождение и развитие проектов.</p></div></article>
+                {% endif %}
+            </div>
+            <div class="portfolio-resume__stack">
+                <span class="section-kicker">Стек</span>
+                <div>
+                    <span>Python</span><span>PHP</span><span>JavaScript</span><span>PostgreSQL</span>
+                    <span>Redis</span><span>Docker</span><span>Nginx</span><span>Linux</span><span>Git</span>
                 </div>
-            </article>
-            {% endfor %}
+            </div>
         </div>
     </div>
 </section>
-{% endif %}
