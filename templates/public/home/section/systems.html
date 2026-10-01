@@ -1,37 +1,68 @@
-{% set systems = block.settings if block is defined and block.settings else {} %}
-<section class="systems-section" id="systems">
+<section class="portfolio-projects" id="systems">
     <div class="container">
-        <div class="section-heading">
+        <div class="portfolio-section-head">
             <div>
-                <span class="section-kicker">{{ systems.kicker or '02 / Материалы' }}</span>
-                <h2 class="section-title">{{ systems.title or 'Публикации' }}</h2>
+                <span class="section-kicker">Проекты</span>
+                <h2>Избранные проекты</h2>
+                <p>Системы и продукты, которые я проектирую, развиваю и поддерживаю.</p>
             </div>
-            {% if systems.subtitle %}<p class="section-subtitle">{{ systems.subtitle }}</p>{% endif %}
         </div>
 
-        <div class="projects-grid">
-            {% if articles %}
-                {% for article in articles %}
-                <article class="project-card">
-                    <div class="project-card__top">
-                        <span class="project-index">{{ '%02d'|format(loop.index) }}</span>
-                        {% if article.category %}<span class="project-category">{{ article.category.title }}</span>{% endif %}
-                    </div>
+        <div class="portfolio-project-grid">
+            <a class="portfolio-project-card" href="{{ url_for('workspace_organizer') }}">
+                <span class="portfolio-project-icon portfolio-project-icon--blue">◈</span>
+                <h3>Workspace Organizer</h3>
+                <p>Self-hosted рабочее пространство: заметки, задачи, файлы и командная работа.</p>
+                <span class="portfolio-project-link">Открыть проект →</span>
+            </a>
+            <a class="portfolio-project-card" href="{{ url_for('vanga_demo') if 'vanga_demo' in current_app.view_functions else '/demo/vanga' }}">
+                <span class="portfolio-project-icon portfolio-project-icon--violet">◉</span>
+                <h3>Vanga</h3>
+                <p>Экспериментальный ML/AI-проект с публичной демонстрацией модели.</p>
+                <span class="portfolio-project-link">Открыть демо →</span>
+            </a>
+            <a class="portfolio-project-card" href="https://github.com/cyrox007/market" rel="noopener noreferrer">
+                <span class="portfolio-project-icon portfolio-project-icon--green">▣</span>
+                <h3>Market</h3>
+                <p>Интернет-магазин с современными инструментами каталога и управления.</p>
+                <span class="portfolio-project-link">GitHub →</span>
+            </a>
+            <a class="portfolio-project-card" href="https://github.com/cyrox007/ChurchCMS" rel="noopener noreferrer">
+                <span class="portfolio-project-icon portfolio-project-icon--purple">⌂</span>
+                <h3>ChurchCMS</h3>
+                <p>CMS для приходов, школ, епархий и связанных организаций.</p>
+                <span class="portfolio-project-link">GitHub →</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="portfolio-publications" id="publications">
+    <div class="container">
+        <div class="portfolio-section-head portfolio-section-head--row">
+            <div>
+                <span class="section-kicker">Публикации</span>
+                <h2>Статьи и заметки</h2>
+                <p>Разработка, продукты, архитектура и практический опыт.</p>
+            </div>
+        </div>
+
+        <div class="portfolio-article-grid">
+            {% for article in articles[:3] %}
+            <a class="portfolio-article-card" href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) if article.category else '#' }}">
+                <div class="portfolio-article-thumb portfolio-article-thumb--{{ loop.index }}">
+                    <span>{{ '%02d'|format(loop.index) }}</span>
+                </div>
+                <div>
+                    <time>{{ (article.published_at or article.created_at).strftime('%d.%m.%Y') }}</time>
                     <h3>{{ article.title }}</h3>
-                    <p class="project-summary">{{ article.content|striptags|truncate(170, true, '...') }}</p>
-                    <div class="project-stack">
-                        <span class="tech">{{ article.created_at.strftime('%d.%m.%Y') }}</span>
-                    </div>
-                    {% if article.category %}
-                    <a href="{{ url_for('public.articles.show', categories_slug=article.category.slug, publication_slug=article.slug) }}" class="project-link">
-                        {{ systems.article_label or 'Открыть материал' }} <span>↗</span>
-                    </a>
-                    {% endif %}
-                </article>
-                {% endfor %}
+                    <p>{{ article.content|striptags|truncate(120, true, '…') }}</p>
+                    {% if article.category %}<span class="portfolio-article-tag">{{ article.category.title }}</span>{% endif %}
+                </div>
+            </a>
             {% else %}
-                <div class="public-empty"><p>{{ systems.empty_text or 'Пока нет опубликованных материалов.' }}</p></div>
-            {% endif %}
+            <div class="public-empty">Публикации появятся здесь после публикации в админке.</div>
+            {% endfor %}
         </div>
     </div>
 </section>
