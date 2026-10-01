@@ -1,7 +1,7 @@
-.contact-inbox__filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-.contact-inbox__list{display:grid;gap:12px}.contact-message{padding:0;overflow:hidden}.contact-message--new{border-color:rgba(94,234,212,.36)}
+.contact-inbox__filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.contact-inbox__list{display:grid;gap:14px}.contact-message{padding:0;overflow:hidden}.contact-message--new{border-color:rgba(94,234,212,.36)}
 .contact-message__head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:15px 17px;background:var(--admin-surface-subtle);border-bottom:1px solid var(--admin-border)}
 .contact-message__head>div{min-width:0}.contact-message__title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.contact-message__title strong{color:var(--admin-text);font-size:.9rem}
 .contact-message__head>div>span{display:block;margin-top:4px;color:var(--admin-muted);font-size:.72rem}.contact-message__head code{max-width:45%;overflow-wrap:anywhere;color:var(--admin-text);font-size:.72rem}
-.contact-message__body{padding:18px;color:var(--admin-text);font-size:.86rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.contact-message__actions{display:flex;justify-content:flex-end;gap:8px;padding:0 18px 16px}
+.contact-message__body{padding:18px;color:var(--admin-text);font-size:.86rem;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.contact-message__actions{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px}
 @media(max-width:650px){.contact-message__head{flex-direction:column}.contact-message__head code{max-width:100%}.contact-message__actions{align-items:stretch;flex-direction:column}.contact-message__actions .btn{width:100%}}

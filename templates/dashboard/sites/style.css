@@ -2,14 +2,14 @@
 .site-card__title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .site-card__stats{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
 .site-card__actions{justify-content:flex-start;margin-top:18px}
-.site-create-form,.site-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.site-create-form,.site-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .site-editor__form{display:grid;gap:20px}
 .site-field-wide{grid-column:1/-1}
 .site-editor__save{position:sticky;bottom:18px;display:flex;justify-content:flex-end;z-index:5}
 .site-editor__save .btn{box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .admin-form small{display:block;margin-top:6px;color:var(--muted);font-size:.8rem}
 .site-page-seo{margin-bottom:22px}
-.site-block-list{display:grid;gap:10px}
+.site-block-list{display:grid;gap:14px}
 .site-block-row{display:grid;grid-template-columns:minmax(180px,1fr) 140px 170px;gap:16px;align-items:end;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-soft,rgba(255,255,255,.025))}
 .site-block-row__name{align-self:center;display:flex;flex-direction:column;gap:2px}
 .site-block-row__name span{color:var(--muted);font-size:.78rem;font-family:monospace}
@@ -24,8 +24,8 @@
 .site-list-heading>div{display:flex;flex-direction:column;gap:3px}
 .site-list-heading strong{color:var(--admin-text);font-size:.86rem}
 .site-list-heading small{margin:0;color:var(--admin-muted);font-size:.74rem}
-.site-repeat-list{display:grid;gap:10px}
-.site-repeat-row{display:grid;gap:10px;align-items:center;padding:10px;background:var(--admin-surface-subtle);border:1px solid var(--admin-border);border-radius:10px}
+.site-repeat-list{display:grid;gap:14px}
+.site-repeat-row{display:grid;gap:12px;align-items:center;padding:10px;background:var(--admin-surface-subtle);border:1px solid var(--admin-border);border-radius:10px}
 .site-repeat-row--navigation,.site-repeat-row--metric{grid-template-columns:minmax(140px,.8fr) minmax(180px,1.4fr) auto}
 .site-repeat-card{display:grid;gap:12px;padding:14px;background:var(--admin-surface-subtle);border:1px solid var(--admin-border);border-radius:12px}
 .site-repeat-card__head{display:flex;align-items:center;justify-content:space-between;gap:12px}

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+<title id="title">Workspace Organizer</title>
+<desc id="desc">Многослойный знак рабочего пространства</desc>
+<defs>
+  <linearGradient id="bg" x1="18" y1="18" x2="142" y2="146" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#20D3F5"/>
+    <stop offset=".45" stop-color="#1F9AF9"/>
+    <stop offset=".78" stop-color="#1567F1"/>
+    <stop offset="1" stop-color="#6C53F5"/>
+  </linearGradient>
+  <linearGradient id="paper" x1="52" y1="48" x2="116" y2="128" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#FFFFFF"/>
+    <stop offset=".45" stop-color="#C9EBFF"/>
+    <stop offset="1" stop-color="#A8D7F5"/>
+  </linearGradient>
+  <linearGradient id="fold" x1="32" y1="43" x2="133" y2="118" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#5DE5FF"/>
+    <stop offset=".52" stop-color="#128DF7"/>
+    <stop offset="1" stop-color="#173EEB"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+    <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0A2D73" flood-opacity=".28"/>
+  </filter>
+</defs>
+<rect x="10" y="10" width="140" height="140" rx="38" fill="url(#bg)" filter="url(#shadow)"/>
+<path d="M36 49c0-8 6-14 14-14h66c8 0 14 6 14 14v17H52c-9 0-16 7-16 16V49Z" fill="#56E5FF" opacity=".88"/>
+<path d="M29 69c0-9 7-16 16-16h80c5 0 9 4 9 9v51c0 13-10 23-23 23H52c-13 0-23-10-23-23V69Z" fill="url(#fold)"/>
+<path d="M46 80c0-8 6-14 14-14h57c7 0 12 6 12 12v28c0 17-13 30-30 30H66c-11 0-20-9-20-20V80Z" fill="url(#paper)"/>
+<path d="M45 121c23-7 39-23 50-48 7 17 18 29 34 36-8 16-23 27-41 27H63c-8 0-14-6-18-15Z" fill="#FFFFFF" opacity=".46"/>
+<path d="M43 124c24-13 42-34 52-60 9 18 20 31 35 39" fill="none" stroke="#174FEA" stroke-width="8" stroke-linecap="round" opacity=".9"/>
+</svg>

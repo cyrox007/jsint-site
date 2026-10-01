@@ -10,7 +10,7 @@ from services.page import PageService
 from services.site import SiteService
 
 
-class NotesPromoPage(MethodView):
+class WorkspaceOrganizerPromoPage(MethodView):
     decorators = [with_db_session]
 
     def get(self, db_session: Session):
@@ -32,33 +32,41 @@ class NotesPromoPage(MethodView):
             .first()
         )
 
-        stable_version = latest_release.version if latest_release is not None else "1.0"
-        canonical_url = f"{site['base_url']}/notes" if site["base_url"] else None
+        stable_version = (
+            latest_release.version if latest_release is not None else "1.0"
+        )
+        canonical_url = (
+            f"{site['base_url']}/workspace-organizer"
+            if site["base_url"]
+            else None
+        )
 
         structured_data_items = [
             {
                 "@context": "https://schema.org",
                 "@type": "SoftwareApplication",
                 "name": "Workspace Organizer",
-                "alternateName": "Notes",
                 "applicationCategory": "BusinessApplication",
                 "operatingSystem": "Web",
                 "softwareVersion": stable_version,
                 "description": (
-                    "Self-hosted рабочее пространство: заметки, задачи, файлы, "
-                    "Messenger и администрирование."
+                    "Self-hosted рабочее пространство: заметки, задачи, "
+                    "файлы, Messenger и администрирование."
                 ),
             }
         ]
 
         return render_template(
-            "public/notes/index.html",
+            "public/workspace_organizer/index.html",
             site=site,
             stable_version=stable_version,
-            seo_title="Workspace Organizer — self-hosted рабочее пространство | JSInteractive",
+            seo_title=(
+                "Workspace Organizer — self-hosted рабочее пространство "
+                "| JSInteractive"
+            ),
             seo_description=(
-                "Workspace Organizer объединяет защищённые заметки, задачи, файлы, "
-                "Messenger и администрирование в self-hosted веб-приложении."
+                "Workspace Organizer объединяет заметки, задачи, файлы, "
+                "Messenger и администрирование в одном self-hosted контуре."
             ),
             canonical_url=canonical_url,
             structured_data_items=structured_data_items,

@@ -1,0 +1,295 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/workspace_organizer/style.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<div class="wo-page">
+    <section class="wo-hero">
+        <div class="container wo-hero__grid">
+            <div class="wo-hero__copy">
+                <img
+                    class="wo-brand-logo"
+                    src="{{ url_for('static', filename='public/workspace-organizer-logo.svg') }}"
+                    alt="Workspace Organizer"
+                    width="620"
+                    height="160"
+                >
+
+                <span class="wo-release">Stable {{ stable_version }} · self-hosted</span>
+
+                <h1>
+                    Порядок
+                    <span>в важных вещах.</span>
+                </h1>
+
+                <p>
+                    Единое рабочее пространство для заметок, задач, файлов,
+                    командной работы и администрирования. Данные остаются
+                    внутри вашего контура.
+                </p>
+
+                <div class="wo-hero__actions">
+                    <a
+                        class="btn wo-btn wo-btn--primary"
+                        href="{{ url_for('contact', subject='Workspace Organizer') }}"
+                    >
+                        Запросить доступ
+                        <span aria-hidden="true">→</span>
+                    </a>
+                    <a class="btn wo-btn wo-btn--secondary" href="#capabilities">
+                        Возможности
+                    </a>
+                </div>
+
+                <div class="wo-hero__facts" aria-label="Ключевые свойства">
+                    <span>Self-hosted</span>
+                    <span>PHP 8.1+</span>
+                    <span>MySQL / MariaDB</span>
+                    <span>Без Composer в runtime</span>
+                </div>
+            </div>
+
+            <div class="wo-visual" aria-label="Интерфейс Workspace Organizer">
+                <div class="wo-visual__glow"></div>
+                <div class="wo-window wo-window--back">
+                    <div class="wo-window__top"><i></i><i></i><i></i></div>
+                </div>
+                <div class="wo-window">
+                    <div class="wo-window__top">
+                        <i></i><i></i><i></i>
+                        <span>workspace.local</span>
+                    </div>
+                    <div class="wo-window__body">
+                        <aside class="wo-window__sidebar">
+                            <img
+                                src="{{ url_for('static', filename='public/workspace-organizer-mark.svg') }}"
+                                alt=""
+                                width="42"
+                                height="42"
+                            >
+                            <span class="is-active"></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </aside>
+                        <div class="wo-window__content">
+                            <div class="wo-window__search"></div>
+                            <div class="wo-window__cards">
+                                <article class="wo-ui-card wo-ui-card--note">
+                                    <b>Заметки</b>
+                                    <strong>124</strong>
+                                    <small>идеи и знания</small>
+                                </article>
+                                <article class="wo-ui-card wo-ui-card--task">
+                                    <b>Задачи</b>
+                                    <strong>18</strong>
+                                    <small>активных</small>
+                                </article>
+                                <article class="wo-ui-card wo-ui-card--files">
+                                    <b>Файлы</b>
+                                    <strong>256</strong>
+                                    <small>документов</small>
+                                </article>
+                                <article class="wo-ui-card wo-ui-card--team">
+                                    <b>Команда</b>
+                                    <strong>5</strong>
+                                    <small>участников</small>
+                                </article>
+                            </div>
+                            <div class="wo-window__lower">
+                                <div class="wo-window__list">
+                                    <span></span><span></span><span></span><span></span>
+                                </div>
+                                <div class="wo-window__status">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wo-floating wo-floating--note">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="wo-floating wo-floating--task">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m7 12 3 3 7-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                    </svg>
+                </div>
+                <div class="wo-floating wo-floating--files">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 7h7l2 2h9v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="wo-floating wo-floating--team">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                        <circle cx="17" cy="9" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                        <path d="M3 20c0-4 2-6 6-6s6 2 6 6M15 15c3 0 5 2 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-section" id="capabilities">
+        <div class="container">
+            <div class="wo-section-heading">
+                <div>
+                    <span class="wo-eyebrow">Возможности</span>
+                    <h2>Всё рабочее пространство — в одном контуре.</h2>
+                </div>
+                <p>
+                    Модули связаны общей системой пользователей, прав,
+                    файлового хранилища и администрирования.
+                </p>
+            </div>
+
+            <div class="wo-module-grid">
+                <article class="wo-module wo-module--blue">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7M9 16h7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <h3>Заметки</h3>
+                    <p>Текст, вложения, голосовые записи, поиск и контролируемый доступ.</p>
+                    <strong>Идеи и знания под рукой</strong>
+                </article>
+
+                <article class="wo-module wo-module--green">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 12 3 3 7-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                    </span>
+                    <h3>Задачи</h3>
+                    <p>Личные и общие доски, сроки, приоритеты, исполнители и подзадачи.</p>
+                    <strong>Планирование без хаоса</strong>
+                </article>
+
+                <article class="wo-module wo-module--orange">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h7l2 2h9v10H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    </span>
+                    <h3>Файлы</h3>
+                    <p>Приватные папки, квоты, предпросмотр и безопасная выдача файлов.</p>
+                    <strong>Хранение внутри инфраструктуры</strong>
+                </article>
+
+                <article class="wo-module wo-module--purple">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="9" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c0-4 2-6 6-6s6 2 6 6M15 15c3 0 5 2 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <h3>Команда</h3>
+                    <p>Messenger, общие рабочие процессы и единое пространство взаимодействия.</p>
+                    <strong>Работа вместе</strong>
+                </article>
+
+                <article class="wo-module wo-module--cyan">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6zM9 12l2 2 4-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <h3>Контроль</h3>
+                    <p>Пользователи, роли, права, модули, лимиты и централизованное администрирование.</p>
+                    <strong>Доступы под контролем</strong>
+                </article>
+
+                <article class="wo-module wo-module--navy">
+                    <span class="wo-module__icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2-5M5 4v5h5M12 8v4l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <h3>Обновления</h3>
+                    <p>Подписанный канал, проверки совместимости, maintenance и автоматический rollback.</p>
+                    <strong>Обновление без ручной рутины</strong>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-section wo-security">
+        <div class="container wo-security__grid">
+            <div class="wo-security__copy">
+                <span class="wo-eyebrow">Self-hosted</span>
+                <h2>Ваши данные. Ваша инфраструктура. Ваши правила.</h2>
+                <p>
+                    Workspace Organizer разворачивается внутри вашей
+                    инфраструктуры. Сервер остаётся границей доступа, а
+                    приватные файлы не лежат в публичном каталоге.
+                </p>
+                <div class="wo-security__tags">
+                    <span>XChaCha20-Poly1305</span>
+                    <span>RBAC</span>
+                    <span>Private storage</span>
+                    <span>Signed updater</span>
+                </div>
+            </div>
+
+            <div class="wo-security__panel">
+                <div class="wo-security__status">
+                    <span>Состояние системы</span>
+                    <strong>Под контролем</strong>
+                </div>
+                <div class="wo-security__rows">
+                    <div><span>Приватные файлы</span><strong>Защищены</strong></div>
+                    <div><span>Права доступа</span><strong>RBAC</strong></div>
+                    <div><span>Обновления</span><strong>Подписаны</strong></div>
+                    <div><span>Realtime</span><strong>Long Poll + WebSocket</strong></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-section wo-deploy-section">
+        <div class="container">
+            <div class="wo-deploy">
+                <div>
+                    <span class="wo-eyebrow">Развёртывание</span>
+                    <h2>От обычного хостинга до собственного VPS.</h2>
+                    <p>
+                        Базовый runtime не требует Composer. Messenger умеет
+                        работать через authenticated Long Poll; WebSocket
+                        подключается как ускоритель там, где доступен.
+                    </p>
+                </div>
+                <div class="wo-deploy__facts">
+                    <article><span>PHP</span><strong>8.1+</strong></article>
+                    <article><span>База</span><strong>MySQL 8+ / MariaDB 10.5+</strong></article>
+                    <article><span>Web</span><strong>Apache / Nginx</strong></article>
+                    <article><span>Realtime</span><strong>Long Poll + WebSocket</strong></article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-cta">
+        <div class="container">
+            <div class="wo-cta__panel">
+                <img
+                    src="{{ url_for('static', filename='public/workspace-organizer-mark.svg') }}"
+                    alt=""
+                    width="92"
+                    height="92"
+                >
+                <div>
+                    <span class="wo-eyebrow">Workspace Organizer</span>
+                    <h2>Порядок в важных вещах.</h2>
+                    <p>
+                        Расскажите о команде и инфраструктуре — подберём
+                        подходящий сценарий развёртывания.
+                    </p>
+                </div>
+                <a
+                    class="btn wo-btn wo-btn--primary"
+                    href="{{ url_for('contact', subject='Workspace Organizer') }}"
+                >
+                    Обсудить внедрение
+                    <span aria-hidden="true">→</span>
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

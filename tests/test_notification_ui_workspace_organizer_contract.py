@@ -9,7 +9,7 @@ from services.admin_notifications import AdminNotificationService
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
-class NotificationUiAndNotesPromoContractTests(unittest.TestCase):
+class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
     def read(self, relative: str) -> str:
         return (ROOT / relative).read_text(encoding="utf-8")
 
@@ -57,27 +57,32 @@ class NotificationUiAndNotesPromoContractTests(unittest.TestCase):
                 "http://public.example.test/topic"
             )
 
-    def test_notes_promo_is_public_and_search_visible(self):
+    def test_workspace_organizer_is_public_and_search_visible(self):
         app = self.read("app.py")
-        router = self.read("views/public/notes/routers.py")
-        view = self.read("views/public/notes/views.py")
-        template = self.read("templates/public/notes/index.html")
+        router = self.read("views/public/workspace_organizer/routers.py")
+        view = self.read("views/public/workspace_organizer/views.py")
+        template = self.read("templates/public/workspace_organizer/index.html")
         sitemap = self.read("views/public/seo.py")
         header = self.read("templates/public/^shared/header/index.html")
         footer = self.read("templates/public/^shared/footer/index.html")
 
-        self.assertIn("notes_router.install(app)", app)
+        self.assertIn("workspace_organizer_router.install(app)", app)
+        self.assertIn('"/workspace-organizer"', router)
         self.assertIn('"/notes"', router)
+        self.assertIn("code=301", router)
         self.assertIn("ReleaseRecord.version_code.desc()", view)
         self.assertIn("SoftwareApplication", view)
         self.assertIn("Workspace Organizer", template)
+        self.assertIn("workspace-organizer-logo.svg", template)
+        self.assertIn("Порядок", template)
         self.assertIn("Self-hosted", template)
         self.assertIn("XChaCha20-Poly1305", template)
         self.assertIn('url_for(\'contact\', subject=\'Workspace Organizer\')', template)
-        self.assertIn('"notes"', sitemap)
+        self.assertIn('"workspace-organizer"', sitemap)
+        self.assertNotIn('(urljoin(f"{base_url}/", "notes"), None)', sitemap)
         self.assertIn("_SITEMAP_STATIC_URLS = 3", sitemap)
-        self.assertIn("notes_promo", header)
-        self.assertIn("notes_promo", footer)
+        self.assertIn("workspace_organizer", header)
+        self.assertIn("workspace_organizer", footer)
 
     def test_product_cta_prefills_contact_subject(self):
         contact = self.read("views/public/contact/views.py")
