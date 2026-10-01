@@ -174,7 +174,7 @@ class AdminNotificationService:
                 db.commit()
                 return False
 
-            title_header = str(Header(record.title, "utf-8"))
+            title_header = Header(record.title, "utf-8").encode()
             headers = {
                 "Content-Type": "text/plain; charset=utf-8",
                 "User-Agent": "jsint-site/admin-notifications",
@@ -337,6 +337,34 @@ class DiagnosticService:
             temporary.unlink(missing_ok=True)
             raise
 
+    @staticmethod
+    def _read_diagnostic_preview(path: Path) -> dict:
+        """Читает только небольшой whitelist безопасных JSON-файлов из ZIP."""
+        allowed = {
+            "manifest.json",
+            "health.json",
+            "maintenance.json",
+            "hosting-profile.json",
+            "privacy.json",
+        }
+        preview: dict = {}
+        try:
+            with zipfile.ZipFile(path, "r") as archive:
+                by_name = {info.filename: info for info in archive.infolist()}
+                for name in sorted(allowed):
+                    info = by_name.get(name)
+                    if info is None or info.file_size > 256 * 1024:
+                        continue
+                    try:
+                        payload = json.loads(archive.read(info).decode("utf-8"))
+                    except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                        continue
+                    if isinstance(payload, dict):
+                        preview[name.removesuffix(".json")] = payload
+        except (OSError, zipfile.BadZipFile):
+            return {}
+        return preview
+
     @classmethod
     def create_report(
         cls,
@@ -386,6 +414,12 @@ class DiagnosticService:
                 report.package_path = stored_path
                 report.package_size = size
                 report.package_sha256 = sha256
+                preview = cls._read_diagnostic_preview(Path(stored_path))
+                if preview:
+                    report.metadata_json = {
+                        **metadata,
+                        "preview": preview,
+                    }
 
             notification = AdminNotificationService.for_diagnostic(db, report)
             return report, notification
