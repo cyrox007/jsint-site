@@ -3,14 +3,19 @@
     <div class="container">
         <div class="footer-panel">
             <div class="footer-brand">
-                <span class="footer-kicker">{{ settings.brand.subtitle or site.name }}</span>
-                <h3>{{ settings.brand.name }}</h3>
+                <div class="footer-logo">
+                    <img src="{{ url_for('static', filename='public/jsinteractive-mark.svg') }}" alt="" width="42" height="42">
+                    <strong>{{ settings.brand.name }}</strong>
+                </div>
+                <span class="footer-kicker">Личный технологический сайт</span>
+                <h3>Проекты, публикации и практический опыт.</h3>
                 {% if settings.footer.description %}<p>{{ settings.footer.description }}</p>{% endif %}
             </div>
 
             <div class="footer-links">
-                <a href="{{ url_for('workspace_organizer') }}">Workspace Organizer <span>→</span></a>
-                <a href="{{ url_for('contact') }}">Обратная связь <span>→</span></a>
+                <a href="{{ url_for('index') }}#systems">Проекты <span>→</span></a>
+                <a href="{{ url_for('index') }}#publications">Публикации <span>→</span></a>
+                <a href="{{ url_for('contact') }}">Связаться <span>→</span></a>
             </div>
 
             <div class="footer-bottom">
