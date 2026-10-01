@@ -39,7 +39,7 @@ class PublicVisualRedesignContractTests(unittest.TestCase):
         self.assertIn('home_blocks_by_type.get("philosophy")', page)
         self.assertIn("Технологии", hero)
         self.assertIn("portfolio-hero__backdrop", hero)
-        self.assertIn("Избранные проекты", systems)
+        self.assertIn("Наши проекты", systems)
         self.assertIn('id="publications"', systems)
         self.assertIn("Workspace Organizer", systems)
         self.assertIn("В чём я силён", about)
