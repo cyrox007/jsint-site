@@ -7,7 +7,7 @@ import json
 import os
 import re
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -382,6 +382,7 @@ class NotesControlPlane:
         record.signed_license = signed_license.strip()
         record.key_id = payload["_key_id"]
         record.status = "active"
+        record.revoked_at = None
         record.updates_until = updates_until
         record.max_version = max_version
         record.customer = str(payload.get("customer") or "").strip() or None
@@ -476,12 +477,44 @@ class NotesControlPlane:
     def set_status(session: Session, record: LicenseRecord, status: str) -> None:
         if status not in {"active", "revoked"}:
             raise ControlPlaneError("Некорректный статус лицензии")
+
+        if status == "revoked" and record.revoked_at is None:
+            record.revoked_at = datetime.now(timezone.utc)
+        elif status == "active":
+            record.revoked_at = None
+
         record.status = status
         if status == "revoked":
             record.credential_hash = None
             record.activation_hash = None
         session.add(record)
         session.commit()
+
+    @staticmethod
+    def purge_revoked_licenses(
+        session: Session,
+        *,
+        now: datetime | None = None,
+    ) -> int:
+        current_time = now or datetime.now(timezone.utc)
+        cutoff = current_time - timedelta(days=config.LICENSE_REVOKED_RETENTION_DAYS)
+
+        try:
+            deleted = (
+                session.query(LicenseRecord)
+                .filter(
+                    LicenseRecord.status == "revoked",
+                    LicenseRecord.revoked_at.is_not(None),
+                    LicenseRecord.revoked_at <= cutoff,
+                )
+                .delete(synchronize_session=False)
+            )
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+
+        return int(deleted or 0)
 
     @staticmethod
     def _assert_entitled(record: LicenseRecord) -> None:
