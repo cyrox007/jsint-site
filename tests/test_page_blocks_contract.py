@@ -25,10 +25,15 @@ class PageBlocksContractTests(unittest.TestCase):
         self.assertNotIn("BeBrainee", template)
         self.assertIn("resume_items", template)
 
-    def test_home_is_rendered_from_ordered_blocks(self):
+    def test_home_uses_fixed_portfolio_composition_with_admin_visibility(self):
         template = self.read("templates/public/home/index.html")
         view = self.read("views/public/home/views.py")
-        self.assertIn("for block in home_blocks", template)
+        self.assertIn("home_blocks_by_type", view)
+        self.assertIn('home_blocks_by_type.get("hero")', template)
+        self.assertIn('home_blocks_by_type.get("systems")', template)
+        self.assertIn('home_blocks_by_type.get("about")', template)
+        self.assertIn('home_blocks_by_type.get("resume")', template)
+        self.assertIn('home_blocks_by_type.get("philosophy")', template)
         self.assertIn("PageService.apply_public_navigation", view)
         self.assertIn("PageService.block_settings(page)", view)
         self.assertIn("public_blocks", self.read("services/page.py"))
