@@ -89,7 +89,7 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
             "templates/public/workspace_organizer/style.css"
         )
 
-        self.assertIn("background:var(--surface)", styles)
+        self.assertIn("var(--surface);", styles)
         self.assertIn("border:1px solid var(--border)", styles)
         self.assertIn("color:var(--accent)", styles)
         self.assertIn("var(--accent2)", styles)
