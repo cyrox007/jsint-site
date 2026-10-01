@@ -63,7 +63,7 @@ def apply_security_headers(response):
                 "object-src 'none'",
                 _script_sources(),
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-                "img-src 'self' data: https://mc.yandex.ru",
+                "img-src 'self' data: https://mc.yandex.ru https://images.unsplash.com",
                 _connect_sources(),
                 _frame_sources(),
                 "font-src 'self' data:",
