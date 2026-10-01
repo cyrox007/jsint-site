@@ -25,7 +25,7 @@
     <div class="header-actions">
         <details class="header-notifications">
             <summary class="notification-bell" aria-label="Уведомления">
-                <span class="notification-bell__icon" aria-hidden="true">🔔</span>
+                <span class="notification-bell__icon"><svg class="notification-icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
                 {% if admin_unread_count %}
                 <span class="notification-bell__badge">{{ admin_unread_count if admin_unread_count < 100 else '99+' }}</span>
                 {% endif %}
