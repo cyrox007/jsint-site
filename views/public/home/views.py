@@ -26,6 +26,7 @@ class MainPage(MethodView):
             site_model.id,
             site,
         )
+        home_settings = PageService.block_settings(page)
 
         articles = PublicationChannelService.list_public(
             db_session,
@@ -50,6 +51,7 @@ class MainPage(MethodView):
                 home_page=page,
                 home_blocks=home_blocks,
                 home_anchor_ids=home_anchor_ids,
+                home_settings=home_settings,
                 seo_title=seo_title,
                 seo_description=seo_description,
                 canonical_url=canonical_url,

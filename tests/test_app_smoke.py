@@ -17,7 +17,10 @@ class ApplicationSmokeTests(unittest.TestCase):
     def test_home_page(self):
         response = self.client.get("/", base_url=self.base)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("+УЛЬТРА", response.get_data(as_text=True))
+        html = response.get_data(as_text=True)
+        self.assertIn("JSInteractive", html)
+        self.assertIn("Технологии", html)
+        self.assertIn("Избранные проекты", html)
 
     def test_contact_page_is_protected_and_has_no_public_email(self):
         response = self.client.get("/contact", base_url=self.base)

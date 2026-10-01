@@ -1,20 +1,19 @@
-{% set philosophy = block.settings if block is defined and block.settings else {} %}
-{% if philosophy.text %}
-<section class="philosophy" id="philosophy">
+{% set philosophy = block.settings if block is defined and block.settings else (home_settings.philosophy if home_settings is defined else {}) %}
+<section class="portfolio-approach" id="philosophy">
     <div class="container">
-        <div class="philosophy-layout">
-            <div class="section-heading section-heading--stacked">
-                <div>
-                    <span class="section-kicker">{{ philosophy.kicker or '01 / Принципы' }}</span>
-                    <h2 class="section-title">{{ philosophy.title or 'Подход' }}</h2>
-                </div>
-                {% if philosophy.subtitle %}<p class="section-subtitle">{{ philosophy.subtitle }}</p>{% endif %}
-            </div>
-            <div class="glass-card section-copy">
-                <span class="section-copy__mark" aria-hidden="true">“</span>
-                <p>{{ philosophy.text }}</p>
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Подход</span>
+                <h2>Мой подход</h2>
             </div>
         </div>
+        <div class="portfolio-approach-grid">
+            <article><span>◎</span><h3>Решения под задачу</h3><p>Сначала разбираюсь в проблеме и ограничениях, потом выбираю инструмент.</p></article>
+            <article><span>≋</span><h3>Чистая архитектура</h3><p>Пишу понятный и поддерживаемый код, который можно развивать.</p></article>
+            <article><span>∞</span><h3>Долгая поддержка</h3><p>Думаю не только о релизе, но и о стабильности после него.</p></article>
+        </div>
+        {% if philosophy.text and '+УЛЬТРА' not in philosophy.text %}
+        <p class="portfolio-approach__note">{{ philosophy.text|truncate(320, true, '…') }}</p>
+        {% endif %}
     </div>
 </section>
-{% endif %}

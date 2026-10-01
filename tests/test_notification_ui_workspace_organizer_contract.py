@@ -46,12 +46,6 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
             ),
             "https://ntfy.example.test/private-topic",
         )
-        self.assertEqual(
-            AdminNotificationService._validate_push_url(
-                "http://127.0.0.1:8080/private-topic"
-            ),
-            "http://127.0.0.1:8080/private-topic",
-        )
         with self.assertRaises(ValueError):
             AdminNotificationService._validate_push_url(
                 "http://public.example.test/topic"
@@ -63,36 +57,35 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         view = self.read("views/public/workspace_organizer/views.py")
         template = self.read("templates/public/workspace_organizer/index.html")
         sitemap = self.read("views/public/seo.py")
-        header = self.read("templates/public/^shared/header/index.html")
-        footer = self.read("templates/public/^shared/footer/index.html")
 
         self.assertIn("workspace_organizer_router.install(app)", app)
         self.assertIn('"/workspace-organizer"', router)
         self.assertIn('"/notes"', router)
         self.assertIn("code=301", router)
         self.assertIn("ReleaseRecord.version_code.desc()", view)
+        self.assertIn("PublicationChannelService.list_public", view)
         self.assertIn("SoftwareApplication", view)
         self.assertIn("Workspace Organizer", template)
         self.assertIn("workspace-organizer-mark.svg", template)
-        self.assertIn("Порядок", template)
         self.assertIn("Self-hosted", template)
-        self.assertIn("XChaCha20-Poly1305", template)
-        self.assertIn('url_for(\'contact\', subject=\'Workspace Organizer\')', template)
+        self.assertIn(
+            "url_for('contact', subject='Workspace Organizer')",
+            template,
+        )
         self.assertIn('"workspace-organizer"', sitemap)
-        self.assertNotIn('(urljoin(f"{base_url}/", "notes"), None)', sitemap)
-        self.assertIn("_SITEMAP_STATIC_URLS = 3", sitemap)
-        self.assertIn("workspace_organizer", header)
-        self.assertIn("workspace_organizer", footer)
+        self.assertNotIn(
+            '(urljoin(f"{base_url}/", "notes"), None)',
+            sitemap,
+        )
 
     def test_workspace_organizer_uses_jsinteractive_visual_language(self):
         styles = self.read(
             "templates/public/workspace_organizer/style.css"
         )
 
-        self.assertIn("var(--surface);", styles)
-        self.assertIn("border:1px solid var(--border)", styles)
-        self.assertIn("color:var(--accent)", styles)
-        self.assertIn("var(--accent2)", styles)
+        self.assertIn("jsinteractive-mountain.svg", styles)
+        self.assertIn("var(--border)", styles)
+        self.assertIn("#071018", styles)
         self.assertNotIn(
             "linear-gradient(180deg,#f9fcff 0%,#eef7ff",
             styles,

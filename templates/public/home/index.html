@@ -5,24 +5,34 @@
     {% for block in home_blocks %}
         {% if block.type == "hero" %}
             {% include 'public/home/section/hero.html' %}
-        {% elif block.type == "philosophy" %}
-            {% include 'public/home/section/philosophy.html' %}
         {% elif block.type == "systems" %}
             {% include 'public/home/section/systems.html' %}
         {% elif block.type == "about" %}
             {% include 'public/home/section/about.html' %}
         {% elif block.type == "resume" %}
             {% include 'public/home/section/resume.html' %}
+        {% elif block.type == "philosophy" %}
+            {% include 'public/home/section/philosophy.html' %}
         {% endif %}
     {% endfor %}
 {% else %}
-    {# Обратная совместимость на случай незавершённой миграции. #}
     {% include 'public/home/section/hero.html' %}
-    {% include 'public/home/section/philosophy.html' %}
     {% include 'public/home/section/systems.html' %}
     {% include 'public/home/section/about.html' %}
-    {% if site.settings.home.resume_enabled %}
-        {% include 'public/home/section/resume.html' %}
-    {% endif %}
+    {% include 'public/home/section/resume.html' %}
+    {% include 'public/home/section/philosophy.html' %}
 {% endif %}
+
+<section class="portfolio-contact" id="contact">
+    <div class="container">
+        <div class="portfolio-contact__panel">
+            <div>
+                <span class="section-kicker">Контакты</span>
+                <h2>Обсудим проект или идею?</h2>
+                <p>Открыт к интересным проектам, сотрудничеству и новым задачам. Если есть предложение — напишите мне.</p>
+            </div>
+            <a href="{{ url_for('contact') }}" class="btn btn-primary">Связаться <span>→</span></a>
+        </div>
+    </div>
+</section>
 {% endblock %}

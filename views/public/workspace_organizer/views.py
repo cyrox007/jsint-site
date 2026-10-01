@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import with_db_session
 from models.control_plane import ReleaseRecord
 from services.page import PageService
+from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
 
@@ -41,6 +42,12 @@ class WorkspaceOrganizerPromoPage(MethodView):
             else None
         )
 
+        related_articles = PublicationChannelService.list_public(
+            db_session,
+            site_id=site_model.id,
+            limit=3,
+        )
+
         structured_data_items = [
             {
                 "@context": "https://schema.org",
@@ -70,4 +77,5 @@ class WorkspaceOrganizerPromoPage(MethodView):
             ),
             canonical_url=canonical_url,
             structured_data_items=structured_data_items,
+            related_articles=related_articles,
         )

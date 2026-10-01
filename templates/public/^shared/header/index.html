@@ -3,24 +3,22 @@
     <div class="container">
         <div class="navbar-inner">
             <a href="{{ url_for('index') }}" class="logo" aria-label="{{ settings.brand.name }}">
-                <span class="logo-mark" aria-hidden="true"></span>
+                <img class="logo-mark" src="{{ url_for('static', filename='public/jsinteractive-mark.svg') }}" alt="" width="34" height="34">
                 <span class="logo-copy">
                     <strong class="logo-main">{{ settings.brand.name }}</strong>
                     {% if settings.brand.subtitle %}<span class="logo-sub">{{ settings.brand.subtitle }}</span>{% endif %}
                 </span>
             </a>
 
-            {% if settings.navigation %}
             <nav class="nav-links" aria-label="Основная навигация">
-                {% for item in settings.navigation %}
-                    {% set item_href = (url_for('index') ~ item.href) if item.href.startswith('#') else item.href %}
-                    <a href="{{ item_href }}"><span>{{ '%02d'|format(loop.index) }}</span>{{ item.label }}</a>
-                {% endfor %}
+                <a href="{{ url_for('index') }}#systems">Проекты</a>
+                <a href="{{ url_for('index') }}#publications">Публикации</a>
+                <a href="{{ url_for('index') }}#resume">Опыт</a>
+                <a href="{{ url_for('index') }}#about">Обо мне</a>
+                <a href="{{ url_for('contact') }}">Контакты</a>
             </nav>
-            {% endif %}
 
             <div class="nav-actions">
-                <a href="{{ url_for('workspace_organizer') }}" class="nav-product">Workspace Organizer</a>
                 <a href="{{ url_for('contact') }}" class="nav-cta">
                     <span class="nav-cta__dot" aria-hidden="true"></span>
                     Связаться

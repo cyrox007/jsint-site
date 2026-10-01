@@ -13,72 +13,102 @@
 </div>
 {% endif %}
 
-<article class="article-detail">
-    <div class="container article-shell">
-        <div class="article-toolbar">
-            {% if preview_mode %}
-            <a class="article-back" href="{{ preview_edit_url }}">← В редактор</a>
-            {% elif home_has_systems is defined and home_has_systems %}
-            <a class="article-back" href="{{ url_for('index') }}#systems">← Все материалы</a>
-            {% else %}
-            <a class="article-back" href="{{ url_for('index') }}">← На главную</a>
-            {% endif %}
-            <span class="article-toolbar__type">Публикация</span>
+<article class="portfolio-article-detail">
+    <header class="portfolio-article-hero">
+        <div class="portfolio-article-hero__backdrop" aria-hidden="true"></div>
+        <div class="container portfolio-article-hero__inner">
+            <nav class="portfolio-breadcrumb" aria-label="Хлебные крошки">
+                <a href="{{ url_for('index') }}">Главная</a><span>/</span>
+                <a href="{{ url_for('index') }}#publications">Публикации</a><span>/</span>
+                {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
+            </nav>
+            <div class="portfolio-article-hero__copy">
+                <div class="portfolio-article-meta">
+                    {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
+                    <span>{{ reading_minutes or 1 }} мин чтения</span>
+                </div>
+                <h1>{{ publication.title }}</h1>
+                {% if article_excerpt %}<p>{{ article_excerpt }}</p>{% endif %}
+                <div class="portfolio-article-date">
+                    <span>{{ (publication.published_at or publication.created_at).strftime('%d.%m.%Y') }}</span>
+                    <span>JSInteractive</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container portfolio-article-layout">
+        <div class="portfolio-article-main">
+            <div class="portfolio-article-content" id="article-content">{{ publication.content|safe_rich_text }}</div>
         </div>
 
-        <header class="article-hero">
-            <div class="article-hero__main">
-                <div class="article-hero__eyebrow">
-                    <span class="section-kicker">Материал</span>
-                    {% if publication.category %}
-                    <span class="article-category">{{ publication.category.title }}</span>
-                    {% endif %}
+        <aside class="portfolio-article-sidebar">
+            <section class="portfolio-side-card portfolio-author-card">
+                <span class="portfolio-side-label">Об авторе</span>
+                <div class="portfolio-author">
+                    <img src="{{ url_for('static', filename='public/jsinteractive-mark.svg') }}" alt="" width="48" height="48">
+                    <div>
+                        <strong>JSInteractive</strong>
+                        <small>Разработка · Продукты · Системы</small>
+                    </div>
                 </div>
+                <p>Делюсь практическим опытом разработки, архитектуры и self-hosted решений.</p>
+                <a href="{{ url_for('index') }}#about">Узнать больше →</a>
+            </section>
 
-                <h1>{{ publication.title }}</h1>
-
-                {% if article_excerpt %}
-                <p class="article-lead">{{ article_excerpt }}</p>
-                {% endif %}
-            </div>
-
-            <div class="article-facts" aria-label="Информация о публикации">
-                <div class="article-fact">
-                    <span>Дата</span>
-                    <strong>{{ publication.published_at.strftime('%d.%m.%Y') if publication.published_at else publication.created_at.strftime('%d.%m.%Y') }}</strong>
-                </div>
-                <div class="article-fact">
-                    <span>Чтение</span>
-                    <strong>{{ reading_minutes or 1 }} мин</strong>
-                </div>
-                {% if publication.category %}
-                <div class="article-fact">
-                    <span>Раздел</span>
-                    <strong>{{ publication.category.title }}</strong>
-                </div>
-                {% endif %}
-            </div>
+            <section class="portfolio-side-card">
+                <span class="portfolio-side-label">Содержание</span>
+                <nav class="portfolio-toc" id="article-toc">
+                    <span class="portfolio-toc__empty">Содержание появится по заголовкам статьи.</span>
+                </nav>
+            </section>
 
             {% if publication.technologies %}
-            <div class="article-tech-list" aria-label="Технологии">
-                {% for tech in publication.technologies %}
-                <span class="tech-badge">{{ tech.name }}</span>
+            <section class="portfolio-side-card">
+                <span class="portfolio-side-label">Темы статьи</span>
+                <div class="portfolio-topic-list">
+                    {% for tech in publication.technologies %}<span>{{ tech.name }}</span>{% endfor %}
+                    {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+            <section class="portfolio-side-card portfolio-project-promo">
+                <span class="portfolio-side-label">Мой проект</span>
+                <div class="portfolio-project-promo__mark">
+                    <img src="{{ url_for('static', filename='public/workspace-organizer-mark.svg') }}" alt="" width="44" height="44">
+                    <strong>Workspace Organizer</strong>
+                </div>
+                <p>Self-hosted рабочее пространство для заметок, задач, файлов и команды.</p>
+                <a class="btn btn-primary" href="{{ url_for('workspace_organizer') }}">Открыть проект →</a>
+            </section>
+        </aside>
+    </div>
+
+    {% if related_articles %}
+    <section class="portfolio-related">
+        <div class="container">
+            <div class="portfolio-section-head portfolio-section-head--row">
+                <div><span class="section-kicker">Похожие публикации</span><h2>Читайте дальше</h2></div>
+            </div>
+            <div class="portfolio-related-grid">
+                {% for item in related_articles %}
+                <a href="{{ url_for('public.articles.show', categories_slug=item.category.slug, publication_slug=item.slug) if item.category else '#' }}">
+                    <div class="portfolio-related-thumb portfolio-related-thumb--{{ loop.index }}"></div>
+                    <div>
+                        <span>{{ item.category.title if item.category else 'Публикация' }}</span>
+                        <h3>{{ item.title }}</h3>
+                        <small>{{ (item.published_at or item.created_at).strftime('%d.%m.%Y') }}</small>
+                    </div>
+                </a>
                 {% endfor %}
             </div>
-            {% endif %}
-        </header>
-
-        <div class="article-layout">
-            <aside class="article-rail" aria-label="Навигация по материалу">
-                <span class="article-rail__label">Материал</span>
-                <strong>{{ publication.title }}</strong>
-                <div class="article-rail__rule"></div>
-                {% if publication.category %}<span>{{ publication.category.title }}</span>{% endif %}
-                <span>{{ reading_minutes or 1 }} мин чтения</span>
-            </aside>
-
-            <div class="article-content">{{ publication.content|safe_rich_text }}</div>
         </div>
-    </div>
+    </section>
+    {% endif %}
 </article>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='public/article-toc.js') }}" defer></script>
 {% endblock %}

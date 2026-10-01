@@ -62,6 +62,16 @@ class ArticleDetailView(MethodView):
                 value = value.replace(tzinfo=timezone.utc)
             return value.astimezone(timezone.utc).isoformat()
 
+        related_articles = [
+            item
+            for item in PublicationChannelService.list_public(
+                db_session,
+                site_id=site_model.id,
+                limit=6,
+            )
+            if item.id != publication.id
+        ][:3]
+
         structured_data_items = [
             {
                 "@context": "https://schema.org",
@@ -113,6 +123,7 @@ class ArticleDetailView(MethodView):
                 reading_minutes=reading_minutes,
                 home_has_systems="systems" in home_anchor_ids,
                 structured_data_items=structured_data_items,
+                related_articles=related_articles,
             )
         )
         if modified_at is not None:
