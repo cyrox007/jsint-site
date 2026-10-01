@@ -17,7 +17,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_tables = set(inspector.get_table_names())
+
+    if "diagnostic_reports" not in existing_tables:
+        op.create_table(
         "diagnostic_reports",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("installation_id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -34,12 +39,13 @@ def upgrade() -> None:
         sa.Column("package_sha256", sa.String(length=64), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_diagnostic_reports_installation_id", "diagnostic_reports", ["installation_id"])
-    op.create_index("ix_diagnostic_reports_license_id", "diagnostic_reports", ["license_id"])
-    op.create_index("ix_diagnostic_reports_client_version", "diagnostic_reports", ["client_version"])
-    op.create_index("ix_diagnostic_reports_created_at", "diagnostic_reports", ["created_at"])
+        op.create_index("ix_diagnostic_reports_installation_id", "diagnostic_reports", ["installation_id"])
+        op.create_index("ix_diagnostic_reports_license_id", "diagnostic_reports", ["license_id"])
+        op.create_index("ix_diagnostic_reports_client_version", "diagnostic_reports", ["client_version"])
+        op.create_index("ix_diagnostic_reports_created_at", "diagnostic_reports", ["created_at"])
 
-    op.create_table(
+    if "admin_notifications" not in existing_tables:
+        op.create_table(
         "admin_notifications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("site_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -58,19 +64,20 @@ def upgrade() -> None:
         sa.Column("read_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["site_id"], ["sites.id"], ondelete="SET NULL"),
     )
-    for name, columns in (
-        ("ix_admin_notifications_site_id", ["site_id"]),
-        ("ix_admin_notifications_kind", ["kind"]),
-        ("ix_admin_notifications_severity", ["severity"]),
-        ("ix_admin_notifications_source_type", ["source_type"]),
-        ("ix_admin_notifications_source_id", ["source_id"]),
-        ("ix_admin_notifications_status", ["status"]),
-        ("ix_admin_notifications_push_status", ["push_status"]),
-        ("ix_admin_notifications_created_at", ["created_at"]),
-    ):
-        op.create_index(name, "admin_notifications", columns)
+        for name, columns in (
+            ("ix_admin_notifications_site_id", ["site_id"]),
+            ("ix_admin_notifications_kind", ["kind"]),
+            ("ix_admin_notifications_severity", ["severity"]),
+            ("ix_admin_notifications_source_type", ["source_type"]),
+            ("ix_admin_notifications_source_id", ["source_id"]),
+            ("ix_admin_notifications_status", ["status"]),
+            ("ix_admin_notifications_push_status", ["push_status"]),
+            ("ix_admin_notifications_created_at", ["created_at"]),
+        ):
+            op.create_index(name, "admin_notifications", columns)
 
-    # Старые обращения сразу попадают в новый Inbox.
+    # Старые обращения сразу попадают в новый Inbox. WHERE NOT EXISTS
+    # делает backfill безопасным при повторном выполнении после аварийного restore.
     op.execute(
         sa.text(
             """
@@ -93,7 +100,13 @@ def upgrade() -> None:
                 'skipped',
                 created_at,
                 read_at
-            FROM contact_messages
+            FROM contact_messages AS contact
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM admin_notifications AS existing
+                WHERE existing.source_type = 'contact'
+                  AND existing.source_id = contact.id::text
+            )
             """
         )
     )
