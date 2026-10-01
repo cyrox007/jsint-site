@@ -128,8 +128,14 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn('PGPASSWORD="${DB_PASSWORD}"', runtime)
         self.assertIn('--host="${DB_HOST}"', runtime)
         self.assertIn('--port="${DB_PORT}"', runtime)
-        self.assertIn("--clean", runtime)
-        self.assertIn("--if-exists", runtime)
+        self.assertIn(
+            "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;",
+            runtime,
+        )
+        self.assertIn("sudo -u postgres dropdb --if-exists", runtime)
+        self.assertIn("sudo -u postgres createdb --owner=", runtime)
+        self.assertNotIn("--clean", runtime)
+        self.assertNotIn("--if-exists", runtime)
 
 
 if __name__ == "__main__":
