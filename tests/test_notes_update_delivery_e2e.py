@@ -314,16 +314,16 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         finally:
             session.close()
 
-    def test_feed_returns_latest_release_compatible_with_reported_client_version(self):
+    def test_feed_returns_next_compatible_release_in_sequence(self):
         activation = self._activate_103()
         self._publish_release("1.0.5", 10005, 10003, "2" * 40)
         self._publish_release("1.0.6", 10006, 10005, "3" * 40)
-        self._publish_release("1.0.7", 10007, 10005, "4" * 40)
+        self._publish_release("1.0.7", 10007, 10006, "4" * 40)
 
         cases = [
             ("1.0.3", 10003, "release-10005.json"),
             ("1.0.4", 10004, "release-10005.json"),
-            ("1.0.5", 10005, "release-10007.json"),
+            ("1.0.5", 10005, "release-10006.json"),
             ("1.0.6", 10006, "release-10007.json"),
             ("1.0.7", 10007, "release-10007.json"),
         ]
@@ -355,7 +355,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         activation = self._activate_103()
         self._publish_release("1.0.5", 10005, 10003, "2" * 40)
         self._publish_release("1.0.6", 10006, 10005, "3" * 40)
-        self._publish_release("1.0.7", 10007, 10005, "4" * 40)
+        self._publish_release("1.0.7", 10007, 10006, "4" * 40)
 
         response = self.client.get(
             "/api/notes/v1/stable/feed.json",

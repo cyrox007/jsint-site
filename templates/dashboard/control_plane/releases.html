@@ -51,7 +51,7 @@
                 </div>
                 <div class="release-row__facts">
                     <div><span>Исходный commit</span><code>{{ item.source_commit }}</code></div>
-                    <div><span>Обновление с версии</span><strong>{{ row.manifest.get('min_source_version_code', '—') }}</strong></div>
+                    <div><span>Минимальная исходная версия</span><strong>{{ row.manifest.get('min_source_version_code', '—') }}</strong></div>
                     <div><span>PHP</span><strong>≥ {{ row.manifest.get('requires_php', '—') }}</strong></div>
                     <div><span>Ключ подписи</span><strong>{{ row.key_id }}</strong></div>
                     <div><span>ZIP</span><strong>{{ item.package_name }}</strong><small>{{ item.package_size }} байт · {{ item.package_sha256[:12] }}…</small></div>
