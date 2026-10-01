@@ -169,7 +169,7 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
         self.assertEqual(_source_floor_for_version(meta["version_code"]), 10000)
         self.assertEqual(_source_floor_for_version(10005), 10003)
         self.assertEqual(_source_floor_for_version(10006), 10005)
-        self.assertEqual(_source_floor_for_version(10042), 10005)
+        self.assertEqual(_source_floor_for_version(10042), 10041)
         self.assertEqual(_source_floor_for_version(10100), 10099)
 
     def test_presence_is_based_on_last_outbound_contact(self):
