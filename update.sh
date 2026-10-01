@@ -247,18 +247,50 @@ rollback() {
     fi
     install_dependencies
     install_units
-    PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
-    "${PG_RESTORE_BIN}" \
-        --host="${DB_HOST}" \
-        --port="${DB_PORT}" \
-        --username="${DB_USER}" \
-        --dbname="${DB_NAME}" \
-        --exit-on-error \
-        --clean \
-        --if-exists \
-        --no-owner \
-        --no-acl \
-        "${BACKUP_FILE}"
+
+    log "Восстановление PostgreSQL snapshot из ${BACKUP_FILE}."
+    if [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]; then
+        # В checkout deployment PostgreSQL локальный. Полное пересоздание БД
+        # гарантирует, что объекты новой миграции не смогут помешать restore.
+        sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1 \
+            --command="SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" >/dev/null
+        sudo -u postgres dropdb --if-exists "${DB_NAME}"
+        sudo -u postgres createdb --owner="${DB_USER}" "${DB_NAME}"
+
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        "${PG_RESTORE_BIN}" \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --exit-on-error \
+            --no-owner \
+            --no-acl \
+            "${BACKUP_FILE}"
+    else
+        # Для внешней PostgreSQL у updater нет postgres OS-user. Вместо
+        # частичного --clean очищаем public целиком под владельцем БД.
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        psql \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --set=ON_ERROR_STOP=1 \
+            --command='DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null
+
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        "${PG_RESTORE_BIN}" \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --exit-on-error \
+            --no-owner \
+            --no-acl \
+            "${BACKUP_FILE}"
+    fi
+
     systemctl daemon-reload
     start_services
     sleep 2
