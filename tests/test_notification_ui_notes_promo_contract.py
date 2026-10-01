@@ -75,6 +75,7 @@ class NotificationUiAndNotesPromoContractTests(unittest.TestCase):
         self.assertIn("XChaCha20-Poly1305", template)
         self.assertIn('url_for(\'contact\', subject=\'Workspace Organizer\')', template)
         self.assertIn('"notes"', sitemap)
+        self.assertIn("_SITEMAP_STATIC_URLS = 3", sitemap)
         self.assertIn("notes_promo", header)
         self.assertIn("notes_promo", footer)
 
