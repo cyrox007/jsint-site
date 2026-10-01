@@ -219,6 +219,11 @@ def diagnostics():
     try:
         _require_enabled()
         max_bytes = config.NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES + 128 * 1024
+        # Общий лимит Flask остаётся маленьким для публичного сайта, но
+        # авторизованный diagnostic endpoint принимает контролируемый ZIP.
+        request.max_content_length = max_bytes
+        request.max_form_memory_size = 128 * 1024
+        request.max_form_parts = 8
         if request.content_length is not None and request.content_length > max_bytes:
             raise ControlPlaneError("Diagnostic package too large", status=413, code="package_too_large")
 
