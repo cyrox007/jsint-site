@@ -37,8 +37,13 @@ class GlobalSpacingContractTests(unittest.TestCase):
         control = self.read("templates/dashboard/control_plane/style.css")
         inbox = self.read("templates/dashboard/inbox/style.css")
         media = self.read("templates/dashboard/media/style.css")
+        dashboard = self.read("templates/dashboard/main/style.css")
 
         self.assertIn(".admin-grid{display:grid;gap:20px}", ui)
+        self.assertIn(
+            ".admin-grid + .admin-grid{margin-top:20px}",
+            ui,
+        )
         self.assertIn(
             ".operator-section+.operator-section{margin-top:14px}",
             control,
@@ -52,6 +57,11 @@ class GlobalSpacingContractTests(unittest.TestCase):
             inbox,
         )
         self.assertIn(".media-library{display:grid;gap:20px}", media)
+        self.assertIn(
+            ".admin-card__body>.admin-actions+.admin-form-note"
+            "{margin-top:16px}",
+            dashboard,
+        )
 
 
 if __name__ == "__main__":

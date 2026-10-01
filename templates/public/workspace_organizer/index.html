@@ -9,13 +9,18 @@
     <section class="wo-hero">
         <div class="container wo-hero__grid">
             <div class="wo-hero__copy">
-                <img
-                    class="wo-brand-logo"
-                    src="{{ url_for('static', filename='public/workspace-organizer-logo.svg') }}"
-                    alt="Workspace Organizer"
-                    width="620"
-                    height="160"
-                >
+                <div class="wo-brand-lockup">
+                    <img
+                        src="{{ url_for('static', filename='public/workspace-organizer-mark.svg') }}"
+                        alt=""
+                        width="64"
+                        height="64"
+                    >
+                    <div>
+                        <strong>Workspace Organizer</strong>
+                        <span>by JSInteractive</span>
+                    </div>
+                </div>
 
                 <span class="wo-release">Stable {{ stable_version }} · self-hosted</span>
 
