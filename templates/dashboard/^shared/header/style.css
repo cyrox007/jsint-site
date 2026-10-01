@@ -17,7 +17,7 @@
 .header-notifications{position:relative}.header-notifications>summary{list-style:none}.header-notifications>summary::-webkit-details-marker{display:none}
 .notification-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--admin-text);cursor:pointer}
 .notification-bell:hover,.header-notifications[open] .notification-bell{background:var(--admin-surface-hover);border-color:var(--admin-border)}
-.notification-bell__icon{font-size:1.25rem;line-height:1;transform:rotate(-15deg)}
+.notification-bell__icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:var(--admin-text)}.notification-icon-svg{display:block;width:100%;height:100%}
 .notification-bell__badge{position:absolute;top:2px;right:1px;display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border:2px solid rgba(244,242,237,.97);border-radius:999px;background:var(--color-primary);color:#fff;font-size:.62rem;font-weight:800;line-height:1}
 .notification-dropdown{position:absolute;top:calc(100% + 9px);right:0;width:min(380px,calc(100vw - 24px));overflow:hidden;background:var(--admin-surface-raised);border:1px solid var(--admin-border);border-radius:16px;box-shadow:0 24px 60px rgba(42,47,56,.18)}
 .notification-dropdown__head,.notification-dropdown__footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-bottom:1px solid var(--admin-border)}

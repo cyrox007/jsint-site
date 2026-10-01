@@ -16,7 +16,7 @@
         <ul>
             <li class="{{ 'active' if request.endpoint == 'admin.index' }}"><a href="{{ url_for('admin.index') }}"><span class="sidebar-icon">⌂</span><span>Обзор</span></a></li>
             <li class="{{ 'active' if users_active }}"><a href="{{ url_for('admin.users.index') }}"><span class="sidebar-icon">◉</span><span>Пользователи</span></a></li>
-            <li class="{{ 'active' if inbox_active }}"><a href="{{ url_for('admin.inbox.index') }}"><span class="sidebar-icon">🔔</span><span>Уведомления</span>{% if admin_unread_count %}<span class="sidebar-badge">{{ admin_unread_count }}</span>{% endif %}</a></li>
+            <li class="{{ 'active' if inbox_active }}"><a href="{{ url_for('admin.inbox.index') }}"><span class="sidebar-icon sidebar-icon--notification"><svg class="notification-icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><span>Уведомления</span>{% if admin_unread_count %}<span class="sidebar-badge">{{ admin_unread_count }}</span>{% endif %}</a></li>
         </ul>
 
         <div class="sidebar-section-label sidebar-section-label--secondary">Публичные сайты</div>
