@@ -24,6 +24,23 @@ class CheckoutUpdateRollbackContractTests(unittest.TestCase):
             script,
         )
 
+    def test_checkout_rollback_skips_database_before_migrations(self):
+        script = (ROOT / "update.sh").read_text(encoding="utf-8")
+
+        self.assertIn("MIGRATIONS_STARTED=0", script)
+        self.assertIn(
+            'if (( MIGRATIONS_STARTED == 0 )); then',
+            script,
+        )
+        self.assertIn(
+            "Миграции БД не запускались — PostgreSQL rollback не требуется.",
+            script,
+        )
+        self.assertIn(
+            'MIGRATIONS_STARTED=1',
+            script,
+        )
+
     def test_checkout_rollback_verifies_alembic_revision(self):
         script = (ROOT / "update.sh").read_text(encoding="utf-8")
 
