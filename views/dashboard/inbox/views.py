@@ -64,11 +64,6 @@ class InboxDetailPage(MethodView):
     @with_db_session
     def get(self, db_session: Session, notification_id: UUID):
         notification = self._notification(db_session, notification_id)
-        if notification.status == "new":
-            notification.status = "read"
-            notification.read_at = datetime.now(timezone.utc)
-            db_session.commit()
-
         source = None
         if notification.source_type == "contact":
             try:
@@ -93,6 +88,15 @@ class InboxDetailPage(MethodView):
                     .first()
                 )
 
+        if notification.status == "new":
+            now = datetime.now(timezone.utc)
+            notification.status = "read"
+            notification.read_at = now
+            if isinstance(source, ContactMessage) and source.status == "new":
+                source.status = "read"
+                source.read_at = now
+            db_session.commit()
+
         return render_template(
             "dashboard/inbox/detail.html",
             notification=notification,
@@ -105,16 +109,39 @@ class InboxDetailPage(MethodView):
         notification = self._notification(db_session, notification_id)
         action = request.form.get("action", "").strip()
 
+        contact = None
+        if notification.source_type == "contact":
+            try:
+                contact_id = UUID(notification.source_id)
+            except ValueError:
+                contact_id = None
+            if contact_id is not None:
+                contact = (
+                    db_session.query(ContactMessage)
+                    .filter(ContactMessage.id == contact_id)
+                    .first()
+                )
+
         if action == "read":
+            now = datetime.now(timezone.utc)
             notification.status = "read"
-            notification.read_at = datetime.now(timezone.utc)
+            notification.read_at = now
+            if contact is not None:
+                contact.status = "read"
+                contact.read_at = now
         elif action == "archive":
+            now = notification.read_at or datetime.now(timezone.utc)
             notification.status = "archived"
-            if notification.read_at is None:
-                notification.read_at = datetime.now(timezone.utc)
+            notification.read_at = now
+            if contact is not None:
+                contact.status = "archived"
+                contact.read_at = contact.read_at or now
         elif action == "reopen":
             notification.status = "new"
             notification.read_at = None
+            if contact is not None:
+                contact.status = "new"
+                contact.read_at = None
         else:
             abort(400)
 
