@@ -88,10 +88,17 @@ def create_app() -> Flask:
                 .filter(AdminNotification.status == "new")
                 .count()
             )
+            recent_notifications = (
+                db_session.query(AdminNotification)
+                .order_by(AdminNotification.created_at.desc())
+                .limit(5)
+                .all()
+            )
             return {
                 "admin_sites": sites,
                 "admin_selected_site": selected_site,
                 "admin_unread_count": unread_count,
+                "admin_recent_notifications": recent_notifications,
             }
         finally:
             db_session.close()
