@@ -23,6 +23,7 @@ class LicenseRecord(Database.Base):
     signed_license: Mapped[str] = mapped_column(Text, nullable=False)
     key_id: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active", index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     updates_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     max_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
     customer: Mapped[str | None] = mapped_column(String(160), nullable=True)
