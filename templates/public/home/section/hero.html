@@ -1,76 +1,21 @@
-{% set hero = block.settings if block is defined and block.settings else {} %}
-{% set hero_title = hero.title or site.settings.brand.name or site.name %}
-{% set hero_badge = hero.badge or site.settings.brand.subtitle %}
-{% set hero_description = hero.description or site.settings.seo.description %}
-{% set hero_has_console = hero.terminal_lines or hero.metrics %}
-<section class="hero">
-    <div class="hero-orbit hero-orbit--one" aria-hidden="true"></div>
-    <div class="hero-orbit hero-orbit--two" aria-hidden="true"></div>
-    <div class="container">
-        <div class="hero-grid{% if not hero_has_console %} hero-grid--solo{% endif %}">
-            <div class="hero-copy">
-                {% if hero_badge %}
-                <div class="hero-badge"><span class="hero-badge__dot"></span><span>{{ hero_badge }}</span></div>
-                {% endif %}
-
-                <h1>
-                    <span class="hero-title-main">{{ hero_title }}</span>
-                    {% if hero.accent %}<span class="gradient">{{ hero.accent }}</span>{% endif %}
-                </h1>
-
-                {% if hero_description %}
-                <p class="hero-description">{{ hero_description }}</p>
-                {% endif %}
-
-                <div class="hero-actions">
-                    <a href="{{ url_for('contact') }}" class="btn btn-primary">{{ hero.contact_label or 'Связаться' }}</a>
-                    {% if home_anchor_ids is not defined or 'systems' in home_anchor_ids %}
-                    <a href="#systems" class="btn btn-secondary">{{ hero.materials_label or 'Смотреть материалы' }}</a>
-                    {% endif %}
-                </div>
-
-                {% if hero.tags %}
-                <div class="hero-tags" aria-label="Основные направления">
-                    {% for tag in hero.tags %}<span>{{ tag }}</span>{% endfor %}
-                </div>
-                {% endif %}
-
-                {% if hero.note %}<div class="hero-note">{{ hero.note }}</div>{% endif %}
+{% set hero = home_settings.hero if home_settings is defined else {} %}
+<section class="portfolio-hero">
+    <div class="portfolio-hero__backdrop" aria-hidden="true"></div>
+    <div class="container portfolio-hero__inner">
+        <div class="portfolio-hero__copy">
+            <span class="portfolio-hero__badge">Разработка · Системы · Решения</span>
+            <h1>Технологии<br>для реальных <span>задач</span></h1>
+            <p>Личный сайт о разработке, продуктах и системах. Проекты, публикации, экспертиза и практический опыт.</p>
+            <div class="portfolio-hero__actions">
+                <a class="btn btn-primary" href="#systems">Смотреть проекты <span>→</span></a>
+                <a class="btn btn-secondary" href="#about">Узнать больше</a>
             </div>
-
-            {% if hero_has_console %}
-            <aside class="hero-console" aria-label="Направления работы">
-                <div class="hero-console__top">
-                    <div>
-                        <span class="hero-console__eyebrow">{{ hero.console_eyebrow or 'system / overview' }}</span>
-                        <strong>{{ hero.console_title or 'Рабочий контур' }}</strong>
-                    </div>
-                    <span class="hero-console__status">{{ hero.console_status or 'online' }}</span>
-                </div>
-
-                {% if hero.terminal_lines %}
-                <div class="terminal-body">
-                    {% for line in hero.terminal_lines %}
-                    <div class="terminal-line">
-                        <span class="prompt {{ 'success' if loop.last else '' }}">{{ '%02d'|format(loop.index) }}</span>
-                        <span>{{ line }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                {% if hero.metrics %}
-                <div class="metrics-grid">
-                    {% for metric in hero.metrics %}
-                    <div class="metric">
-                        <small>{{ metric.label }}</small>
-                        <strong>{{ metric.value }}</strong>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </aside>
-            {% endif %}
         </div>
+    </div>
+    <div class="container portfolio-proof">
+        <article><span class="portfolio-proof__icon">◇</span><div><strong>Собственные проекты</strong><small>Реальные решения и исходный код</small></div></article>
+        <article><span class="portfolio-proof__icon">▤</span><div><strong>Публикации</strong><small>Статьи, разборы и технические заметки</small></div></article>
+        <article><span class="portfolio-proof__icon">⌁</span><div><strong>Практический опыт</strong><small>Разработка, архитектура, консалтинг</small></div></article>
+        <article><span class="portfolio-proof__icon">↗</span><div><strong>Поддержка и развитие</strong><small>Долгосрочные проекты и сопровождение</small></div></article>
     </div>
 </section>
