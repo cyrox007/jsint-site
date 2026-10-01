@@ -93,13 +93,21 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
                 config.NOTES_DIAGNOSTIC_STORAGE_PATH = original_root
                 config.NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES = original_limit
 
-    def test_update_script_prepares_external_diagnostic_storage(self):
-        script = self.read("update.sh")
-        self.assertIn("NOTES_DIAGNOSTIC_STORAGE_PATH", script)
-        self.assertIn(
-            'install -d -o root -g jsint-site -m 0770 "${NOTES_DIAGNOSTIC_STORAGE_PATH}"'.replace("\\", ""),
-            script,
-        )
+    def test_deployment_allows_diagnostic_uploads(self):
+        update_script = self.read("update.sh")
+        checkout_setup = self.read("deploy/checkout/setup.sh")
+        checkout_unit = self.read("deploy/checkout/jsint-site.service")
+        release_unit = self.read("deploy/jsint-site.service")
+        checkout_nginx = self.read("deploy/checkout/nginx.conf.example")
+        installer = self.read("deploy/install.sh")
+
+        self.assertIn("NOTES_DIAGNOSTIC_STORAGE_PATH", update_script)
+        self.assertIn("/var/lib/jsint-site/diagnostics", checkout_setup)
+        self.assertIn("/var/lib/jsint-site/diagnostics", checkout_unit)
+        self.assertIn("/var/lib/jsint-site/diagnostics", release_unit)
+        self.assertIn("client_max_body_size 12m", checkout_nginx)
+        self.assertIn("NOTES_DIAGNOSTIC_STORAGE_PATH", installer)
+        self.assertIn("location = /api/notes/v1/diagnostics", installer)
 
 
 if __name__ == "__main__":
