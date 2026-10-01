@@ -37,6 +37,7 @@ def create_app() -> Flask:
     from views.dashboard.pages import router as d_pages_router
     from views.dashboard.users import router as d_users_router
     from views.dashboard.contact import router as d_contact_router
+    from views.dashboard.inbox import router as d_inbox_router
     from views import notes_api
 
     app = Flask(__name__, static_folder="static")
@@ -76,14 +77,21 @@ def create_app() -> Flask:
         from components.admin.site_context import resolve_admin_site
         from database import Database
         from services.site import SiteService
+        from models.notification import AdminNotification
 
         db_session = Database.connect_database()
         try:
             sites = SiteService.list_sites(db_session)
             selected_site = resolve_admin_site(db_session)
+            unread_count = (
+                db_session.query(AdminNotification)
+                .filter(AdminNotification.status == "new")
+                .count()
+            )
             return {
                 "admin_sites": sites,
                 "admin_selected_site": selected_site,
+                "admin_unread_count": unread_count,
             }
         finally:
             db_session.close()
@@ -104,6 +112,7 @@ def create_app() -> Flask:
     d_pages_router.install(app)
     d_users_router.install(app)
     d_contact_router.install(app)
+    d_inbox_router.install(app)
     notes_api.install(app)
 
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
