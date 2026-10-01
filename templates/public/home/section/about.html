@@ -1,26 +1,19 @@
-{% set about = block.settings if block is defined and block.settings else {} %}
-{% set about_cards = about.get('cards', []) %}
-{% if about_cards %}
-<section class="about-section" id="about">
+<section class="portfolio-expertise" id="about">
     <div class="container">
-        <div class="section-heading">
+        <div class="portfolio-section-head">
             <div>
-                <span class="section-kicker">{{ about.kicker or '03 / Контекст' }}</span>
-                <h2 class="section-title">{{ about.title or 'О студии' }}</h2>
+                <span class="section-kicker">Экспертиза</span>
+                <h2>В чём я силён</h2>
+                <p>Техническая глубина, продуктовый подход и внимание к эксплуатации.</p>
             </div>
         </div>
-
-        <div class="about-grid">
-            {% for card in about_cards %}
-            {% if card.title or card.text %}
-            <article class="glass-card about-card">
-                <span class="about-card__index">{{ '%02d'|format(loop.index) }}</span>
-                {% if card.title %}<h3>{{ card.title }}</h3>{% endif %}
-                {% if card.text %}<p>{{ card.text }}</p>{% endif %}
-            </article>
-            {% endif %}
-            {% endfor %}
+        <div class="portfolio-expertise-grid">
+            <article><span>⌘</span><h3>Backend архитектура</h3><p>Надёжные API, сервисы и интеграции.</p></article>
+            <article><span>◈</span><h3>Разработка продуктов</h3><p>От идеи до работающего сценария.</p></article>
+            <article><span>▣</span><h3>Админки и внутренние системы</h3><p>Удобные инструменты для реальной работы.</p></article>
+            <article><span>ϟ</span><h3>Realtime системы</h3><p>Онлайн-функции и устойчивые fallback-механизмы.</p></article>
+            <article><span>◇</span><h3>Безопасность</h3><p>Практические подходы к защите данных.</p></article>
+            <article><span>☁</span><h3>Self-hosted деплой</h3><p>Развёртывание и сопровождение инфраструктуры.</p></article>
         </div>
     </div>
 </section>
-{% endif %}
