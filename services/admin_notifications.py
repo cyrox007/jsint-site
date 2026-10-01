@@ -6,6 +6,7 @@ import logging
 import os
 import re
 import zipfile
+from email.header import Header
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -173,31 +174,25 @@ class AdminNotificationService:
                 db.commit()
                 return False
 
-            payload = {
-                "title": record.title,
-                "message": record.summary,
-                "priority": {
+            title_header = str(Header(record.title, "utf-8"))
+            headers = {
+                "Content-Type": "text/plain; charset=utf-8",
+                "User-Agent": "jsint-site/admin-notifications",
+                "X-Title": title_header,
+                "X-Priority": {
                     "info": "default",
                     "warning": "high",
                     "urgent": "max",
                 }.get(record.severity, "default"),
-                "tags": ["inbox", record.kind],
-                "click": cls._click_url(record.id),
-            }
-            headers = {
-                "Content-Type": "application/json; charset=utf-8",
-                "User-Agent": "jsint-site/admin-notifications",
+                "X-Tags": f"inbox,{record.kind}",
+                "X-Click": cls._click_url(record.id),
             }
             if config.ADMIN_PUSH_TOKEN:
                 headers["Authorization"] = f"Bearer {config.ADMIN_PUSH_TOKEN}"
 
             request = Request(
                 config.ADMIN_PUSH_URL,
-                data=json.dumps(
-                    payload,
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ).encode("utf-8"),
+                data=record.summary.encode("utf-8"),
                 headers=headers,
                 method="POST",
             )
