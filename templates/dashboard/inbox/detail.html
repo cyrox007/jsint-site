@@ -1,71 +1,210 @@
 {% extends '/dashboard/^core/base.html' %}
-{% block title %}{{ notification.title }} | Входящие{% endblock %}
+{% block title %}{{ notification.title }} | Уведомления{% endblock %}
 {% block content %}
-<div class="admin-page">
-    <header class="admin-page__header">
-        <div class="admin-page__heading">
-            <span class="admin-page__eyebrow"><a href="{{ url_for('admin.inbox.index') }}">Входящие</a> · {{ notification.kind }}</span>
-            <h1 class="admin-page__title">{{ notification.title }}</h1>
-            <p class="admin-page__description">{{ notification.summary }}</p>
+{% set status_labels = {'new': 'Новое', 'read': 'Прочитано', 'archived': 'В архиве'} %}
+{% set severity_labels = {'info': 'Обычное', 'warning': 'Требует внимания', 'urgent': 'Критическое'} %}
+{% set push_labels = {'sent': 'Отправлено', 'pending': 'В очереди', 'failed': 'Ошибка', 'skipped': 'Не отправлялось'} %}
+
+<div class="admin-page inbox-detail-page">
+    <header class="inbox-detail-hero">
+        <div class="inbox-detail-hero__copy">
+            <a class="inbox-detail-back" href="{{ url_for('admin.inbox.index') }}">
+                <span aria-hidden="true">←</span>
+                <span>Уведомления</span>
+            </a>
+
+            <div class="inbox-detail-hero__meta">
+                <span class="inbox-detail-type">
+                    {% if notification.kind == 'contact' %}Обращение с сайта
+                    {% elif notification.kind == 'diagnostic' %}Диагностика Notes
+                    {% elif notification.kind == 'system' %}Системное событие
+                    {% else %}Уведомление{% endif %}
+                </span>
+                <span class="inbox-detail-dot">·</span>
+                <time datetime="{{ notification.created_at.isoformat() }}">
+                    {{ notification.created_at.strftime('%d.%m.%Y, %H:%M') }}
+                </time>
+            </div>
+
+            <h1>{{ notification.title }}</h1>
+
+            {% if notification.source_type == 'diagnostic' and source %}
+            <p>Отчёт от Workspace Organizer {{ source.client_version or 'без версии' }}.</p>
+            {% elif notification.source_type == 'system' %}
+            <p>{{ notification.summary }}</p>
+            {% endif %}
+        </div>
+
+        <div class="inbox-detail-hero__badges">
+            <span class="inbox-state inbox-state--{{ notification.status }}">
+                {{ status_labels.get(notification.status, notification.status) }}
+            </span>
+            {% if notification.severity in ('warning', 'urgent') %}
+            <span class="inbox-priority inbox-priority--{{ notification.severity }}">
+                {{ severity_labels.get(notification.severity, notification.severity) }}
+            </span>
+            {% endif %}
         </div>
     </header>
 
-    <article class="admin-card">
-        <div class="contact-message__head">
-            <div>
-                <strong>{{ notification.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</strong>
-                <span>Статус: {{ notification.status }} · Push: {{ notification.push_status }}</span>
-            </div>
-            <span class="status-badge">{{ notification.severity }}</span>
-        </div>
+    <div class="inbox-detail-layout">
+        <main class="inbox-detail-main">
+            {% if notification.source_type == 'contact' and source %}
+            <section class="inbox-panel inbox-message-panel">
+                <div class="inbox-sender">
+                    <div class="inbox-sender__avatar" aria-hidden="true">
+                        {{ (source.name or '?')[:1]|upper }}
+                    </div>
+                    <div class="inbox-sender__identity">
+                        <span class="inbox-panel__label">Отправитель</span>
+                        <strong>{{ source.name }}</strong>
+                        {% if source.reply_to %}
+                            {% if '@' in source.reply_to %}
+                            <a href="mailto:{{ source.reply_to }}">{{ source.reply_to }}</a>
+                            {% else %}
+                            <span>{{ source.reply_to }}</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
 
-        {% if notification.source_type == 'contact' and source %}
-            <h2>{{ source.subject or 'Без темы' }}</h2>
-            <p><strong>От:</strong> {{ source.name }}</p>
-            <p><strong>Связь:</strong> <code>{{ source.reply_to }}</code></p>
-            <div class="contact-message__body">{{ source.message }}</div>
-        {% elif notification.source_type == 'diagnostic' and source %}
-            <h2>Диагностический отчёт Workspace Organizer</h2>
-            <p><strong>Клиент:</strong> {{ source.customer or 'Не указан' }}</p>
-            <p><strong>License ID:</strong> <code>{{ source.license_id or '—' }}</code></p>
-            <p><strong>Installation ID:</strong> <code>{{ source.installation_id }}</code></p>
-            <p><strong>Версия:</strong> {{ source.client_version or '—' }}{% if source.client_version_code %} ({{ source.client_version_code }}){% endif %}</p>
-            <p><strong>Причина:</strong> <code>{{ source.reason }}</code></p>
-            <p><strong>Описание:</strong> {{ source.summary }}</p>
-            {% if source.package_path %}
-            <p>
-                <a class="btn primary" href="{{ url_for('admin.inbox.diagnostic', notification_id=notification.id) }}">
-                    Скачать диагностический ZIP · {{ (source.package_size / 1024)|round(1) }} КБ
-                </a>
-            </p>
-            <p><strong>SHA-256:</strong> <code>{{ source.package_sha256 }}</code></p>
-            {% endif %}
-            {% if source.metadata_json %}
-            <details>
-                <summary>Метаданные диагностики</summary>
-                <pre>{{ source.metadata_json | tojson(indent=2) }}</pre>
-            </details>
-            {% endif %}
-        {% elif notification.source_type == 'system' %}
-            <h2>Системное уведомление</h2>
-            <p>{{ notification.summary }}</p>
-            <p><strong>Push:</strong> {{ notification.push_status }}</p>
-            {% if notification.push_error %}<p><strong>Ошибка доставки:</strong> {{ notification.push_error }}</p>{% endif %}
-        {% else %}
-            <p>Исходная запись больше недоступна.</p>
-        {% endif %}
+                <div class="inbox-message">
+                    <span class="inbox-panel__label">Сообщение</span>
+                    <div class="inbox-message__text">{{ source.message }}</div>
+                </div>
+            </section>
 
-        <form method="post" class="contact-message__actions">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            {% if notification.status == 'new' %}
-            <button class="btn secondary btn-small" type="submit" name="action" value="read">Прочитано</button>
-            {% endif %}
-            {% if notification.status != 'archived' %}
-            <button class="btn secondary btn-small" type="submit" name="action" value="archive">В архив</button>
+            {% elif notification.source_type == 'diagnostic' and source %}
+            <section class="inbox-panel">
+                <div class="inbox-panel__heading">
+                    <div>
+                        <span class="inbox-panel__label">Workspace Organizer</span>
+                        <h2>Диагностический отчёт</h2>
+                    </div>
+                    {% if source.client_version %}
+                    <span class="inbox-version-badge">v{{ source.client_version }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="inbox-diagnostic-grid">
+                    <div>
+                        <span>Клиент</span>
+                        <strong>{{ source.customer or 'Не указан' }}</strong>
+                    </div>
+                    <div>
+                        <span>Причина</span>
+                        <strong>{{ source.reason }}</strong>
+                    </div>
+                    <div>
+                        <span>License ID</span>
+                        <code>{{ source.license_id or '—' }}</code>
+                    </div>
+                    <div>
+                        <span>Installation ID</span>
+                        <code>{{ source.installation_id }}</code>
+                    </div>
+                </div>
+
+                {% if source.summary %}
+                <div class="inbox-diagnostic-summary">
+                    <span class="inbox-panel__label">Описание</span>
+                    <p>{{ source.summary }}</p>
+                </div>
+                {% endif %}
+
+                {% if source.metadata_json %}
+                <details class="inbox-diagnostic-details">
+                    <summary>Технические данные</summary>
+                    <pre>{{ source.metadata_json | tojson(indent=2) }}</pre>
+                </details>
+                {% endif %}
+
+                {% if source.package_path %}
+                <div class="inbox-download">
+                    <div>
+                        <strong>Диагностический пакет</strong>
+                        <span>{{ (source.package_size / 1024)|round(1) }} КБ · SHA-256 {{ source.package_sha256[:12] }}…</span>
+                    </div>
+                    <a class="btn secondary" href="{{ url_for('admin.inbox.diagnostic', notification_id=notification.id) }}">
+                        Скачать ZIP
+                    </a>
+                </div>
+                {% endif %}
+            </section>
+
+            {% elif notification.source_type == 'system' %}
+            <section class="inbox-panel inbox-system-panel">
+                <span class="inbox-panel__label">Системное сообщение</span>
+                <p>{{ notification.summary }}</p>
+                {% if notification.push_error %}
+                <div class="inbox-error-note">{{ notification.push_error }}</div>
+                {% endif %}
+            </section>
+
             {% else %}
-            <button class="btn secondary btn-small" type="submit" name="action" value="reopen">Вернуть в новые</button>
+            <section class="inbox-panel inbox-empty-source">
+                <strong>Исходная запись недоступна</strong>
+                <span>Само уведомление сохранено, но связанный объект больше не найден.</span>
+            </section>
             {% endif %}
-        </form>
-    </article>
+        </main>
+
+        <aside class="inbox-detail-side">
+            <section class="inbox-panel inbox-info-card">
+                <div class="inbox-panel__heading inbox-panel__heading--compact">
+                    <div>
+                        <span class="inbox-panel__label">Сведения</span>
+                        <h2>О событии</h2>
+                    </div>
+                </div>
+
+                <dl class="inbox-info-list">
+                    <div>
+                        <dt>Получено</dt>
+                        <dd>{{ notification.created_at.strftime('%d.%m.%Y') }}<br><span>{{ notification.created_at.strftime('%H:%M:%S') }}</span></dd>
+                    </div>
+                    <div>
+                        <dt>Статус</dt>
+                        <dd>{{ status_labels.get(notification.status, notification.status) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Приоритет</dt>
+                        <dd>{{ severity_labels.get(notification.severity, notification.severity) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Push</dt>
+                        <dd>
+                            {{ push_labels.get(notification.push_status, notification.push_status) }}
+                            {% if notification.push_error %}
+                            <span class="inbox-info-list__error">Есть ошибка доставки</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="inbox-panel inbox-actions-card">
+                <span class="inbox-panel__label">Действия</span>
+
+                {% if notification.source_type == 'contact' and source and source.reply_to and '@' in source.reply_to %}
+                <a class="btn primary inbox-action-primary" href="mailto:{{ source.reply_to }}">
+                    Ответить по email
+                </a>
+                {% endif %}
+
+                <form method="post" class="inbox-detail-actions">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    {% if notification.status == 'new' %}
+                    <button class="btn secondary" type="submit" name="action" value="read">Отметить прочитанным</button>
+                    {% endif %}
+                    {% if notification.status != 'archived' %}
+                    <button class="btn secondary" type="submit" name="action" value="archive">Переместить в архив</button>
+                    {% else %}
+                    <button class="btn secondary" type="submit" name="action" value="reopen">Вернуть в новые</button>
+                    {% endif %}
+                </form>
+            </section>
+        </aside>
+    </div>
 </div>
 {% endblock %}
