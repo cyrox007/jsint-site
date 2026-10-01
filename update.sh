@@ -12,6 +12,7 @@ BEAT_SERVICE_NAME="${JSINT_BEAT_SERVICE_NAME:-jsint-site-celery-beat.service}"
 TARGET_REF=""
 CONFIRMED=0
 SKIP_TESTS=0
+MIGRATIONS_STARTED=0
 
 log() {
     printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*"
@@ -248,6 +249,25 @@ rollback() {
     install_dependencies
     install_units
 
+    if (( MIGRATIONS_STARTED == 0 )); then
+        log "Миграции БД не запускались — PostgreSQL rollback не требуется."
+        systemctl daemon-reload
+        if ! start_services; then
+            log "КРИТИЧЕСКАЯ ОШИБКА: старый runtime не запустился после rollback кода."
+            set -e
+            return 2
+        fi
+        sleep 2
+        if http_health; then
+            log "Rollback кода подтверждён: ${OLD_COMMIT}; БД не изменялась."
+            set -e
+            return 0
+        fi
+        log "КРИТИЧЕСКАЯ ОШИБКА: rollback кода выполнен, но healthcheck старой версии не прошёл."
+        set -e
+        return 2
+    fi
+
     log "Восстановление PostgreSQL snapshot из ${BACKUP_FILE}."
     if [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]; then
         # В checkout deployment PostgreSQL локальный. Полное пересоздание БД
@@ -343,6 +363,7 @@ log "Проверка Python syntax."
 "${APP_DIR}/.venv/bin/python" -m compileall -q "${APP_DIR}"
 
 log "Применение Alembic migrations."
+MIGRATIONS_STARTED=1
 "${APP_DIR}/.venv/bin/alembic" upgrade head
 
 if (( SKIP_TESTS == 0 )); then
