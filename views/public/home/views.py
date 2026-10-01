@@ -27,6 +27,11 @@ class MainPage(MethodView):
             site,
         )
         home_settings = PageService.block_settings(page)
+        home_blocks_by_type = {
+            block["type"]: block
+            for block in home_blocks
+            if block.get("type")
+        }
 
         articles = PublicationChannelService.list_public(
             db_session,
@@ -50,6 +55,7 @@ class MainPage(MethodView):
                 articles=articles,
                 home_page=page,
                 home_blocks=home_blocks,
+                home_blocks_by_type=home_blocks_by_type,
                 home_anchor_ids=home_anchor_ids,
                 home_settings=home_settings,
                 seo_title=seo_title,

@@ -1,20 +1,21 @@
 {% set systems = block.settings if block is defined and block.settings else (home_settings.systems if home_settings is defined else {}) %}
 <section class="portfolio-projects" id="systems">
     <div class="container">
-        <div class="portfolio-section-head">
+        <div class="portfolio-section-head portfolio-section-head--row">
             <div>
                 <span class="section-kicker">Проекты</span>
-                <h2>Избранные проекты</h2>
-                <p>Системы и продукты, которые я проектирую, развиваю и поддерживаю.</p>
+                <h2>Наши проекты</h2>
+                <p>Полезные инструменты и сервисы для работы, бизнеса и повседневных задач.</p>
             </div>
+            <a class="portfolio-inline-link" href="#publications">Все проекты <span>→</span></a>
         </div>
 
         <div class="portfolio-project-grid">
             <a class="portfolio-project-card" href="{{ url_for('workspace_organizer') }}">
                 <span class="portfolio-project-icon portfolio-project-icon--blue">◈</span>
                 <h3>Workspace Organizer</h3>
-                <p>Self-hosted рабочее пространство: заметки, задачи, файлы и командная работа.</p>
-                <span class="portfolio-project-link">Открыть проект →</span>
+                <p>Заметки, задачи, файлы и командная работа в self-hosted контуре.</p>
+                <span class="portfolio-project-link">Подробнее →</span>
             </a>
             <a class="portfolio-project-card" href="{{ url_for('vanga_demo') }}">
                 <span class="portfolio-project-icon portfolio-project-icon--violet">◉</span>
@@ -35,9 +36,32 @@
                 <span class="portfolio-project-link">GitHub →</span>
             </a>
         </div>
+
+        <div class="portfolio-feature-panel">
+            <div class="portfolio-feature-panel__copy">
+                <span class="section-kicker">О платформе</span>
+                <h3>Открытые решения,<br>развитие и поддержка</h3>
+                <p>Создаю и развиваю системы, делюсь практическим опытом и публикую документацию по собственным проектам.</p>
+                <a class="btn btn-secondary" href="#about">Подробнее <span>→</span></a>
+            </div>
+            <div class="portfolio-feature-panel__visual" aria-hidden="true">
+                <div class="portfolio-feature-window">
+                    <div class="portfolio-feature-window__nav">
+                        <strong>JSInteractive</strong>
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                    <div class="portfolio-feature-window__body">
+                        <div class="portfolio-feature-window__top"></div>
+                        <div class="portfolio-feature-window__cards"><i></i><i></i><i></i></div>
+                        <div class="portfolio-feature-window__rows"><span></span><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
+{% if articles %}
 <section class="portfolio-publications" id="publications">
     <div class="container">
         <div class="portfolio-section-head portfolio-section-head--row">
@@ -61,9 +85,8 @@
                     {% if article.category %}<span class="portfolio-article-tag">{{ article.category.title }}</span>{% endif %}
                 </div>
             </a>
-            {% else %}
-            <div class="public-empty">Публикации появятся здесь после публикации в админке.</div>
             {% endfor %}
         </div>
     </div>
 </section>
+{% endif %}
