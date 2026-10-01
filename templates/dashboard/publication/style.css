@@ -7,7 +7,7 @@
 .publication-editor-header__site{display:flex;flex-direction:column;min-width:0;line-height:1.15}
 .publication-editor-header__site strong{overflow:hidden;color:var(--admin-text);font-size:.8rem;text-overflow:ellipsis;white-space:nowrap}
 .publication-editor-header__site span{margin-top:2px;color:var(--admin-muted);font-size:.65rem}
-.publication-editor-header__actions .btn{min-height:36px;padding:0 13px}
+.publication-editor-header__actions .btn{min-height:38px;padding:8px 14px}
 .publication-state-pill{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 10px;color:var(--admin-muted);background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:999px;font-size:.72rem;font-weight:750}
 .publication-state-pill__dot{width:7px;height:7px;background:#a6aaa7;border-radius:50%}
 .publication-state-pill.is-published{color:#315e46;background:var(--admin-success-soft);border-color:rgba(77,139,104,.18)}
