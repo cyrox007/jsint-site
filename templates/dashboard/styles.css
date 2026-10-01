@@ -13,6 +13,7 @@
 {% include '/dashboard/pages/style.css' %}
 {% include '/dashboard/users/style.css' %}
 {% include '/dashboard/contact/style.css' %}
+{% include '/dashboard/inbox/style.css' %}
 {% include '/dashboard/^core/ui.css' %}
 {% include '/dashboard/^core/comfort-palette.css' %}
 {% include '/dashboard/control_plane/style.css' %}

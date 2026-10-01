@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -9,9 +10,13 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from uuid import UUID, uuid4
 
+from nacl.exceptions import CryptoError
+from nacl.secret import SecretBox
+from nacl.utils import random as nacl_random
 from sqlalchemy.orm import Session
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
@@ -19,7 +24,7 @@ from werkzeug.utils import secure_filename
 from database import Database
 from models.contact import ContactMessage
 from models.control_plane import LicenseRecord
-from models.notification import AdminNotification, DiagnosticReport
+from models.notification import AdminNotification, AdminNotificationPreferences, DiagnosticReport
 from settings import config
 
 
@@ -37,6 +42,168 @@ class NotificationDeliveryError(RuntimeError):
 
 
 class AdminNotificationService:
+    PREFERENCES_ID = 1
+
+    @staticmethod
+    def _secret_box() -> SecretBox:
+        key = hashlib.blake2b(
+            config.SECRET_KEY.encode("utf-8"),
+            digest_size=SecretBox.KEY_SIZE,
+            person=b"jsint-push-token",
+        ).digest()
+        return SecretBox(key)
+
+    @classmethod
+    def _encrypt_token(cls, token: str) -> str:
+        if not token:
+            return ""
+        encrypted = cls._secret_box().encrypt(
+            token.encode("utf-8"),
+            nacl_random(SecretBox.NONCE_SIZE),
+        )
+        return base64.urlsafe_b64encode(bytes(encrypted)).decode("ascii")
+
+    @classmethod
+    def _decrypt_token(cls, value: str | None) -> str:
+        if not value:
+            return ""
+        try:
+            payload = base64.urlsafe_b64decode(value.encode("ascii"))
+            return cls._secret_box().decrypt(payload).decode("utf-8")
+        except (ValueError, UnicodeDecodeError, CryptoError) as exc:
+            raise NotificationDeliveryError(
+                "Не удалось расшифровать token push-канала"
+            ) from exc
+
+    @staticmethod
+    def _validate_push_url(value: str) -> str:
+        value = value.strip()
+        if not value:
+            return ""
+        parsed = urlparse(value)
+        host = (parsed.hostname or "").lower()
+        loopback = host in {"127.0.0.1", "localhost", "::1"}
+        allowed_schemes = {"http", "https"} if loopback else {"https"}
+        if (
+            parsed.scheme not in allowed_schemes
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "Push URL должен быть HTTPS topic URL; HTTP разрешён только для localhost"
+            )
+        return value
+
+    @classmethod
+    def preferences(
+        cls,
+        db: Session,
+        *,
+        create: bool = True,
+    ) -> AdminNotificationPreferences | None:
+        record = (
+            db.query(AdminNotificationPreferences)
+            .filter(AdminNotificationPreferences.id == cls.PREFERENCES_ID)
+            .first()
+        )
+        if record is not None or not create:
+            return record
+
+        record = AdminNotificationPreferences(
+            id=cls.PREFERENCES_ID,
+            push_enabled=bool(config.ADMIN_PUSH_URL),
+            push_url=config.ADMIN_PUSH_URL or None,
+            push_token_encrypted=(
+                cls._encrypt_token(config.ADMIN_PUSH_TOKEN)
+                if config.ADMIN_PUSH_TOKEN
+                else None
+            ),
+            notify_contact=True,
+            notify_diagnostic=True,
+            notify_urgent=True,
+        )
+        db.add(record)
+        db.flush()
+        return record
+
+    @classmethod
+    def update_preferences(
+        cls,
+        db: Session,
+        *,
+        push_enabled: bool,
+        push_url: str,
+        push_token: str | None,
+        clear_token: bool,
+        notify_contact: bool,
+        notify_diagnostic: bool,
+        notify_urgent: bool,
+    ) -> AdminNotificationPreferences:
+        push_url = cls._validate_push_url(push_url)
+        if push_enabled and not push_url:
+            raise ValueError("Для включения push укажите URL темы ntfy")
+
+        record = cls.preferences(db)
+        assert record is not None
+        record.push_enabled = bool(push_enabled)
+        record.push_url = push_url or None
+        record.notify_contact = bool(notify_contact)
+        record.notify_diagnostic = bool(notify_diagnostic)
+        record.notify_urgent = bool(notify_urgent)
+
+        if clear_token:
+            record.push_token_encrypted = None
+        elif push_token is not None and push_token.strip():
+            record.push_token_encrypted = cls._encrypt_token(push_token.strip())
+
+        db.add(record)
+        db.flush()
+        return record
+
+    @classmethod
+    def push_state(cls, db: Session) -> dict:
+        record = cls.preferences(db)
+        assert record is not None
+        return {
+            "enabled": bool(record.push_enabled and record.push_url),
+            "url": record.push_url or "",
+            "token_configured": bool(record.push_token_encrypted),
+            "notify_contact": bool(record.notify_contact),
+            "notify_diagnostic": bool(record.notify_diagnostic),
+            "notify_urgent": bool(record.notify_urgent),
+        }
+
+    @classmethod
+    def _delivery_config(
+        cls,
+        db: Session,
+        record: AdminNotification,
+    ) -> tuple[str, str] | None:
+        preferences = cls.preferences(db)
+        assert preferences is not None
+
+        if not preferences.push_enabled or not preferences.push_url:
+            return None
+
+        force = bool((record.details or {}).get("force_push"))
+        allowed = force
+        if record.severity == "urgent" and preferences.notify_urgent:
+            allowed = True
+        elif record.kind == "contact" and preferences.notify_contact:
+            allowed = True
+        elif record.kind == "diagnostic" and preferences.notify_diagnostic:
+            allowed = True
+
+        if not allowed:
+            return None
+
+        return (
+            preferences.push_url,
+            cls._decrypt_token(preferences.push_token_encrypted),
+        )
+
     @staticmethod
     def create(
         db: Session,
@@ -61,7 +228,7 @@ class AdminNotificationService:
             source_id=source_id[:64],
             status="new",
             details=details or {},
-            push_status="pending" if config.ADMIN_PUSH_URL else "skipped",
+            push_status="pending",
         )
         db.add(record)
         db.flush()
@@ -100,7 +267,12 @@ class AdminNotificationService:
         installation_tail = str(report.installation_id)[-8:]
         severity = (
             "urgent"
-            if report.reason in {"startup_failed", "database_failed", "update_rollback", "storage_failed"}
+            if report.reason in {
+                "startup_failed",
+                "database_failed",
+                "update_rollback",
+                "storage_failed",
+            }
             else "warning"
         )
         return cls.create(
@@ -123,10 +295,21 @@ class AdminNotificationService:
             },
         )
 
+    @classmethod
+    def create_test_push(cls, db: Session) -> AdminNotification:
+        return cls.create(
+            db,
+            kind="system",
+            severity="info",
+            title="Тест push-уведомлений",
+            summary="Канал уведомлений JSInteractive работает.",
+            source_type="system",
+            source_id=uuid4().hex,
+            details={"force_push": True},
+        )
+
     @staticmethod
     def enqueue_push(notification_id: UUID | str) -> None:
-        if not config.ADMIN_PUSH_URL:
-            return
         try:
             from celery_app import celery_app
 
@@ -135,8 +318,6 @@ class AdminNotificationService:
                 args=[str(notification_id)],
             )
         except Exception as exc:
-            # Событие уже сохранено в БД. Недоступный broker не должен
-            # ломать форму связи или загрузку диагностики.
             logger.warning(
                 "Не удалось поставить push-уведомление %s в очередь: %s",
                 notification_id,
@@ -155,7 +336,9 @@ class AdminNotificationService:
         try:
             notification_uuid = UUID(str(notification_id))
         except ValueError as exc:
-            raise NotificationDeliveryError("Некорректный ID уведомления") from exc
+            raise NotificationDeliveryError(
+                "Некорректный ID уведомления"
+            ) from exc
 
         db = Database.connect_database()
         try:
@@ -167,12 +350,14 @@ class AdminNotificationService:
             if record is None:
                 return False
 
-            if not config.ADMIN_PUSH_URL:
+            delivery = cls._delivery_config(db, record)
+            if delivery is None:
                 record.push_status = "skipped"
                 record.push_error = None
                 db.commit()
                 return False
 
+            push_url, push_token = delivery
             push_text = f"{record.title}\n{record.summary}"
             headers = {
                 "Content-Type": "text/plain; charset=utf-8",
@@ -186,11 +371,11 @@ class AdminNotificationService:
                 "X-Tags": f"inbox,{record.kind}",
                 "X-Click": cls._click_url(record.id),
             }
-            if config.ADMIN_PUSH_TOKEN:
-                headers["Authorization"] = f"Bearer {config.ADMIN_PUSH_TOKEN}"
+            if push_token:
+                headers["Authorization"] = f"Bearer {push_token}"
 
             request = Request(
-                config.ADMIN_PUSH_URL,
+                push_url,
                 data=push_text.encode("utf-8"),
                 headers=headers,
                 method="POST",

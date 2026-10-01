@@ -21,7 +21,50 @@
            rel="noopener"><span aria-hidden="true">↗</span><span>Открыть сайт</span></a>
         {% endif %}
     </div>
-    <details class="header-user">
+
+    <div class="header-actions">
+        <details class="header-notifications">
+            <summary class="notification-bell" aria-label="Уведомления">
+                <span class="notification-bell__icon" aria-hidden="true">🔔</span>
+                {% if admin_unread_count %}
+                <span class="notification-bell__badge">{{ admin_unread_count if admin_unread_count < 100 else '99+' }}</span>
+                {% endif %}
+            </summary>
+            <div class="notification-dropdown">
+                <div class="notification-dropdown__head">
+                    <div>
+                        <strong>Уведомления</strong>
+                        <span>{{ admin_unread_count }} непрочитанных</span>
+                    </div>
+                    <a href="{{ url_for('admin.inbox.settings') }}" aria-label="Настройки уведомлений">⚙</a>
+                </div>
+
+                <div class="notification-dropdown__list">
+                    {% for item in admin_recent_notifications %}
+                    <a class="notification-dropdown__item {{ 'is-new' if item.status == 'new' else '' }}" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
+                        <span class="notification-dropdown__marker">{{ '⚠' if item.severity == 'urgent' else '!' if item.severity == 'warning' else '•' }}</span>
+                        <span class="notification-dropdown__copy">
+                            <strong>{{ item.title }}</strong>
+                            <small>{{ item.summary|truncate(88, true, '…') }}</small>
+                            <time>{{ item.created_at.strftime('%d.%m %H:%M') }}</time>
+                        </span>
+                    </a>
+                    {% else %}
+                    <div class="notification-dropdown__empty">
+                        <strong>Пока тихо</strong>
+                        <span>Новые обращения и диагностика появятся здесь.</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="notification-dropdown__footer">
+                    <a href="{{ url_for('admin.inbox.index') }}">Все уведомления</a>
+                    <a href="{{ url_for('admin.inbox.settings') }}">Настроить push</a>
+                </div>
+            </div>
+        </details>
+
+        <details class="header-user">
         <summary class="user-button">
             <span class="user-button__avatar" aria-hidden="true">A</span>
             <span class="user-button__copy"><strong>Администратор</strong><small>jsint-site</small></span>
@@ -35,4 +78,5 @@
             </form>
         </div>
     </details>
+    </div>
 </header>

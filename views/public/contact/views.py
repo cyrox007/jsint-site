@@ -122,9 +122,15 @@ class ContactPage(MethodView):
     decorators = [with_db_session]
 
     def get(self, db_session: Session):
+        subject = _compact(request.args.get("subject", ""))[:200]
+        values = {"subject": subject} if subject else {}
         return render_template(
             "public/contact/index.html",
-            **_context(db_session, sent=request.args.get("sent") == "1"),
+            **_context(
+                db_session,
+                sent=request.args.get("sent") == "1",
+                values=values,
+            ),
         )
 
     def post(self, db_session: Session):

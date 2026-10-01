@@ -5,8 +5,11 @@
     <header class="admin-page__header">
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">Центр событий</span>
-            <h1 class="admin-page__title">Входящие</h1>
-            <p class="admin-page__description">Обращения с сайта и диагностические отчёты Workspace Organizer в одном месте.</p>
+            <h1 class="admin-page__title">Уведомления</h1>
+            <p class="admin-page__description">Обращения с сайта, диагностика Workspace Organizer и системные события в одном месте.</p>
+        </div>
+        <div class="admin-page__actions">
+            <a class="btn secondary" href="{{ url_for('admin.inbox.settings') }}">Настроить push</a>
         </div>
     </header>
 

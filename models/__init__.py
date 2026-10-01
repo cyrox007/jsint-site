@@ -4,7 +4,7 @@ from models.users import User
 from models.site import Site
 from models.media import MediaAsset
 from models.contact import ContactMessage
-from models.notification import AdminNotification, DiagnosticReport
+from models.notification import AdminNotification, AdminNotificationPreferences, DiagnosticReport
 
 # 2. Публичные страницы и контент
 from models.page import Page, PageBlock
@@ -21,6 +21,7 @@ __all__ = [
     "MediaAsset",
     "ContactMessage",
     "AdminNotification",
+    "AdminNotificationPreferences",
     "DiagnosticReport",
     "Page",
     "PageBlock",

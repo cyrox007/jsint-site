@@ -24,6 +24,7 @@ def create_app() -> Flask:
     from views.public.articles import routers as article_router
     from views.public.contact import routers as contact_router
     from views.public.vanga import routers as vanga_router
+    from views.public.notes import routers as notes_router
     from views.public import api as public_api
     from views.public import media as public_media
     from views.public import seo as public_seo
@@ -88,10 +89,17 @@ def create_app() -> Flask:
                 .filter(AdminNotification.status == "new")
                 .count()
             )
+            recent_notifications = (
+                db_session.query(AdminNotification)
+                .order_by(AdminNotification.created_at.desc())
+                .limit(5)
+                .all()
+            )
             return {
                 "admin_sites": sites,
                 "admin_selected_site": selected_site,
                 "admin_unread_count": unread_count,
+                "admin_recent_notifications": recent_notifications,
             }
         finally:
             db_session.close()
@@ -100,6 +108,7 @@ def create_app() -> Flask:
     article_router.install(app)
     contact_router.install(app)
     vanga_router.install(app)
+    notes_router.install(app)
     public_api.install(app)
     public_media.install(app)
     auth_router.install(app)

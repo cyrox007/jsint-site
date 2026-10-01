@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -56,3 +56,27 @@ class DiagnosticReport(Database.Base):
     package_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     package_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
+
+
+
+class AdminNotificationPreferences(Database.Base):
+    __tablename__ = "admin_notification_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    push_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    push_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    push_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    notify_contact: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_diagnostic: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utcnow,
+        onupdate=utcnow,
+    )

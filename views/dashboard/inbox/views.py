@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import login_required, with_db_session
 from models.contact import ContactMessage
 from models.notification import AdminNotification, DiagnosticReport
-from services.admin_notifications import DiagnosticService
+from services.admin_notifications import AdminNotificationService, DiagnosticService
 
 
 _ALLOWED_STATUSES = {"new", "read", "archived"}
@@ -57,6 +57,53 @@ class InboxPage(MethodView):
             selected_status=status,
             selected_kind=kind,
         )
+
+
+class InboxSettingsPage(MethodView):
+    @login_required
+    @with_db_session
+    def get(self, db_session: Session):
+        return render_template(
+            "dashboard/inbox/settings.html",
+            push=AdminNotificationService.push_state(db_session),
+        )
+
+    @login_required
+    @with_db_session
+    def post(self, db_session: Session):
+        action = request.form.get("action", "save").strip()
+
+        if action == "test":
+            push = AdminNotificationService.push_state(db_session)
+            if not push["enabled"]:
+                flash("Сначала включите push и сохраните URL канала.", "error")
+                return redirect(url_for("admin.inbox.settings"))
+
+            notification = AdminNotificationService.create_test_push(db_session)
+            db_session.commit()
+            AdminNotificationService.enqueue_push(notification.id)
+            flash("Тестовое push-уведомление поставлено в очередь.", "success")
+            return redirect(url_for("admin.inbox.settings"))
+
+        try:
+            AdminNotificationService.update_preferences(
+                db_session,
+                push_enabled=request.form.get("push_enabled") == "1",
+                push_url=request.form.get("push_url", ""),
+                push_token=request.form.get("push_token"),
+                clear_token=request.form.get("clear_token") == "1",
+                notify_contact=request.form.get("notify_contact") == "1",
+                notify_diagnostic=request.form.get("notify_diagnostic") == "1",
+                notify_urgent=request.form.get("notify_urgent") == "1",
+            )
+            db_session.commit()
+        except ValueError as exc:
+            db_session.rollback()
+            flash(str(exc), "error")
+            return redirect(url_for("admin.inbox.settings"))
+
+        flash("Настройки уведомлений сохранены.", "success")
+        return redirect(url_for("admin.inbox.settings"))
 
 
 class InboxDetailPage(MethodView):

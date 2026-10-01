@@ -16,6 +16,7 @@ from settings import config
 
 _SITEMAP_PAGE_SIZE = 100
 _SITEMAP_MAX_URLS = 50_000
+_SITEMAP_STATIC_URLS = 3
 
 
 def _utc_date(value: datetime | None) -> str | None:
@@ -40,8 +41,8 @@ def _latest_datetime(values: list[datetime | None]) -> datetime | None:
 def _all_publications(db_session: Session, site_id):
     offset = 0
     result = []
-    while len(result) < _SITEMAP_MAX_URLS - 1:
-        remaining = _SITEMAP_MAX_URLS - 1 - len(result)
+    while len(result) < _SITEMAP_MAX_URLS - _SITEMAP_STATIC_URLS:
+        remaining = _SITEMAP_MAX_URLS - _SITEMAP_STATIC_URLS - len(result)
         batch = PublicationChannelService.list_public(
             db_session,
             site_id=site_id,
@@ -119,6 +120,7 @@ def sitemap_xml(db_session: Session) -> Response:
     urls: list[tuple[str, str | None]] = [
         (f"{base_url}/", _utc_date(home_modified)),
         (urljoin(f"{base_url}/", "demo/vanga"), None),
+        (urljoin(f"{base_url}/", "notes"), None),
     ]
     for publication in publications:
         if publication.category is None:

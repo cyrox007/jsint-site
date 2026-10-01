@@ -12,6 +12,11 @@ def install(app: Flask) -> None:
         methods=["GET"],
     )
     app.add_url_rule(
+        f"{prefix}/settings",
+        view_func=views.InboxSettingsPage.as_view("admin.inbox.settings"),
+        methods=["GET", "POST"],
+    )
+    app.add_url_rule(
         f"{prefix}/<uuid:notification_id>",
         view_func=views.InboxDetailPage.as_view("admin.inbox.detail"),
         methods=["GET", "POST"],
