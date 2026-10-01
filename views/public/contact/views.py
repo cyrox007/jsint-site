@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from flask import abort, redirect, render_template, request, url_for
+from flask import abort, jsonify, redirect, render_template, request, url_for
 from flask.views import MethodView
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -79,8 +79,42 @@ def _context(
     }
 
 
+def _interactive_request() -> bool:
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
 def _silent_success():
+    if _interactive_request():
+        return jsonify(
+            {
+                "ok": True,
+                "message": "Обращение принято.",
+            }
+        )
     return redirect(url_for("contact", sent="1"))
+
+
+def _error_response(
+    db_session: Session,
+    errors: list[str],
+    *,
+    values: dict[str, str] | None = None,
+    status: int = 400,
+):
+    if _interactive_request():
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "errors": errors,
+                    "contact_nonce": ContactSpamGuard.issue_challenge(),
+                }
+            ),
+            status,
+        )
+
+    context = _context(db_session, errors=errors, values=values)
+    return render_template("public/contact/index.html", **context), status
 
 
 class ContactPage(MethodView):
@@ -102,11 +136,11 @@ class ContactPage(MethodView):
         site_model = SiteService.get_default(db_session)
 
         if ContactSpamGuard.volume_blocked():
-            context = _context(
+            return _error_response(
                 db_session,
-                errors=["Слишком много отправок. Повторите попытку позже."],
+                ["Слишком много отправок. Повторите попытку позже."],
+                status=429,
             )
-            return render_template("public/contact/index.html", **context), 429
 
         ContactSpamGuard.record_attempt()
 
@@ -120,8 +154,12 @@ class ContactPage(MethodView):
         errors = _validation_errors(values)
         errors.extend(ContactSpamGuard.content_errors(values))
         if errors:
-            context = _context(db_session, errors=errors, values=values)
-            return render_template("public/contact/index.html", **context), 400
+            return _error_response(
+                db_session,
+                errors,
+                values=values,
+                status=400,
+            )
 
         if ContactSpamGuard.reply_blocked(values["reply_to"]):
             return _silent_success()
@@ -129,14 +167,14 @@ class ContactPage(MethodView):
         if not ContactSpamGuard.verify_turnstile(
             request.form.get("cf-turnstile-response", "")
         ):
-            context = _context(
+            return _error_response(
                 db_session,
-                errors=[
+                [
                     "Не удалось подтвердить отправку. Обновите страницу и повторите попытку."
                 ],
                 values=values,
+                status=400,
             )
-            return render_template("public/contact/index.html", **context), 400
 
         fingerprint = ContactSpamGuard.fingerprint(values)
         if not ContactSpamGuard.reserve_fingerprint(fingerprint):

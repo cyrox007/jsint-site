@@ -22,24 +22,23 @@
             </div>
         </div>
 
-        <div class="glass-card contact-card">
+        <div class="glass-card contact-card" data-contact-card>
             {% if sent %}
-            <div class="contact-success" role="status">
+            <div class="contact-success is-visible" role="status">
+                <span class="contact-success__code">СИСТЕМА // ПРИНЯТО</span>
                 <strong>Сообщение отправлено</strong>
                 <p>Обращение сохранено. Ответ придёт по указанному вами способу связи.</p>
                 <a class="btn btn-secondary" href="{{ url_for('index') }}">На главную</a>
             </div>
             {% else %}
-                {% if errors %}
-                <div class="contact-errors" role="alert">
+                <div class="contact-errors{% if not errors %} is-empty{% endif %}" role="alert" data-contact-errors>
                     <strong>Проверьте форму</strong>
                     <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
                 </div>
-                {% endif %}
 
-                <form method="post" class="contact-form" novalidate>
+                <form method="post" class="contact-form" novalidate data-contact-form data-min-seconds="{{ config.CONTACT_FORM_MIN_SECONDS }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="_contact_nonce" value="{{ contact_nonce }}">
+                    <input type="hidden" name="_contact_nonce" value="{{ contact_nonce }}" data-contact-nonce>
 
                     <div class="contact-honeypot" aria-hidden="true">
                         <label>Сайт<input name="website" tabindex="-1" autocomplete="off"></label>
@@ -77,13 +76,41 @@
                     </div>
                     {% endif %}
 
+                    <div class="contact-transmission" data-contact-transmission hidden aria-live="polite">
+                        <div class="contact-transmission__head">
+                            <span class="contact-transmission__signal" aria-hidden="true"></span>
+                            <span data-contact-status>Готовим отправку</span>
+                            <strong data-contact-progress-label>00%</strong>
+                        </div>
+                        <div class="contact-transmission__track" aria-hidden="true">
+                            <span data-contact-progress></span>
+                        </div>
+                        <div class="contact-transmission__trace" aria-hidden="true">
+                            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                        </div>
+                    </div>
+
                     <div class="contact-form__footer">
                         <p>Данные используются только для обработки этого обращения и ответа на него.</p>
-                        <button class="btn btn-primary" type="submit">Отправить сообщение</button>
+                        <button class="btn btn-primary contact-submit" type="submit">
+                            <span data-contact-submit-label>Отправить сообщение</span>
+                            <span class="contact-submit__mark" aria-hidden="true">→</span>
+                        </button>
                     </div>
                 </form>
+
+                <div class="contact-success contact-success--interactive" role="status" tabindex="-1" data-contact-success hidden>
+                    <span class="contact-success__code">СИСТЕМА // ПРИНЯТО</span>
+                    <strong>Сообщение доставлено</strong>
+                    <p>Канал подтверждён, обращение сохранено. Ответ придёт по указанному вами способу связи.</p>
+                    <a class="btn btn-secondary" href="{{ url_for('index') }}">На главную</a>
+                </div>
             {% endif %}
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='public/contact.js') }}" defer></script>
 {% endblock %}
