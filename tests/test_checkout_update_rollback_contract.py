@@ -8,6 +8,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class CheckoutUpdateRollbackContractTests(unittest.TestCase):
+    def test_checkout_updater_bootstraps_target_script(self):
+        script = (ROOT / "update.sh").read_text(encoding="utf-8")
+
+        self.assertIn("JSINT_UPDATER_BOOTSTRAPPED", script)
+        self.assertIn('git show "${TARGET_COMMIT}:update.sh"', script)
+        self.assertIn("Перезапуск updater из target commit", script)
+        self.assertIn("flock -u 9", script)
+        self.assertIn("JSINT_UPDATER_BOOTSTRAP_FILE", script)
+
     def test_checkout_rollback_recreates_local_database(self):
         script = (ROOT / "update.sh").read_text(encoding="utf-8")
 
