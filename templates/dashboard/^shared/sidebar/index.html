@@ -7,6 +7,7 @@
 {% set licenses_active = request.endpoint and request.endpoint.startswith('admin.licenses.') %}
 {% set releases_active = request.endpoint and request.endpoint.startswith('admin.releases.') %}
 {% set users_active = request.endpoint and request.endpoint.startswith('admin.users.') %}
+{% set inbox_active = request.endpoint and request.endpoint.startswith('admin.inbox.') %}
 {% set contact_active = request.endpoint and request.endpoint.startswith('admin.contact.') %}
 {% set audit_active = request.endpoint == 'admin.control-plane.audit' %}
 <aside class="admin-sidebar" aria-label="Навигация админ-панели">
@@ -15,6 +16,7 @@
         <ul>
             <li class="{{ 'active' if request.endpoint == 'admin.index' }}"><a href="{{ url_for('admin.index') }}"><span class="sidebar-icon">⌂</span><span>Обзор</span></a></li>
             <li class="{{ 'active' if users_active }}"><a href="{{ url_for('admin.users.index') }}"><span class="sidebar-icon">◉</span><span>Пользователи</span></a></li>
+            <li class="{{ 'active' if inbox_active }}"><a href="{{ url_for('admin.inbox.index') }}"><span class="sidebar-icon">✦</span><span>Входящие</span>{% if admin_unread_count %}<span class="sidebar-badge">{{ admin_unread_count }}</span>{% endif %}</a></li>
         </ul>
 
         <div class="sidebar-section-label sidebar-section-label--secondary">Публичные сайты</div>
