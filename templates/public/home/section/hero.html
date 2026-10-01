@@ -1,11 +1,13 @@
-{% set hero = home_settings.hero if home_settings is defined else {} %}
+{% set hero = block.settings if block is defined and block.settings else (home_settings.hero if home_settings is defined else {}) %}
+{% set hero_badge = hero.badge if hero.badge and '+УЛЬТРА' not in hero.badge else 'Разработка · Системы · Решения' %}
+{% set hero_description = hero.description if hero.description and '+УЛЬТРА' not in hero.description else 'Личный сайт о разработке, продуктах и системах. Проекты, публикации, экспертиза и практический опыт.' %}
 <section class="portfolio-hero">
     <div class="portfolio-hero__backdrop" aria-hidden="true"></div>
     <div class="container portfolio-hero__inner">
         <div class="portfolio-hero__copy">
-            <span class="portfolio-hero__badge">Разработка · Системы · Решения</span>
+            <span class="portfolio-hero__badge">{{ hero_badge }}</span>
             <h1>Технологии<br>для реальных <span>задач</span></h1>
-            <p>Личный сайт о разработке, продуктах и системах. Проекты, публикации, экспертиза и практический опыт.</p>
+            <p>{{ hero_description }}</p>
             <div class="portfolio-hero__actions">
                 <a class="btn btn-primary" href="#systems">Смотреть проекты <span>→</span></a>
                 <a class="btn btn-secondary" href="#about">Узнать больше</a>
