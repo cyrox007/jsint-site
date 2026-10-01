@@ -27,15 +27,15 @@ PUBLIC_BLOCKED_LINK_HOSTS = {
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "brand": {
-        "name": "+УЛЬТРА",
-        "subtitle": "на базе jsinteractive",
+        "name": "JSInteractive",
+        "subtitle": "личный технологический сайт",
     },
     "seo": {
         "site_name": "JSInteractive",
-        "title": "JSInteractive | +УЛЬТРА",
+        "title": "JSInteractive — проекты, публикации и разработка",
         "description": (
-            "+УЛЬТРА — независимая инженерная мини-студия: backend, realtime, "
-            "аудит и архитектура web-систем."
+            "Личный технологический сайт о разработке, продуктах, "
+            "архитектуре и self-hosted системах."
         ),
         "image_url": "",
         "locale": "ru_RU",
@@ -44,14 +44,18 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     },
     "contact": {},
     "navigation": [
-        {"label": "Системы", "href": "#systems"},
+        {"label": "Проекты", "href": "#systems"},
+        {"label": "Экспертиза", "href": "#about"},
+        {"label": "Опыт", "href": "#resume"},
         {"label": "Подход", "href": "#philosophy"},
-        {"label": "О студии", "href": "#about"},
     ],
     "footer": {
-        "description": "Инженерная мини-студия на базе jsinteractive.",
+        "description": (
+            "Личный сайт о разработке, продуктах, системах "
+            "и практическом опыте."
+        ),
         "location": "Удалённая работа",
-        "note": "backend systems · realtime infrastructure · аудит систем",
+        "note": "разработка · продукты · архитектура · self-hosted",
     },
     "api": {
         "allowed_origins": [],
