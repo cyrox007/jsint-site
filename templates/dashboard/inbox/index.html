@@ -1,0 +1,45 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}Входящие | JSInteractive{% endblock %}
+{% block content %}
+<div class="admin-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow">Центр событий</span>
+            <h1 class="admin-page__title">Входящие</h1>
+            <p class="admin-page__description">Обращения с сайта и диагностические отчёты Workspace Organizer в одном месте.</p>
+        </div>
+    </header>
+
+    <nav class="contact-inbox__filters" aria-label="Фильтр входящих">
+        <a class="btn {{ 'primary' if not selected_status and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index') }}">Все</a>
+        <a class="btn {{ 'primary' if selected_status == 'new' else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='new', kind=selected_kind or None) }}">Новые · {{ counts.new }}</a>
+        <a class="btn {{ 'primary' if selected_kind == 'contact' else 'secondary' }}" href="{{ url_for('admin.inbox.index', kind='contact', status=selected_status or None) }}">Обращения · {{ kind_counts.contact }}</a>
+        <a class="btn {{ 'primary' if selected_kind == 'diagnostic' else 'secondary' }}" href="{{ url_for('admin.inbox.index', kind='diagnostic', status=selected_status or None) }}">Диагностика · {{ kind_counts.diagnostic }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'archived' else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='archived', kind=selected_kind or None) }}">Архив · {{ counts.archived }}</a>
+    </nav>
+
+    <div class="contact-inbox__list">
+        {% for item in notifications %}
+        <a class="admin-card inbox-event {{ 'inbox-event--new' if item.status == 'new' else '' }}" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
+            <div class="contact-message__head">
+                <div>
+                    <div class="contact-message__title">
+                        <strong>{{ item.title }}</strong>
+                        <span class="status-badge {{ 'status-badge--success' if item.status == 'new' else '' }}">{{ item.status }}</span>
+                        <span class="status-badge">{{ 'Диагностика' if item.kind == 'diagnostic' else 'Обращение' if item.kind == 'contact' else item.kind }}</span>
+                    </div>
+                    <span>{{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </div>
+                <span>{{ '⚠' if item.severity == 'urgent' else '!' if item.severity == 'warning' else '•' }}</span>
+            </div>
+            <div class="contact-message__body">{{ item.summary }}</div>
+        </a>
+        {% else %}
+        <div class="admin-empty">
+            <strong>Входящих событий нет</strong>
+            <span>Новые обращения и диагностика Notes появятся здесь.</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

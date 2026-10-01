@@ -62,6 +62,8 @@ validate_loopback_bind() {
 ensure_layout() {
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0755 "${APP_ROOT}" "${RELEASES_DIR}"
     install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${CELERY_STATE_DIR}"
+    install -d -o root -g "${APP_GROUP}" -m 0770 /var/lib/jsint-site/notes-releases
+    install -d -o root -g "${APP_GROUP}" -m 0770 /var/lib/jsint-site/diagnostics
     install -d -o root -g "${APP_GROUP}" -m 0750 "${BACKUP_ROOT}"
 }
 

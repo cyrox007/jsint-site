@@ -4,6 +4,7 @@ from celery_app import celery_app
 from components.background.status import record_background_heartbeat
 from database import Database
 from services.notes_control_plane import NotesControlPlane
+from services.admin_notifications import AdminNotificationService
 from services.yandex_indexing import YandexIndexingService
 
 
@@ -48,3 +49,15 @@ def purge_revoked_license_keys():
         return deleted
     finally:
         session.close()
+
+
+@celery_app.task(
+    name="tasks.system.deliver_admin_push",
+    ignore_result=True,
+    autoretry_for=(RuntimeError,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def deliver_admin_push(notification_id: str):
+    """Отправляет безопасный push о новом событии администратору."""
+    return AdminNotificationService.deliver_push(notification_id)

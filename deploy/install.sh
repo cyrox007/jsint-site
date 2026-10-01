@@ -228,8 +228,10 @@ fi
 DB_PASSWORD_ENV="$(printf '%q' "${DB_PASSWORD}")"
 
 NOTES_RELEASE_STORAGE_PATH=/var/lib/jsint-site/notes-releases
-log "Подготовка внешнего read-only release storage для Workspace Organizer."
-install -d -o root -g "${APP_GROUP}" -m 0750 "${NOTES_RELEASE_STORAGE_PATH}"
+NOTES_DIAGNOSTIC_STORAGE_PATH=/var/lib/jsint-site/diagnostics
+log "Подготовка внешнего storage для Workspace Organizer."
+install -d -o root -g "${APP_GROUP}" -m 0770 "${NOTES_RELEASE_STORAGE_PATH}"
+install -d -o root -g "${APP_GROUP}" -m 0770 "${NOTES_DIAGNOSTIC_STORAGE_PATH}"
 
 ALLOWED_HOSTS_VALUE="${DOMAIN}"
 SERVER_NAMES="${DOMAIN}"
@@ -276,6 +278,13 @@ NOTES_CONTROL_PLANE_ENABLED=true
 NOTES_UPDATE_API_PREFIX=/api/notes/v1
 NOTES_UPDATE_BASE_URL=https://${DOMAIN}/api/notes/v1/
 NOTES_RELEASE_STORAGE_PATH=${NOTES_RELEASE_STORAGE_PATH}
+NOTES_DIAGNOSTIC_STORAGE_PATH=${NOTES_DIAGNOSTIC_STORAGE_PATH}
+NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES=10485760
+
+# Push на телефон настраивается после установки, если нужен.
+ADMIN_PUSH_URL=
+ADMIN_PUSH_TOKEN=
+ADMIN_PUSH_TIMEOUT_SECONDS=8
 
 YANDEX_METRIKA_ID=
 EOF
@@ -322,6 +331,27 @@ server {
         access_log off;
         expires 7d;
         add_header Cache-Control "public, max-age=604800";
+    }
+
+    location = /api/notes/v1/diagnostics {
+        client_max_body_size 12m;
+
+        proxy_pass http://127.0.0.1:${APP_PORT_ARG};
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+        proxy_buffering off;
+
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Authorization \$http_authorization;
+        proxy_set_header X-Notes-Installation \$http_x_notes_installation;
+
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        proxy_redirect off;
     }
 
     location / {

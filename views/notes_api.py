@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from uuid import UUID
 
 from flask import Flask, Response, jsonify, request
@@ -9,6 +11,8 @@ from sqlalchemy.orm import Session
 from components.security.csrf import csrf_exempt
 from database import Database
 from services.control_plane_audit import ControlPlaneAuditService
+from services.admin_notifications import AdminNotificationService, DiagnosticService
+from components.security.diagnostic_rate_limit import DiagnosticRateLimiter
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
@@ -210,6 +214,131 @@ def heartbeat():
 
 
 @csrf_exempt
+def diagnostics():
+    db = _session()
+    report = None
+    try:
+        _require_enabled()
+        max_bytes = config.NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES + 128 * 1024
+        # Общий лимит Flask остаётся маленьким для публичного сайта, но
+        # авторизованный diagnostic endpoint принимает контролируемый ZIP.
+        request.max_content_length = max_bytes
+        request.max_form_memory_size = 128 * 1024
+        request.max_form_parts = 8
+        if request.content_length is not None and request.content_length > max_bytes:
+            raise ControlPlaneError("Diagnostic package too large", status=413, code="package_too_large")
+
+        match = _BEARER_RE.fullmatch(request.headers.get("Authorization", "").strip())
+        if match is None:
+            raise ControlPlaneError(
+                "Authentication required",
+                status=401,
+                code="authentication_required",
+            )
+
+        installation_id = request.headers.get("X-Notes-Installation", "").strip().lower()
+        license_record = NotesControlPlane.authorize(db, installation_id, match.group(1))
+        try:
+            if DiagnosticRateLimiter.blocked(installation_id):
+                raise ControlPlaneError(
+                    "Слишком много диагностических отчётов",
+                    status=429,
+                    code="diagnostic_rate_limited",
+                )
+            DiagnosticRateLimiter.record_attempt(installation_id)
+        except RuntimeError as exc:
+            raise ControlPlaneError(
+                "Сервис защиты диагностик временно недоступен",
+                status=503,
+                code="service_unavailable",
+            ) from exc
+
+        client_version, client_version_code = _client_release_state()
+
+        if request.mimetype == "application/json":
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                raise ControlPlaneError("Invalid diagnostic request")
+            reason = data.get("reason", "manual")
+            summary = data.get("summary", "")
+            metadata = data.get("metadata", {})
+            upload = None
+        else:
+            reason = request.form.get("reason", "manual")
+            summary = request.form.get("summary", "")
+            raw_metadata = request.form.get("metadata", "{}")
+            try:
+                metadata = json.loads(raw_metadata)
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise ControlPlaneError("Invalid diagnostic metadata") from exc
+            upload = request.files.get("diagnostic")
+
+        if not isinstance(reason, str) or not isinstance(summary, str) or not isinstance(metadata, dict):
+            raise ControlPlaneError("Invalid diagnostic request")
+
+        NotesControlPlane.touch_seen(
+            db,
+            license_record,
+            action="diagnostic-upload",
+            remote_addr=request.remote_addr,
+            client_version=client_version,
+            client_version_code=client_version_code,
+            channel=request.headers.get("X-Notes-Channel", "").strip() or None,
+        )
+
+        try:
+            report, notification = DiagnosticService.create_report(
+                db,
+                license_record=license_record,
+                client_version=client_version,
+                client_version_code=client_version_code,
+                reason=reason,
+                summary=summary,
+                metadata=metadata,
+                upload=upload,
+            )
+        except ValueError as exc:
+            raise ControlPlaneError(str(exc), status=400, code="invalid_diagnostic") from exc
+
+        db.commit()
+        AdminNotificationService.enqueue_push(notification.id)
+
+        return (
+            jsonify(
+                {
+                    "status": "accepted",
+                    "diagnostic_id": str(report.id),
+                }
+            ),
+            202,
+        )
+    except ControlPlaneError as exc:
+        db.rollback()
+        if report is not None and report.package_path:
+            try:
+                Path(report.package_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+        _audit_machine_failure(
+            db,
+            action="machine.diagnostic_rejected",
+            target_id=str(report.id) if report is not None else None,
+            exc=exc,
+        )
+        return _error(exc)
+    except Exception:
+        db.rollback()
+        if report is not None and report.package_path:
+            try:
+                Path(report.package_path).unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+    finally:
+        db.close()
+
+
+@csrf_exempt
 def artifact(channel: str, name: str):
     db = _session()
     handle = None
@@ -341,6 +470,12 @@ def install(app: Flask) -> None:
         f"{prefix}/heartbeat",
         endpoint="notes_api.heartbeat",
         view_func=heartbeat,
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/diagnostics",
+        endpoint="notes_api.diagnostics",
+        view_func=diagnostics,
         methods=["POST"],
     )
     app.add_url_rule(

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from components.admin.site_context import resolve_admin_site
 from components.auth.decorator import login_required, with_db_session
 from models.contact import ContactMessage
+from models.notification import AdminNotification
 
 
 class ContactInboxPage(MethodView):
@@ -66,6 +67,18 @@ class ContactInboxPage(MethodView):
             message.read_at = None
         else:
             abort(400)
+
+        notification = (
+            db_session.query(AdminNotification)
+            .filter(
+                AdminNotification.source_type == "contact",
+                AdminNotification.source_id == str(message.id),
+            )
+            .first()
+        )
+        if notification is not None:
+            notification.status = message.status
+            notification.read_at = message.read_at
 
         db_session.add(message)
         db_session.commit()

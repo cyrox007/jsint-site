@@ -29,6 +29,7 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/jsint-site/notes-releases /var/lib/jsint-site/diagnostics
 
 [Install]
 WantedBy=multi-user.target

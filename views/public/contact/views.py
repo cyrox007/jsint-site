@@ -11,6 +11,7 @@ from components.auth.decorator import with_db_session
 from components.security.contact_rate_limit import ContactSpamGuard
 from models.contact import ContactMessage
 from services.page import PageService
+from services.admin_notifications import AdminNotificationService
 from services.site import SiteService
 from settings import config
 
@@ -186,18 +187,23 @@ class ContactPage(MethodView):
             # Redis-защита фиксируется до INSERT. При обязательном Redis
             # недоступность защиты не должна приводить к записи в PostgreSQL.
             ContactSpamGuard.record_reply(values["reply_to"])
-            db_session.add(
-                ContactMessage(
-                    site_id=site_model.id,
-                    name=values["name"],
-                    reply_to=values["reply_to"],
-                    subject=values["subject"] or None,
-                    message=values["message"],
-                    fingerprint=storage_fingerprint,
-                    status="new",
-                )
+            contact_message = ContactMessage(
+                site_id=site_model.id,
+                name=values["name"],
+                reply_to=values["reply_to"],
+                subject=values["subject"] or None,
+                message=values["message"],
+                fingerprint=storage_fingerprint,
+                status="new",
+            )
+            db_session.add(contact_message)
+            db_session.flush()
+            notification = AdminNotificationService.for_contact(
+                db_session,
+                contact_message,
             )
             db_session.commit()
+            AdminNotificationService.enqueue_push(notification.id)
         except IntegrityError:
             db_session.rollback()
             return _silent_success()

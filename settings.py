@@ -133,6 +133,47 @@ class Config:
     ).strip().rstrip("/")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    # Внутренние уведомления администратора и опциональный push на телефон.
+    # ADMIN_PUSH_URL совместим с ntfy topic URL или собственным HTTP endpoint.
+    ADMIN_PUSH_URL = os.getenv("ADMIN_PUSH_URL", "").strip()
+    ADMIN_PUSH_TOKEN = os.getenv("ADMIN_PUSH_TOKEN", "").strip()
+    ADMIN_PUSH_TIMEOUT_SECONDS = max(
+        2,
+        min(30, int(os.getenv("ADMIN_PUSH_TIMEOUT_SECONDS", "8"))),
+    )
+
+    NOTES_DIAGNOSTIC_STORAGE_PATH = os.getenv(
+        "NOTES_DIAGNOSTIC_STORAGE_PATH",
+        "/var/lib/jsint-site/diagnostics" if IS_PRODUCTION else os.path.join(BASE_DIR, "storage", "diagnostics"),
+    ).strip()
+    NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES = max(
+        1024 * 1024,
+        min(
+            64 * 1024 * 1024,
+            int(os.getenv("NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES", str(10 * 1024 * 1024))),
+        ),
+    )
+    NOTES_DIAGNOSTIC_RATE_LIMIT_ATTEMPTS = max(
+        1,
+        int(os.getenv("NOTES_DIAGNOSTIC_RATE_LIMIT_ATTEMPTS", "3")),
+    )
+    NOTES_DIAGNOSTIC_RATE_LIMIT_WINDOW_SECONDS = max(
+        60,
+        int(os.getenv("NOTES_DIAGNOSTIC_RATE_LIMIT_WINDOW_SECONDS", "3600")),
+    )
+    NOTES_DIAGNOSTIC_DAILY_LIMIT_ATTEMPTS = max(
+        NOTES_DIAGNOSTIC_RATE_LIMIT_ATTEMPTS,
+        int(os.getenv("NOTES_DIAGNOSTIC_DAILY_LIMIT_ATTEMPTS", "10")),
+    )
+    NOTES_DIAGNOSTIC_DAILY_LIMIT_WINDOW_SECONDS = max(
+        NOTES_DIAGNOSTIC_RATE_LIMIT_WINDOW_SECONDS,
+        int(os.getenv("NOTES_DIAGNOSTIC_DAILY_LIMIT_WINDOW_SECONDS", "86400")),
+    )
+    NOTES_DIAGNOSTIC_GLOBAL_DAILY_LIMIT_ATTEMPTS = max(
+        NOTES_DIAGNOSTIC_DAILY_LIMIT_ATTEMPTS,
+        int(os.getenv("NOTES_DIAGNOSTIC_GLOBAL_DAILY_LIMIT_ATTEMPTS", "50")),
+    )
+
     VANGA_DEMO_URL = os.getenv("VANGA_DEMO_URL", "http://127.0.0.1:9100").strip().rstrip("/")
     VANGA_DEMO_TIMEOUT_SECONDS = max(1, min(30, int(os.getenv("VANGA_DEMO_TIMEOUT_SECONDS", "10"))))
 
@@ -240,6 +281,22 @@ class Config:
             cls.YANDEX_INDEXNOW_KEY,
         ) is None:
             raise RuntimeError("Некорректный YANDEX_INDEXNOW_KEY")
+
+        if cls.ADMIN_PUSH_URL:
+            push = urlparse(cls.ADMIN_PUSH_URL)
+            push_host = (push.hostname or "").lower()
+            loopback_push = push_host in {"127.0.0.1", "localhost", "::1"}
+            if (
+                push.scheme not in ({"http", "https"} if loopback_push else {"https"})
+                or not push.hostname
+                or push.username is not None
+                or push.password is not None
+                or push.fragment
+            ):
+                raise RuntimeError("Некорректный ADMIN_PUSH_URL")
+
+        if not os.path.isabs(cls.NOTES_DIAGNOSTIC_STORAGE_PATH):
+            raise RuntimeError("NOTES_DIAGNOSTIC_STORAGE_PATH должен быть абсолютным путём")
 
         if cls.IS_PRODUCTION:
             if parsed_site_url.scheme != "https":

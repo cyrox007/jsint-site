@@ -63,6 +63,9 @@ server {
     # Machine API Workspace Organizer. ZIP может быть большим, поэтому
     # отдаём ответ потоково и сохраняем заголовки клиентской авторизации.
     location /api/notes/v1/ {
+        # Диагностический ZIP Notes ограничен приложением 10 МБ.
+        client_max_body_size 12m;
+
         proxy_pass http://127.0.0.1:18080;
         proxy_http_version 1.1;
         proxy_buffering off;
