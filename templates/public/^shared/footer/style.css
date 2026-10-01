@@ -108,3 +108,8 @@
         justify-content: flex-start;
     }
 }
+
+
+.footer-logo{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.footer-logo img{width:38px;height:38px;filter:drop-shadow(0 8px 18px rgba(94,234,212,.16))}
+.footer-logo strong{color:var(--text);font-size:1.05rem;letter-spacing:-.035em}
