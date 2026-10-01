@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from celery import Celery
+from celery.schedules import crontab
 
 from settings import config
 
@@ -26,6 +27,10 @@ celery_app.conf.update(
         "background-heartbeat-every-30-seconds": {
             "task": "tasks.system.background_heartbeat",
             "schedule": 30.0,
+        },
+        "purge-revoked-license-keys-daily": {
+            "task": "tasks.system.purge_revoked_license_keys",
+            "schedule": crontab(hour=3, minute=17),
         },
     },
 )
