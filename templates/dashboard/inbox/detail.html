@@ -1,0 +1,66 @@
+{% extends '/dashboard/^core/base.html' %}
+{% block title %}{{ notification.title }} | Входящие{% endblock %}
+{% block content %}
+<div class="admin-page">
+    <header class="admin-page__header">
+        <div class="admin-page__heading">
+            <span class="admin-page__eyebrow"><a href="{{ url_for('admin.inbox.index') }}">Входящие</a> · {{ notification.kind }}</span>
+            <h1 class="admin-page__title">{{ notification.title }}</h1>
+            <p class="admin-page__description">{{ notification.summary }}</p>
+        </div>
+    </header>
+
+    <article class="admin-card">
+        <div class="contact-message__head">
+            <div>
+                <strong>{{ notification.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</strong>
+                <span>Статус: {{ notification.status }} · Push: {{ notification.push_status }}</span>
+            </div>
+            <span class="status-badge">{{ notification.severity }}</span>
+        </div>
+
+        {% if notification.source_type == 'contact' and source %}
+            <h2>{{ source.subject or 'Без темы' }}</h2>
+            <p><strong>От:</strong> {{ source.name }}</p>
+            <p><strong>Связь:</strong> <code>{{ source.reply_to }}</code></p>
+            <div class="contact-message__body">{{ source.message }}</div>
+        {% elif notification.source_type == 'diagnostic' and source %}
+            <h2>Диагностический отчёт Workspace Organizer</h2>
+            <p><strong>Клиент:</strong> {{ source.customer or 'Не указан' }}</p>
+            <p><strong>License ID:</strong> <code>{{ source.license_id or '—' }}</code></p>
+            <p><strong>Installation ID:</strong> <code>{{ source.installation_id }}</code></p>
+            <p><strong>Версия:</strong> {{ source.client_version or '—' }}{% if source.client_version_code %} ({{ source.client_version_code }}){% endif %}</p>
+            <p><strong>Причина:</strong> <code>{{ source.reason }}</code></p>
+            <p><strong>Описание:</strong> {{ source.summary }}</p>
+            {% if source.package_path %}
+            <p>
+                <a class="btn primary" href="{{ url_for('admin.inbox.diagnostic', notification_id=notification.id) }}">
+                    Скачать диагностический ZIP · {{ (source.package_size / 1024)|round(1) }} КБ
+                </a>
+            </p>
+            <p><strong>SHA-256:</strong> <code>{{ source.package_sha256 }}</code></p>
+            {% endif %}
+            {% if source.metadata_json %}
+            <details>
+                <summary>Метаданные диагностики</summary>
+                <pre>{{ source.metadata_json | tojson(indent=2) }}</pre>
+            </details>
+            {% endif %}
+        {% else %}
+            <p>Исходная запись больше недоступна.</p>
+        {% endif %}
+
+        <form method="post" class="contact-message__actions">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            {% if notification.status == 'new' %}
+            <button class="btn secondary btn-small" type="submit" name="action" value="read">Прочитано</button>
+            {% endif %}
+            {% if notification.status != 'archived' %}
+            <button class="btn secondary btn-small" type="submit" name="action" value="archive">В архив</button>
+            {% else %}
+            <button class="btn secondary btn-small" type="submit" name="action" value="reopen">Вернуть в новые</button>
+            {% endif %}
+        </form>
+    </article>
+</div>
+{% endblock %}
