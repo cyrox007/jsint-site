@@ -247,6 +247,15 @@ database_restore() {
             --command="SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" >/dev/null
         sudo -u postgres dropdb --if-exists "${DB_NAME}"
         sudo -u postgres createdb --owner="${DB_USER}" "${DB_NAME}"
+    else
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+            psql \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --set=ON_ERROR_STOP=1 \
+            --command='DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' >/dev/null
     fi
 
     PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
@@ -256,8 +265,6 @@ database_restore() {
         --username="${DB_USER}" \
         --dbname="${DB_NAME}" \
         --exit-on-error \
-        --clean \
-        --if-exists \
         --no-owner \
         --no-acl \
         "${backup_file}"
