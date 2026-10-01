@@ -48,6 +48,7 @@ for arg in "$@"; do
 done
 
 require_root
+ensure_layout
 (( CONFIRMED == 1 )) || die "Обновление изменяет код и БД. Повторите с --yes."
 [[ "${KEEP_RELEASES}" =~ ^[1-9][0-9]*$ ]] || die "Некорректный --keep-releases."
 
