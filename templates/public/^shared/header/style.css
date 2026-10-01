@@ -181,3 +181,9 @@
         font-size: .78rem;
     }
 }
+
+
+.nav-actions{gap:8px}
+.nav-product{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 13px;border-radius:14px;color:#b8c9d4;font-size:.78rem;font-weight:750}
+.nav-product:hover{color:#fff;background:rgba(167,139,250,.08)}
+@media(max-width:680px){.nav-product{display:none}}
