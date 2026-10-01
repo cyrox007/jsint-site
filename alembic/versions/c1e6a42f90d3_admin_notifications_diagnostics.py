@@ -88,7 +88,7 @@ def upgrade() -> None:
                 LEFT(name || ' · ' || message, 1000),
                 'contact',
                 id::text,
-                CASE WHEN status = 'new' THEN 'new' ELSE 'read' END,
+                CASE WHEN status IN ('new', 'read', 'archived') THEN status ELSE 'read' END,
                 jsonb_build_object('name', name, 'reply_to', reply_to),
                 'skipped',
                 created_at,
