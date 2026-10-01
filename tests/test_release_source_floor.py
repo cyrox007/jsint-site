@@ -10,10 +10,15 @@ class ReleaseSourceFloorTests(unittest.TestCase):
     def test_legacy_bridge_remains_available_for_105(self):
         self.assertEqual(_source_floor_for_version(10005), 10003)
 
+    def test_emergency_1014_release_accepts_1012(self):
+        self.assertEqual(_source_floor_for_version(10014), 10012)
+
     def test_post_bridge_releases_require_immediately_previous_version(self):
         cases = [
             (10006, 10005),
             (10007, 10006),
+            (10013, 10012),
+            (10015, 10014),
             (10099, 10098),
             (10100, 10099),
             (10200, 10199),
