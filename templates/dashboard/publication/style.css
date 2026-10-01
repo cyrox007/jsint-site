@@ -1,6 +1,6 @@
 .publication-editor-shell{width:min(100%,1240px);margin:0 auto}
 .publication-editor-header{position:sticky;top:64px;z-index:70;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:-4px 0 16px;padding:10px 0 12px;background:linear-gradient(to bottom,var(--admin-page-bg) 84%,rgba(0,0,0,0))}
-.publication-editor-header__main,.publication-editor-header__actions{display:flex;align-items:center;gap:9px;min-width:0}
+.publication-editor-header__main,.publication-editor-header__actions{display:flex;align-items:center;gap:11px;min-width:0}
 .publication-editor-back{display:inline-flex;align-items:center;gap:6px;color:var(--admin-muted);font-size:.82rem;font-weight:700}
 .publication-editor-back:hover{color:var(--admin-text)}
 .publication-editor-header__divider{width:1px;height:20px;background:var(--admin-border)}
@@ -37,7 +37,7 @@
 .publication-body-field .ql-editor h2,.publication-body-field .ql-editor h3{margin-top:1.45em;color:var(--admin-text);line-height:1.25}
 .publication-body-field .ql-editor p{margin-bottom:.9em}
 
-.publication-settings{position:sticky;top:122px;display:flex;min-width:0;flex-direction:column;gap:9px}
+.publication-settings{position:sticky;top:122px;display:flex;min-width:0;flex-direction:column;gap:12px}
 .publication-settings__intro{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px 4px}
 .publication-settings__intro strong{color:var(--admin-text);font-size:.82rem}
 .publication-settings__intro span{color:var(--admin-muted);font-size:.68rem}
