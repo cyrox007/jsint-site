@@ -16,3 +16,7 @@
     background: var(--accent, #6ee7d8);
     color: #071513;
 }
+
+
+.sidebar-icon--notification{display:inline-flex;align-items:center;justify-content:center;height:20px}
+.sidebar-icon--notification .notification-icon-svg{width:17px;height:17px}
