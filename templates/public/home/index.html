@@ -1,25 +1,28 @@
 {% extends "public/^core/base.html" %}
 
 {% block content %}
-{% if home_blocks %}
-    {% for block in home_blocks %}
-        {% if block.type == "hero" %}
-            {% include 'public/home/section/hero.html' %}
-        {% elif block.type == "systems" %}
-            {% include 'public/home/section/systems.html' %}
-        {% elif block.type == "about" %}
-            {% include 'public/home/section/about.html' %}
-        {% elif block.type == "resume" %}
-            {% include 'public/home/section/resume.html' %}
-        {% elif block.type == "philosophy" %}
-            {% include 'public/home/section/philosophy.html' %}
-        {% endif %}
-    {% endfor %}
-{% else %}
+{% if home_blocks_by_type.get("hero") %}
+    {% set block = home_blocks_by_type.get("hero") %}
     {% include 'public/home/section/hero.html' %}
+{% endif %}
+
+{% if home_blocks_by_type.get("systems") %}
+    {% set block = home_blocks_by_type.get("systems") %}
     {% include 'public/home/section/systems.html' %}
+{% endif %}
+
+{% if home_blocks_by_type.get("about") %}
+    {% set block = home_blocks_by_type.get("about") %}
     {% include 'public/home/section/about.html' %}
+{% endif %}
+
+{% if home_blocks_by_type.get("resume") %}
+    {% set block = home_blocks_by_type.get("resume") %}
     {% include 'public/home/section/resume.html' %}
+{% endif %}
+
+{% if home_blocks_by_type.get("philosophy") %}
+    {% set block = home_blocks_by_type.get("philosophy") %}
     {% include 'public/home/section/philosophy.html' %}
 {% endif %}
 
