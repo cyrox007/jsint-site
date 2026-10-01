@@ -1,4 +1,4 @@
-{% set resume = home_settings.resume if home_settings is defined else {} %}
+{% set resume = block.settings if block is defined and block.settings else (home_settings.resume if home_settings is defined else {}) %}
 {% set resume_items = resume.get('items', []) %}
 <section class="portfolio-resume" id="resume">
     <div class="container">
