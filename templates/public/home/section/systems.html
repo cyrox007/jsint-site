@@ -1,3 +1,4 @@
+{% set systems = block.settings if block is defined and block.settings else (home_settings.systems if home_settings is defined else {}) %}
 <section class="portfolio-projects" id="systems">
     <div class="container">
         <div class="portfolio-section-head">
