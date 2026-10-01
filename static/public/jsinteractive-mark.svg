@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="t">
+<title id="t">JSInteractive</title>
+<defs>
+ <linearGradient id="g" x1="10" y1="10" x2="86" y2="86"><stop stop-color="#5eead4"/><stop offset=".48" stop-color="#42bfff"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+</defs>
+<path d="M47 7 76 24 65 41 49 32 35 40 49 48 39 65 10 49 21 31 37 40 50 32 36 24Z" fill="url(#g)"/>
+<path d="m58 31 28 16-10 18-16-9-13 8 14 8-11 18-29-17 11-17 16 9 12-8-13-8Z" fill="url(#g)" opacity=".94"/>
+<path d="M47 7 37 24l13 8-13 8-16-9-11 18 29 16 10-17-14-8 14-8 16 9 11-17Z" fill="#071018" opacity=".22"/>
+</svg>
