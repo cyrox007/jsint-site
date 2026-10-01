@@ -160,6 +160,10 @@ class Config:
         30,
         int(os.getenv("OPERATOR_AUDIT_RETENTION_DAYS", "730")),
     )
+    LICENSE_REVOKED_RETENTION_DAYS = max(
+        30,
+        int(os.getenv("LICENSE_REVOKED_RETENTION_DAYS", "30")),
+    )
 
     @classmethod
     def database_url(cls, async_mode: bool = False) -> str:
