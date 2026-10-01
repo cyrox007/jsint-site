@@ -46,6 +46,11 @@
                 <pre>{{ source.metadata_json | tojson(indent=2) }}</pre>
             </details>
             {% endif %}
+        {% elif notification.source_type == 'system' %}
+            <h2>Системное уведомление</h2>
+            <p>{{ notification.summary }}</p>
+            <p><strong>Push:</strong> {{ notification.push_status }}</p>
+            {% if notification.push_error %}<p><strong>Ошибка доставки:</strong> {{ notification.push_error }}</p>{% endif %}
         {% else %}
             <p>Исходная запись больше недоступна.</p>
         {% endif %}
