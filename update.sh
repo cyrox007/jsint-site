@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+if [[ -n "${JSINT_UPDATER_BOOTSTRAP_FILE:-}" ]]; then
+    trap 'rm -f -- "${JSINT_UPDATER_BOOTSTRAP_FILE}"' EXIT
+fi
+
 APP_DIR="${JSINT_APP_DIR:-/home/projects/js}"
 ENV_FILE="${JSINT_ENV_FILE:-${APP_DIR}/.env}"
 BACKUP_ROOT="${JSINT_BACKUP_ROOT:-/var/backups/jsint-site}"
@@ -105,6 +109,22 @@ fi
 
 OLD_COMMIT="$(git rev-parse HEAD)"
 log "Текущее состояние checkout: branch=${CURRENT_BRANCH:-detached}, HEAD=${OLD_COMMIT}, target=${TARGET_REF}@${TARGET_COMMIT}."
+
+if [[ "${JSINT_UPDATER_BOOTSTRAPPED:-0}" != "1" ]]; then
+    TARGET_UPDATER="$(mktemp /tmp/jsint-site-update.XXXXXX)"
+    if git show "${TARGET_COMMIT}:update.sh" >"${TARGET_UPDATER}" 2>/dev/null; then
+        chmod 0700 "${TARGET_UPDATER}"
+        if ! cmp -s "${BASH_SOURCE[0]}" "${TARGET_UPDATER}"; then
+            log "Перезапуск updater из target commit ${TARGET_COMMIT:0:12}, чтобы обновление не выполнялось старой версией скрипта."
+            flock -u 9
+            exec env \
+                JSINT_UPDATER_BOOTSTRAPPED=1 \
+                JSINT_UPDATER_BOOTSTRAP_FILE="${TARGET_UPDATER}" \
+                bash "${TARGET_UPDATER}" "$@"
+        fi
+    fi
+    rm -f -- "${TARGET_UPDATER:-}"
+fi
 if [[ "${TARGET_COMMIT}" == "${OLD_COMMIT}" ]]; then
     log "Commit ${TARGET_COMMIT} уже находится на диске. Выполняю полное обновление runtime и перезапуск сервисов."
 fi
