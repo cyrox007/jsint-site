@@ -60,7 +60,15 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
             config.NOTES_DIAGNOSTIC_UPLOAD_MAX_BYTES = 1024 * 1024
             try:
                 safe = FileStorage(
-                    stream=io.BytesIO(zip_bytes({"logs/app.log": b"ok"})),
+                    stream=io.BytesIO(
+                        zip_bytes(
+                            {
+                                "logs/app.log": b"ok",
+                                "health.json": b'{"status":"degraded","database":true}',
+                                "privacy.json": b'{"user_content_included":false}',
+                            }
+                        )
+                    ),
                     filename="diagnostic.zip",
                 )
                 name, path, size, sha256 = DiagnosticService._store_package(
@@ -71,6 +79,9 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
                 self.assertTrue(pathlib.Path(path).is_file())
                 self.assertGreater(size, 0)
                 self.assertEqual(len(sha256), 64)
+                preview = DiagnosticService._read_diagnostic_preview(pathlib.Path(path))
+                self.assertEqual(preview["health"]["status"], "degraded")
+                self.assertFalse(preview["privacy"]["user_content_included"])
 
                 unsafe = FileStorage(
                     stream=io.BytesIO(zip_bytes({"../secret.txt": b"no"})),
