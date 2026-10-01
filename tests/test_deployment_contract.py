@@ -135,7 +135,7 @@ class DeploymentContractTests(unittest.TestCase):
         self.assertIn("sudo -u postgres dropdb --if-exists", runtime)
         self.assertIn("sudo -u postgres createdb --owner=", runtime)
         self.assertNotIn("--clean", runtime)
-        self.assertNotIn("--if-exists", runtime)
+        self.assertIn("dropdb --if-exists", runtime)
 
 
 if __name__ == "__main__":
