@@ -80,7 +80,7 @@ def upgrade() -> None:
                 push_status, created_at, read_at
             )
             SELECT
-                md5(id::text || ':contact')::uuid,
+                md5(id::text || '|contact')::uuid,
                 site_id,
                 'contact',
                 'info',
