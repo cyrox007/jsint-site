@@ -12,6 +12,7 @@ from components.security.csrf import csrf_exempt
 from database import Database
 from services.control_plane_audit import ControlPlaneAuditService
 from services.admin_notifications import AdminNotificationService, DiagnosticService
+from components.security.diagnostic_rate_limit import DiagnosticRateLimiter
 from services.notes_control_plane import ControlPlaneError, NotesControlPlane
 from settings import config
 
@@ -237,6 +238,21 @@ def diagnostics():
 
         installation_id = request.headers.get("X-Notes-Installation", "").strip().lower()
         license_record = NotesControlPlane.authorize(db, installation_id, match.group(1))
+        try:
+            if DiagnosticRateLimiter.blocked(installation_id):
+                raise ControlPlaneError(
+                    "Слишком много диагностических отчётов",
+                    status=429,
+                    code="diagnostic_rate_limited",
+                )
+            DiagnosticRateLimiter.record_attempt(installation_id)
+        except RuntimeError as exc:
+            raise ControlPlaneError(
+                "Сервис защиты диагностик временно недоступен",
+                status=503,
+                code="service_unavailable",
+            ) from exc
+
         client_version, client_version_code = _client_release_state()
 
         if request.mimetype == "application/json":
