@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import zipfile
-from email.header import Header
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -174,11 +173,11 @@ class AdminNotificationService:
                 db.commit()
                 return False
 
-            title_header = Header(record.title, "utf-8").encode()
+            push_text = f"{record.title}\n{record.summary}"
             headers = {
                 "Content-Type": "text/plain; charset=utf-8",
                 "User-Agent": "jsint-site/admin-notifications",
-                "X-Title": title_header,
+                "X-Title": "JSInteractive",
                 "X-Priority": {
                     "info": "default",
                     "warning": "high",
@@ -192,7 +191,7 @@ class AdminNotificationService:
 
             request = Request(
                 config.ADMIN_PUSH_URL,
-                data=record.summary.encode("utf-8"),
+                data=push_text.encode("utf-8"),
                 headers=headers,
                 method="POST",
             )
