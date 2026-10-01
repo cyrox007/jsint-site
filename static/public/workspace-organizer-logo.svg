@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 160" role="img" aria-labelledby="title desc">
+<title id="title">Workspace Organizer</title>
+<desc id="desc">Логотип Workspace Organizer</desc>
+<defs>
+  <linearGradient id="word" x1="190" y1="92" x2="580" y2="142" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#20D3F5"/>
+    <stop offset=".45" stop-color="#1F9AF9"/>
+    <stop offset=".82" stop-color="#1567F1"/>
+    <stop offset="1" stop-color="#6C53F5"/>
+  </linearGradient>
+</defs>
+<g transform="translate(0 0) scale(.98)">
+  <rect x="10" y="10" width="140" height="140" rx="38" fill="#1F9AF9"/>
+  <path d="M36 49c0-8 6-14 14-14h66c8 0 14 6 14 14v17H52c-9 0-16 7-16 16V49Z" fill="#5DE5FF"/>
+  <path d="M29 69c0-9 7-16 16-16h80c5 0 9 4 9 9v51c0 13-10 23-23 23H52c-13 0-23-10-23-23V69Z" fill="#1567F1"/>
+  <path d="M46 80c0-8 6-14 14-14h57c7 0 12 6 12 12v28c0 17-13 30-30 30H66c-11 0-20-9-20-20V80Z" fill="#EAF7FF"/>
+  <path d="M43 124c24-13 42-34 52-60 9 18 20 31 35 39" fill="none" stroke="#6C53F5" stroke-width="8" stroke-linecap="round"/>
+</g>
+<text x="178" y="73" fill="#081429" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="54" font-weight="800" letter-spacing="-2">Workspace</text>
+<text x="178" y="132" fill="url(#word)" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="54" font-weight="800" letter-spacing="-2">Organizer</text>
+</svg>
