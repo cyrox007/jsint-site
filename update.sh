@@ -291,15 +291,40 @@ rollback() {
             "${BACKUP_FILE}"
     fi
 
+    RESTORE_STATUS=$?
+    if (( RESTORE_STATUS != 0 )); then
+        log "КРИТИЧЕСКАЯ ОШИБКА: PostgreSQL snapshot не восстановлен. Старый runtime не запускается."
+        log "Backup сохранён: ${BACKUP_FILE}"
+        set -e
+        return 2
+    fi
+
+    EXPECTED_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" heads 2>/dev/null | awk 'NR==1 {print $1}')"
+    CURRENT_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" current 2>/dev/null | awk 'NR==1 {print $1}')"
+    if [[ -z "${EXPECTED_DB_HEAD}" || -z "${CURRENT_DB_HEAD}" || "${EXPECTED_DB_HEAD}" != "${CURRENT_DB_HEAD}" ]]; then
+        log "КРИТИЧЕСКАЯ ОШИБКА: revision БД после restore не совпадает со старым кодом."
+        log "Ожидалось: ${EXPECTED_DB_HEAD:-unknown}; фактически: ${CURRENT_DB_HEAD:-unknown}."
+        log "Backup сохранён: ${BACKUP_FILE}"
+        set -e
+        return 2
+    fi
+
     systemctl daemon-reload
-    start_services
+    if ! start_services; then
+        log "КРИТИЧЕСКАЯ ОШИБКА: snapshot восстановлен, но старый runtime не запустился."
+        set -e
+        return 2
+    fi
     sleep 2
     if http_health; then
-        log "Rollback подтверждён: ${OLD_COMMIT}"
-    else
-        log "КРИТИЧЕСКАЯ ОШИБКА: rollback выполнен, но healthcheck не прошёл."
+        log "Rollback подтверждён: ${OLD_COMMIT}; PostgreSQL revision=${CURRENT_DB_HEAD}."
+        set -e
+        return 0
     fi
+
+    log "КРИТИЧЕСКАЯ ОШИБКА: snapshot восстановлен, но healthcheck старой версии не прошёл."
     set -e
+    return 2
 }
 
 log "Обновление ${OLD_COMMIT:0:12} -> ${TARGET_COMMIT:0:12}."
