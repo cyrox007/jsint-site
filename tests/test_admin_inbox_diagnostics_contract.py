@@ -49,7 +49,7 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
     def test_push_does_not_include_diagnostic_archive(self):
         service = self.read("services/admin_notifications.py")
         self.assertIn('"X-Click"', service)
-        self.assertIn("record.summary.encode", service)
+        self.assertIn("push_text.encode", service)
         self.assertNotIn("package_path.encode", service)
 
     def test_safe_zip_is_stored_and_traversal_is_rejected(self):
