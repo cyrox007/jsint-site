@@ -37,6 +37,8 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
         self.assertIn('f"{prefix}/diagnostics"', notes_api)
         self.assertIn("NotesControlPlane.authorize", notes_api)
         self.assertIn("DiagnosticService.create_report", notes_api)
+        self.assertIn("request.max_content_length = max_bytes", notes_api)
+        self.assertIn("request.max_form_parts = 8", notes_api)
         self.assertIn("admin.inbox.index", sidebar)
         self.assertIn("admin_unread_count", sidebar)
 
