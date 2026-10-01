@@ -1,6 +1,6 @@
-.users-create{margin-bottom:18px}
+.users-create{margin-bottom:20px}
 .users-create__actions{display:flex;justify-content:flex-end}
-.users-list{display:grid;gap:12px}
+.users-list{display:grid;gap:14px}
 .user-card{padding:0;overflow:hidden}
 .user-card__summary{padding:16px 18px;border-bottom:1px solid var(--admin-border);background:var(--admin-surface-subtle)}
 .user-card__identity{display:flex;align-items:center;gap:12px}
@@ -9,6 +9,6 @@
 .user-card__title{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.user-card__title strong{color:var(--admin-text);font-size:.92rem}
 .user-card__body{display:grid;gap:16px;padding:16px 18px}
 .user-card__form,.user-card__password{padding-bottom:16px;border-bottom:1px solid var(--admin-border)}
-.user-card__actions,.user-card__danger{display:flex;justify-content:flex-end}
+.user-card__actions,.user-card__danger{display:flex;justify-content:flex-end;gap:10px}
 .user-card__password-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px}
 @media(max-width:640px){.user-card__password-row{grid-template-columns:1fr}.user-card__password-row .btn,.users-create__actions .btn{width:100%}}
