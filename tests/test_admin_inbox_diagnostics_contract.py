@@ -103,6 +103,7 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
         checkout_nginx = self.read("deploy/checkout/nginx.conf.example")
         installer = self.read("deploy/install.sh")
         release_lib = self.read("deploy/release-lib.sh")
+        release_update = self.read("deploy/update.sh")
 
         self.assertIn("NOTES_DIAGNOSTIC_STORAGE_PATH", update_script)
         self.assertIn("/var/lib/jsint-site/diagnostics", checkout_setup)
@@ -112,6 +113,7 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
         self.assertIn("NOTES_DIAGNOSTIC_STORAGE_PATH", installer)
         self.assertIn("location = /api/notes/v1/diagnostics", installer)
         self.assertIn("/var/lib/jsint-site/diagnostics", release_lib)
+        self.assertIn("ensure_layout", release_update)
 
 
 if __name__ == "__main__":
