@@ -101,6 +101,10 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('content="noindex,nofollow"', html)
         self.assertIn('/projects/vanga', html)
+        self.assertIn(
+            "noindex",
+            response.headers.get("X-Robots-Tag", ""),
+        )
 
     def test_health_endpoint(self):
         response = self.client.get("/healthz", base_url=self.base)
