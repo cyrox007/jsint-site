@@ -22,7 +22,7 @@
             </div>
         </div>
 
-        <div class="glass-card contact-card" data-contact-card>
+        <div class="glass-card contact-card{% if sent %} is-success{% endif %}" data-contact-card>
             {% if sent %}
             <div class="contact-success is-visible" role="status">
                 <span class="contact-success__code">СИСТЕМА // ПРИНЯТО</span>
