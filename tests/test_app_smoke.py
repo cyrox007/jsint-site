@@ -71,6 +71,24 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn(f"<loc>{config.SITE_BASE_URL}/</loc>", body)
         self.assertNotIn(config.ADMIN_ROUTE_PREFIX, body)
         self.assertNotIn(config.NOTES_UPDATE_API_PREFIX, body)
+        self.assertIn(
+            f"<loc>{config.SITE_BASE_URL}/projects/phoenixos</loc>",
+            body,
+        )
+        self.assertIn(
+            f"<loc>{config.SITE_BASE_URL}/projects/churchcms</loc>",
+            body,
+        )
+
+    def test_internal_project_promo_pages(self):
+        for path, marker in [
+            ("/projects/phoenixos", "PhoenixOS"),
+            ("/projects/churchcms", "ChurchCMS"),
+        ]:
+            with self.subTest(path=path):
+                response = self.client.get(path, base_url=self.base)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(marker, response.get_data(as_text=True))
 
     def test_health_endpoint(self):
         response = self.client.get("/healthz", base_url=self.base)
