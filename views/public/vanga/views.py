@@ -8,7 +8,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from flask import jsonify, render_template, request
+from flask import abort, jsonify, render_template, request, url_for
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
@@ -420,6 +420,101 @@ def _save_prediction_snapshot(db_session, site_id, payload: dict, prediction: di
         return None
 
 
+def _prediction_from_snapshot(record: VangaPrediction) -> tuple[dict, dict[str, str]]:
+    """Восстанавливает публичный ответ из неизменяемого snapshot без inference."""
+    request_data = record.request_data if isinstance(record.request_data, dict) else {}
+    result_data = record.result_data if isinstance(record.result_data, dict) else {}
+
+    prediction = {
+        "ok": True,
+        "title": record.title,
+        "imdb_id": record.imdb_id,
+        "generation": record.model_generation,
+        "rating": float(record.rating),
+        "base": result_data.get("base"),
+        "contributions": result_data.get("contributions") or {},
+        "explanation": result_data.get("explanation"),
+        "input_resolution": result_data.get("input_resolution") or {},
+        "uncertainty": result_data.get("uncertainty"),
+        "quality": result_data.get("quality") or {},
+    }
+
+    genres = request_data.get("genres") or []
+    actors = request_data.get("actors") or []
+    form = {
+        "imdb_id": str(record.imdb_id or ""),
+        "title": str(request_data.get("title") or record.title),
+        "director": str(request_data.get("director") or ""),
+        "year": str(request_data.get("year") or record.year),
+        "runtime": str(request_data.get("runtime") or ""),
+        "genres": (
+            ", ".join(str(item) for item in genres)
+            if isinstance(genres, list)
+            else str(genres)
+        ),
+        "actors": (
+            ", ".join(str(item) for item in actors)
+            if isinstance(actors, list)
+            else str(actors)
+        ),
+    }
+    return prediction, form
+
+
+def _snapshot_url(record: VangaPrediction | None) -> str | None:
+    if record is None:
+        return None
+    return url_for(
+        "vanga_snapshot",
+        snapshot_id=record.id,
+        _external=True,
+    )
+
+
+@with_db_session
+def vanga_snapshot(db_session, snapshot_id):
+    site_model = SiteService.get_default(db_session)
+    record = (
+        db_session.query(VangaPrediction)
+        .filter(VangaPrediction.id == snapshot_id)
+        .filter(VangaPrediction.site_id == site_model.id)
+        .first()
+    )
+    if record is None:
+        abort(404)
+
+    prediction, form = _prediction_from_snapshot(record)
+    page = VangaDemoPage()
+    context = page._base_context(db_session)
+    snapshot_url = _snapshot_url(record)
+
+    context.update(
+        {
+            "seo_title": (
+                f"Vanga: прогноз для {record.title} — "
+                f"{float(record.rating):.2f}/10"
+            ),
+            "seo_description": (
+                f"Сохранённый прогноз Vanga для фильма {record.title}: "
+                f"{float(record.rating):.2f} из 10. "
+                "Версия модели и объяснение сохранены в момент расчёта."
+            ),
+            "canonical_url": snapshot_url,
+            "seo_noindex": True,
+        }
+    )
+
+    return render_template(
+        "public/vanga/index.html",
+        **context,
+        form=form,
+        prediction=prediction,
+        prediction_output=_prediction_output(prediction),
+        demo_error=None,
+        snapshot_url=snapshot_url,
+    )
+
+
 def _json_no_store(payload: dict, status: int = 200):
     response = jsonify(payload)
     response.status_code = status
@@ -496,6 +591,7 @@ def vanga_predict_api(db_session):
         payload,
         prediction,
     )
+    snapshot_url = _snapshot_url(snapshot)
 
     return _json_no_store(
         {
@@ -507,6 +603,7 @@ def vanga_predict_api(db_session):
                     "id": str(snapshot.id),
                     "generation": snapshot.model_generation,
                     "created_at": snapshot.created_at.isoformat(),
+                    "url": snapshot_url,
                 }
                 if snapshot is not None
                 else None
@@ -516,6 +613,7 @@ def vanga_predict_api(db_session):
                 prediction=prediction,
                 prediction_output=output,
                 demo_error=None,
+                snapshot_url=snapshot_url,
             ),
             "analysis_html": render_template(
                 "public/vanga/_analysis.html",
@@ -584,6 +682,7 @@ class VangaDemoPage(MethodView):
             prediction=None,
             prediction_output=None,
             demo_error=None,
+            snapshot_url=None,
         )
 
     def post(self, db_session):
@@ -611,12 +710,13 @@ class VangaDemoPage(MethodView):
             ), 503
 
         output = _prediction_output(prediction)
-        _save_prediction_snapshot(
+        snapshot = _save_prediction_snapshot(
             db_session,
             context["site_model"].id,
             payload,
             prediction,
         )
+        snapshot_url = _snapshot_url(snapshot)
 
         return render_template(
             "public/vanga/index.html",
@@ -625,4 +725,5 @@ class VangaDemoPage(MethodView):
             prediction=prediction,
             prediction_output=output,
             demo_error=None,
+            snapshot_url=snapshot_url,
         )
