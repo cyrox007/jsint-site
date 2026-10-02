@@ -92,6 +92,28 @@
                         </div>
                     </div>
 
+                    {% if prediction_output.recognized_inputs %}
+                    <div class="vanga-recognition">
+                        <div class="vanga-recognition__head">
+                            <span>Распознано по русскому вводу</span>
+                            <small>Wikidata → локальный IMDb</small>
+                        </div>
+                        <div class="vanga-recognition__list">
+                            {% for item in prediction_output.recognized_inputs %}
+                            <article>
+                                <span>{{ item.kind }}</span>
+                                <div>
+                                    <strong>{{ item.input }}</strong>
+                                    <i>→</i>
+                                    <b>{{ item.canonical }}</b>
+                                </div>
+                                {% if item.imdb_id %}<small>{{ item.imdb_id }}</small>{% endif %}
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="vanga-result__summary">
                         {% if prediction_output.base is not none %}
                         <article>
