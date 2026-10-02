@@ -78,8 +78,11 @@ class VangaDemoPage(MethodView):
         )
         return {
             "site": site,
-            "seo_title": "КиноВанга — демонстрация модели | JSInteractive",
-            "seo_description": "Демонстрация модели КиноВанга: прогноз рейтинга фильма по режиссёру, актёрам, жанру, году и длительности.",
+            "seo_title": "Прогноз рейтинга фильма до выхода — Vanga",
+            "seo_description": (
+                "Попробуйте спрогнозировать рейтинг ещё не вышедшего фильма "
+                "по режиссёру, актёрам, жанру, году и длительности."
+            ),
             "canonical_url": canonical_url,
             "seo_noindex": True,
             "service_ready": service_ready,
