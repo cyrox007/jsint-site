@@ -74,6 +74,23 @@
                     <div class="vanga-suggest" role="listbox" hidden data-vanga-director-suggestions></div>
                 </label>
 
+                <label class="vanga-field vanga-field--search" data-vanga-field>
+                    <span>Сценарист</span>
+                    <input
+                        name="writer"
+                        maxlength="240"
+                        value="{{ form.writer }}"
+                        placeholder="Джонатан Нолан"
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        data-vanga-person-search
+                        data-role="writer"
+                    >
+                    <small>Необязательное поле. После новой model schema история сценариста становится отдельным признаком.</small>
+                    <div class="vanga-suggest" role="listbox" hidden data-vanga-writer-suggestions></div>
+                </label>
+
                 <div class="vanga-form__row">
                     <label class="vanga-field" data-vanga-field>
                         <span>Год</span>
@@ -144,7 +161,7 @@
                 <div>
                     <span class="vanga-demo__eyebrow">What-if конструктор</span>
                     <h2>Сравнение двух сценариев</h2>
-                    <p>Вариант A остаётся зафиксированным. Измените параметры формы и пересчитайте — Vanga покажет, насколько изменился прогноз и какие именно поля вы поменяли.</p>
+                    <p>Вариант A остаётся зафиксированным. Измените режиссёра, сценариста, актёров, жанр, год или длительность и пересчитайте — Vanga покажет, насколько изменился прогноз и какие именно поля вы поменяли.</p>
                 </div>
                 <button type="button" data-vanga-compare-reset>Сбросить сравнение</button>
             </div>
