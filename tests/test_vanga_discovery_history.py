@@ -20,6 +20,7 @@ class VangaDiscoveryHistoryTests(unittest.TestCase):
                 "imdb_id": "tt0816692",
                 "title": "Interstellar",
                 "director": "Christopher Nolan",
+                "writer": "Jonathan Nolan",
                 "year": "2014",
                 "runtime": "169",
                 "genres": ["Adventure", "Drama", "Sci-Fi"],
@@ -29,6 +30,8 @@ class VangaDiscoveryHistoryTests(unittest.TestCase):
 
         self.assertIsNone(error)
         self.assertEqual(payload["imdb_id"], "tt0816692")
+        self.assertEqual(payload["writer"], "Jonathan Nolan")
+        self.assertEqual(form["writer"], "Jonathan Nolan")
         self.assertEqual(payload["genres"], ["Adventure", "Drama", "Sci-Fi"])
         self.assertEqual(payload["actors"][1], "Anne Hathaway")
         self.assertEqual(form["genres"], "Adventure, Drama, Sci-Fi")
@@ -61,6 +64,8 @@ class VangaDiscoveryHistoryTests(unittest.TestCase):
 
         self.assertIn("data-vanga-movie-search", template)
         self.assertIn("data-vanga-person-search", template)
+        self.assertIn('data-role="writer"', template)
+        self.assertIn("data-vanga-writer-suggestions", template)
         self.assertIn("data-vanga-genre-chips", template)
         self.assertIn("data-vanga-history", template)
         self.assertIn("data-predict-url", template)
