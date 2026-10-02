@@ -7,7 +7,10 @@
                 <span class="section-kicker">Опыт</span>
                 <h2>Опыт и резюме</h2>
                 <p>{{ resume.get('subtitle') or 'Практический опыт разработки web-приложений, внутренних систем и собственных продуктов. Фокус — на системах, которые можно поддерживать и развивать.' }}</p>
-                <a class="btn btn-primary" href="{{ url_for('contact') }}">Обсудить работу <span>→</span></a>
+                <div class="portfolio-resume__actions">
+                    <button class="btn btn-primary" type="button" data-resume-open>Подробнее <span>→</span></button>
+                    <a class="btn btn-secondary" href="{{ url_for('contact') }}">Обсудить работу</a>
+                </div>
             </div>
             <div class="portfolio-resume__timeline">
                 {% if resume_items %}
@@ -17,7 +20,7 @@
                         <div>
                             <strong>{{ item.position or item.company }}</strong>
                             <p>{{ item.company }}{% if item.period %} · {{ item.period }}{% endif %}</p>
-                            {% if item.description %}<small>{{ item.description|truncate(110, true, '…') }}</small>{% endif %}
+                            {% if item.description %}<small>{{ item.description|truncate(125, true, '…') }}</small>{% endif %}
                         </div>
                     </article>
                     {% endfor %}
@@ -30,10 +33,71 @@
             <div class="portfolio-resume__stack">
                 <span class="section-kicker">Стек</span>
                 <div>
-                    <span>Python</span><span>PHP</span><span>JavaScript</span><span>PostgreSQL</span>
-                    <span>Redis</span><span>Docker</span><span>Nginx</span><span>Linux</span><span>Git</span>
+                    <span>Python</span><span>PHP</span><span>JavaScript</span><span>Vue</span>
+                    <span>FastAPI</span><span>Flask</span><span>PostgreSQL</span><span>MySQL</span>
+                    <span>Redis</span><span>Docker</span><span>Nginx</span><span>Linux</span>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="resume-modal" data-resume-modal aria-hidden="true">
+        <div class="resume-modal__backdrop" data-resume-close></div>
+        <section class="resume-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="resume-modal-title">
+            <button class="resume-modal__close" type="button" aria-label="Закрыть" data-resume-close>×</button>
+            <div class="resume-modal__header">
+                <span class="section-kicker">Подробнее</span>
+                <h2 id="resume-modal-title">Опыт и резюме</h2>
+                <p>Полная версия блока опыта. Здесь можно показать больше деталей, не растягивая главную страницу.</p>
+            </div>
+
+            <div class="resume-modal__profile">
+                <article>
+                    <strong>Full-stack</strong>
+                    <span>Frontend + backend + данные + инфраструктура</span>
+                </article>
+                <article>
+                    <strong>Продуктовый подход</strong>
+                    <span>От постановки задачи до эксплуатации и развития</span>
+                </article>
+                <article>
+                    <strong>Широкий стек</strong>
+                    <span>PHP, Python, JavaScript, Vue, SQL, Redis, Linux</span>
+                </article>
+            </div>
+
+            <div class="resume-modal__timeline">
+                {% if resume_items %}
+                    {% for item in resume_items %}
+                    <article>
+                        <span>{{ '%02d'|format(loop.index) }}</span>
+                        <div>
+                            <div class="resume-modal__job-title">
+                                <strong>{{ item.position or item.company }}</strong>
+                                {% if item.period %}<time>{{ item.period }}</time>{% endif %}
+                            </div>
+                            {% if item.company %}<p>{{ item.company }}</p>{% endif %}
+                            {% if item.description %}<small>{{ item.description }}</small>{% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <article><span>01</span><div><strong>Разработка web-сервисов</strong><p>Backend, API, интеграции, базы данных, фоновые задачи и эксплуатация.</p></div></article>
+                    <article><span>02</span><div><strong>Full-stack продукты</strong><p>Интерфейсы, CMS, внутренние панели и пользовательские сценарии.</p></div></article>
+                    <article><span>03</span><div><strong>Исследовательские проекты</strong><p>ML/NLP, video processing и эксперименты с собственными системами.</p></div></article>
+                {% endif %}
+            </div>
+
+            <div class="resume-modal__stack">
+                <span>HTML / CSS / SCSS</span><span>JavaScript / Vue</span><span>PHP / Laravel</span>
+                <span>Python / Flask / FastAPI</span><span>Go</span><span>PostgreSQL / MySQL / SQLite</span>
+                <span>Redis</span><span>Docker / Nginx / Linux</span><span>C / C#</span>
+            </div>
+
+            <div class="resume-modal__footer">
+                <a class="btn btn-primary" href="{{ url_for('contact') }}">Связаться <span>→</span></a>
+                <button class="btn btn-secondary" type="button" data-resume-close>Закрыть</button>
+            </div>
+        </section>
     </div>
 </section>
