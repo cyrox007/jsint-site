@@ -33,6 +33,16 @@ class CheckoutUpdateRollbackContractTests(unittest.TestCase):
             script,
         )
 
+    def test_checkout_rollback_detects_local_postgresql_beyond_localhost(self):
+        script = (ROOT / "update.sh").read_text(encoding="utf-8")
+
+        self.assertIn("database_is_local()", script)
+        self.assertIn("inet_server_addr()", script)
+        self.assertIn("hostname -I", script)
+        self.assertIn("/var/run/postgresql", script)
+        self.assertIn("::1", script)
+        self.assertIn("if database_is_local; then", script)
+
     def test_checkout_rollback_skips_database_before_migrations(self):
         script = (ROOT / "update.sh").read_text(encoding="utf-8")
 
@@ -45,8 +55,14 @@ class CheckoutUpdateRollbackContractTests(unittest.TestCase):
             "Миграции БД не запускались — PostgreSQL rollback не требуется.",
             script,
         )
+        self.assertIn("PRE_MIGRATION_DB_HEAD", script)
+        self.assertIn("TARGET_DB_HEAD", script)
         self.assertIn(
             'MIGRATIONS_STARTED=1',
+            script,
+        )
+        self.assertIn(
+            "Alembic уже на target revision",
             script,
         )
 

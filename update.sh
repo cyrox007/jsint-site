@@ -202,6 +202,40 @@ select_postgresql_client_tools() {
 
 select_postgresql_client_tools
 
+database_is_local() {
+    local server_addr=""
+    local local_addr=""
+
+    case "${DB_HOST}" in
+        localhost|127.0.0.1|::1|/var/run/postgresql|/var/run/postgresql/*|/run/postgresql|/run/postgresql/*)
+            return 0
+            ;;
+    esac
+
+    server_addr="$(
+        PGPASSWORD="${DB_PASSWORD}" PGSSLMODE="${DB_SSLMODE}" \
+        psql \
+            --host="${DB_HOST}" \
+            --port="${DB_PORT}" \
+            --username="${DB_USER}" \
+            --dbname="${DB_NAME}" \
+            --tuples-only \
+            --no-align \
+            --command="SELECT COALESCE(inet_server_addr()::text, 'unix');" \
+        | tr -d '[:space:]'
+    )"
+
+    [[ "${server_addr}" == "unix" || "${server_addr}" == "127.0.0.1" || "${server_addr}" == "::1" ]] && return 0
+
+    if command -v hostname >/dev/null 2>&1; then
+        for local_addr in $(hostname -I 2>/dev/null || true); do
+            [[ "${server_addr}" == "${local_addr}" ]] && return 0
+        done
+    fi
+
+    return 1
+}
+
 install -d -o root -g jsint-site -m 0750 "${BACKUP_ROOT}"
 STAMP="$(date -u +'%Y%m%d%H%M%S')"
 BACKUP_FILE="${BACKUP_ROOT}/${DB_NAME}-before-${TARGET_COMMIT:0:12}-${STAMP}.dump"
@@ -289,7 +323,7 @@ rollback() {
     fi
 
     log "Восстановление PostgreSQL snapshot из ${BACKUP_FILE}."
-    if [[ "${DB_HOST}" == "127.0.0.1" || "${DB_HOST}" == "localhost" ]]; then
+    if database_is_local; then
         # В checkout deployment PostgreSQL локальный. Полное пересоздание БД
         # гарантирует, что объекты новой миграции не смогут помешать restore.
         sudo -u postgres psql --dbname=postgres --set=ON_ERROR_STOP=1 \
@@ -383,7 +417,14 @@ log "Проверка Python syntax."
 "${APP_DIR}/.venv/bin/python" -m compileall -q "${APP_DIR}"
 
 log "Применение Alembic migrations."
-MIGRATIONS_STARTED=1
+PRE_MIGRATION_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" current 2>/dev/null | awk 'NR==1 {print $1}')"
+TARGET_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" heads 2>/dev/null | awk 'NR==1 {print $1}')"
+if [[ -z "${PRE_MIGRATION_DB_HEAD}" || -z "${TARGET_DB_HEAD}" || "${PRE_MIGRATION_DB_HEAD}" != "${TARGET_DB_HEAD}" ]]; then
+    MIGRATIONS_STARTED=1
+    log "Схема БД может измениться: current=${PRE_MIGRATION_DB_HEAD:-unknown}, target=${TARGET_DB_HEAD:-unknown}."
+else
+    log "Alembic уже на target revision ${TARGET_DB_HEAD}; при последующем rollback restore БД не потребуется."
+fi
 "${APP_DIR}/.venv/bin/alembic" upgrade head
 
 if (( SKIP_TESTS == 0 )); then

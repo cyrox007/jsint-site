@@ -74,8 +74,8 @@ class PageBlocksContractTests(unittest.TestCase):
 
     def test_public_base_uses_project_favicon(self):
         base = self.read("templates/public/^core/base.html")
-        self.assertIn("public/jsinteractive-mark.svg", base)
-        self.assertIn("favicon/favicon.ico", base)
+        self.assertIn("url_for('favicon_svg')", base)
+        self.assertNotIn('rel="alternate icon"', base)
         self.assertNotIn("icons8-pastel-glyph", base)
 
     def test_public_seo_has_robots_opengraph_and_structured_data(self):

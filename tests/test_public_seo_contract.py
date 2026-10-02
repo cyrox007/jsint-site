@@ -78,7 +78,8 @@ class PublicSeoContractTests(unittest.TestCase):
         self.assertIn('"@type": "SoftwareApplication"', workspace)
         self.assertIn('"featureList"', workspace)
         self.assertIn("breadcrumb_schema", workspace)
-        self.assertIn("self-hosted заметки, задачи и файлы", workspace)
+        self.assertIn("self-hosted рабочая платформа", workspace)
+        self.assertIn("более пяти", workspace)
 
     def test_vanga_demo_does_not_compete_with_project_page(self):
         vanga = self.read("views/public/vanga/views.py")
