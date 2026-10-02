@@ -2,7 +2,7 @@
 .portfolio-hero{
     position:relative;
     overflow:hidden;
-    min-height:690px;
+    min-height:760px;
     padding:108px 0 0;
     display:flex;
     flex-direction:column;
@@ -14,7 +14,8 @@
     background:
         linear-gradient(90deg,rgba(2,9,18,.95) 0%,rgba(3,12,24,.78) 34%,rgba(4,14,31,.26) 66%,rgba(3,11,23,.28) 100%),
         linear-gradient(180deg,rgba(7,16,24,.12) 0%,rgba(7,16,24,.06) 54%,#071018 100%),
-        url("https://images.unsplash.com/photo-1769134071347-e4dfda165b9c?auto=format&fit=crop&q=88&w=2400") center 48%/cover no-repeat;
+        url("https://images.unsplash.com/photo-1769134071347-e4dfda165b9c?auto=format&fit=crop&q=88&w=2400") center top/100% auto no-repeat;
+    background-color:#06101c;
     transform:scale(1.015);
 }
 .portfolio-hero__backdrop::after{
@@ -354,4 +355,250 @@
     .portfolio-feature-window{top:18px;bottom:16px;width:90%;right:5%}
     .portfolio-article-card{grid-template-columns:94px 1fr}
     .portfolio-resume__stack{grid-column:auto}
+}
+
+
+/* Расширенный About */
+.portfolio-about-intro{
+    display:grid;
+    grid-template-columns:minmax(0,.8fr) minmax(420px,1.2fr);
+    gap:46px;
+    align-items:start;
+    margin-bottom:22px;
+}
+.portfolio-about-intro h2{
+    margin-top:9px;
+    color:#f5fbff;
+    font-size:clamp(2.35rem,4vw,3.5rem);
+    line-height:.98;
+    letter-spacing:-.052em;
+}
+.portfolio-about-intro__copy{
+    display:grid;
+    gap:12px;
+    padding-top:24px;
+}
+.portfolio-about-intro__copy p{
+    color:#98aabb;
+    font-size:.82rem;
+    line-height:1.62;
+}
+.portfolio-about-spectrum{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:34px;
+}
+.portfolio-about-spectrum span{
+    padding:7px 10px;
+    border:1px solid rgba(88,153,224,.17);
+    border-radius:999px;
+    background:rgba(38,84,137,.09);
+    color:#9ec0df;
+    font-size:.63rem;
+    font-weight:700;
+}
+.portfolio-section-head--expertise{margin-top:0}
+
+/* Действия резюме */
+.portfolio-resume__actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    margin-top:18px;
+}
+.portfolio-resume__actions .btn{
+    min-height:42px;
+    padding:9px 14px;
+    font-size:.72rem;
+}
+
+/* Плавная модалка резюме */
+.resume-modal{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:grid;
+    place-items:center;
+    padding:24px;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transition:opacity .24s ease,visibility .24s ease;
+}
+.resume-modal.is-open{
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+}
+.resume-modal__backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(1,7,14,.78);
+    backdrop-filter:blur(10px);
+    opacity:0;
+    transition:opacity .24s ease;
+}
+.resume-modal.is-open .resume-modal__backdrop{opacity:1}
+.resume-modal__dialog{
+    position:relative;
+    z-index:1;
+    width:min(920px,100%);
+    max-height:min(84vh,860px);
+    overflow:auto;
+    padding:30px;
+    border:1px solid rgba(104,163,227,.22);
+    border-radius:18px;
+    background:
+        radial-gradient(circle at 86% 10%,rgba(93,93,255,.13),transparent 22rem),
+        linear-gradient(145deg,#091b2f,#061321 66%,#081329);
+    box-shadow:0 44px 120px rgba(0,0,0,.55);
+    transform:translateY(24px) scale(.975);
+    opacity:0;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .24s ease;
+}
+.resume-modal.is-open .resume-modal__dialog{
+    transform:translateY(0) scale(1);
+    opacity:1;
+}
+.resume-modal__close{
+    position:sticky;
+    z-index:4;
+    top:0;
+    float:right;
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+    margin:-8px -8px 0 12px;
+    border:1px solid rgba(111,169,226,.17);
+    border-radius:10px;
+    background:#0b2036;
+    color:#cce0ed;
+    font-size:1.3rem;
+    cursor:pointer;
+}
+.resume-modal__header{max-width:700px}
+.resume-modal__header h2{
+    margin-top:9px;
+    color:#fff;
+    font-size:clamp(2.25rem,4vw,3.5rem);
+    line-height:.96;
+    letter-spacing:-.052em;
+}
+.resume-modal__header p{
+    margin-top:10px;
+    color:#91a7b7;
+    font-size:.8rem;
+    line-height:1.55;
+}
+.resume-modal__profile{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-top:24px;
+}
+.resume-modal__profile article{
+    padding:15px;
+    border:1px solid rgba(93,151,216,.15);
+    border-radius:11px;
+    background:rgba(255,255,255,.025);
+}
+.resume-modal__profile strong{
+    display:block;
+    color:#ecf6fc;
+    font-size:.75rem;
+}
+.resume-modal__profile span{
+    display:block;
+    margin-top:5px;
+    color:#7990a2;
+    font-size:.64rem;
+    line-height:1.45;
+}
+.resume-modal__timeline{
+    display:grid;
+    gap:0;
+    margin-top:24px;
+    border-top:1px solid rgba(104,161,219,.1);
+}
+.resume-modal__timeline article{
+    display:grid;
+    grid-template-columns:34px 1fr;
+    gap:12px;
+    padding:17px 0;
+    border-bottom:1px solid rgba(104,161,219,.1);
+}
+.resume-modal__timeline article>span{
+    width:30px;
+    height:30px;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    background:linear-gradient(145deg,#2eaefe,#5559ff);
+    color:#fff;
+    font:.62rem/1 "JetBrains Mono",monospace;
+}
+.resume-modal__job-title{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:14px;
+}
+.resume-modal__job-title strong{color:#eff8fd;font-size:.8rem}
+.resume-modal__job-title time{color:#6f8799;font-size:.62rem}
+.resume-modal__timeline p{margin-top:3px;color:#8da3b4;font-size:.69rem}
+.resume-modal__timeline small{
+    display:block;
+    margin-top:7px;
+    color:#6f8799;
+    font-size:.66rem;
+    line-height:1.55;
+}
+.resume-modal__stack{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    margin-top:22px;
+}
+.resume-modal__stack span{
+    padding:6px 9px;
+    border:1px solid rgba(84,152,224,.17);
+    border-radius:999px;
+    color:#96bee4;
+    background:rgba(35,80,137,.09);
+    font-size:.62rem;
+}
+.resume-modal__footer{
+    display:flex;
+    gap:10px;
+    justify-content:flex-end;
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px solid rgba(104,161,219,.1);
+}
+.resume-modal-open{overflow:hidden}
+
+@media(max-width:1080px){
+    .portfolio-about-intro{grid-template-columns:1fr;gap:16px}
+    .portfolio-about-intro__copy{padding-top:0}
+}
+@media(max-width:820px){
+    .portfolio-hero__backdrop{
+        background-size:cover;
+        background-position:center 32%;
+    }
+}
+@media(max-width:700px){
+    .resume-modal{padding:12px}
+    .resume-modal__dialog{padding:22px 18px;max-height:90vh;border-radius:14px}
+    .resume-modal__profile{grid-template-columns:1fr}
+    .resume-modal__job-title{align-items:flex-start;flex-direction:column;gap:3px}
+    .resume-modal__footer{align-items:stretch;flex-direction:column}
+    .resume-modal__footer .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+    .resume-modal,
+    .resume-modal__backdrop,
+    .resume-modal__dialog{transition:none}
 }
