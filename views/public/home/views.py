@@ -5,6 +5,13 @@ from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
 from services.page import PageService
+from services.public_seo import (
+    AUTHOR_DESCRIPTION,
+    AUTHOR_KNOWS_ABOUT,
+    HERO_IMAGE_URL,
+    author_entity,
+    share_image_url,
+)
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
@@ -39,14 +46,63 @@ class MainPage(MethodView):
             limit=5,
         )
 
-        seo_defaults = site["settings"]["seo"]
-        seo_title = page.seo_title if page is not None and page.seo_title else seo_defaults["title"]
+        seo_title = (
+            page.seo_title
+            if page is not None and page.seo_title
+            else "JSInteractive — full-stack разработка и self-hosted проекты"
+        )
         seo_description = (
             page.seo_description
             if page is not None and page.seo_description
-            else seo_defaults["description"]
+            else (
+                "Портфолио full-stack разработчика: backend, API, админ-панели, "
+                "self-hosted сервисы, realtime, ML-эксперименты и технические публикации."
+            )
         )
         canonical_url = f"{site['base_url']}/" if site["base_url"] else None
+        base_url = (site["base_url"] or "").rstrip("/")
+        structured_data_items = [
+            {
+                "@context": "https://schema.org",
+                "@type": "ProfilePage",
+                "@id": f"{base_url}/#profile" if base_url else "#profile",
+                "url": canonical_url,
+                "name": "JSInteractive — портфолио разработчика",
+                "description": AUTHOR_DESCRIPTION,
+                "mainEntity": author_entity(site),
+            },
+            {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "name": "Проекты JSInteractive",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Workspace Organizer",
+                        "url": f"{base_url}/workspace-organizer" if base_url else "/workspace-organizer",
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Vanga",
+                        "url": f"{base_url}/projects/vanga" if base_url else "/projects/vanga",
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": "The-Game",
+                        "url": f"{base_url}/projects/the-game" if base_url else "/projects/the-game",
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 4,
+                        "name": "ChurchCMS",
+                        "url": f"{base_url}/projects/churchcms" if base_url else "/projects/churchcms",
+                    },
+                ],
+            },
+        ]
 
         response = make_response(
             render_template(
@@ -61,6 +117,10 @@ class MainPage(MethodView):
                 seo_title=seo_title,
                 seo_description=seo_description,
                 canonical_url=canonical_url,
+                seo_image_url=share_image_url(site),
+                seo_image_alt="JSInteractive — разработка, проекты и публикации",
+                seo_preload_image_url=HERO_IMAGE_URL,
+                structured_data_items=structured_data_items,
             )
         )
 
