@@ -175,6 +175,54 @@ def _prediction_output(prediction: dict) -> dict:
     except (TypeError, ValueError):
         rating = 0.0
 
+    uncertainty = None
+    raw_uncertainty = prediction.get("uncertainty")
+    if isinstance(raw_uncertainty, dict):
+        try:
+            lower = float(raw_uncertainty["lower"])
+            upper = float(raw_uncertainty["upper"])
+            margin = float(raw_uncertainty["margin"])
+            coverage = float(raw_uncertainty.get("coverage", 0.80))
+            if 0 <= lower <= upper <= 10 and margin >= 0:
+                uncertainty = {
+                    "lower": round(lower, 2),
+                    "upper": round(upper, 2),
+                    "margin": round(margin, 2),
+                    "coverage": round(coverage, 2),
+                    "coverage_percent": int(round(coverage * 100)),
+                    "test_year_from": raw_uncertainty.get("test_year_from"),
+                    "test_year_to": raw_uncertainty.get("test_year_to"),
+                    "test_rows": raw_uncertainty.get("test_rows"),
+                }
+        except (KeyError, TypeError, ValueError):
+            uncertainty = None
+
+    quality = None
+    raw_quality = prediction.get("quality")
+    if isinstance(raw_quality, dict):
+        try:
+            mae_raw = raw_quality.get("mae")
+            rmse_raw = raw_quality.get("rmse")
+            r2_raw = raw_quality.get("r2")
+            quality = {
+                "mae": round(float(mae_raw), 2) if mae_raw is not None else None,
+                "rmse": round(float(rmse_raw), 2) if rmse_raw is not None else None,
+                "r2": round(float(r2_raw), 3) if r2_raw is not None else None,
+                "test_year_from": raw_quality.get("test_year_from"),
+                "test_year_to": raw_quality.get("test_year_to"),
+                "test_rows": raw_quality.get("test_rows"),
+                "train_year_from": raw_quality.get("train_year_from"),
+                "train_year_to": raw_quality.get("train_year_to"),
+                "train_rows": raw_quality.get("train_rows"),
+            }
+            if not any(
+                quality.get(name) is not None
+                for name in ("mae", "rmse", "r2", "test_rows")
+            ):
+                quality = None
+        except (TypeError, ValueError):
+            quality = None
+
     resolution = prediction.get("input_resolution")
     resolution = resolution if isinstance(resolution, dict) else {}
     recognized: list[dict[str, str]] = []
@@ -210,6 +258,8 @@ def _prediction_output(prediction: dict) -> dict:
         "factors": factors,
         "top_factors": factors[:5],
         "recognized_inputs": recognized,
+        "uncertainty": uncertainty,
+        "quality": quality,
     }
 
 
@@ -356,6 +406,8 @@ def _save_prediction_snapshot(db_session, site_id, payload: dict, prediction: di
                 "contributions": prediction.get("contributions") or {},
                 "explanation": prediction.get("explanation"),
                 "input_resolution": prediction.get("input_resolution") or {},
+                "uncertainty": prediction.get("uncertainty"),
+                "quality": prediction.get("quality") or {},
             },
         )
         db_session.add(record)
