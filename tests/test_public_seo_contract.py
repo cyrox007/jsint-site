@@ -107,7 +107,7 @@ class PublicSeoContractTests(unittest.TestCase):
 
         self.assertIn('"/projects/vanga/methodology"', router)
         self.assertIn("def vanga_methodology", vanga)
-        self.assertIn('"_request_vanga(\"/model-info\"', vanga)
+        self.assertIn('_request_vanga("/model-info"', vanga)
         self.assertIn('"@type": "TechArticle"', vanga)
         self.assertIn("seo_noindex=False", vanga)
 
