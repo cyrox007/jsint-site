@@ -770,6 +770,31 @@ class NotesControlPlane:
         return manifest_bytes, str(resolved)
 
     @staticmethod
+    def release_can_repair(
+        record: ReleaseRecord,
+        *,
+        version: str,
+        source_commit: str,
+        package_name: str,
+        package_size: int,
+        package_sha256: str,
+    ) -> bool:
+        """Разрешает переподписать только повреждённые метаданные того же артефакта."""
+        try:
+            verify_update_manifest(record.manifest_bytes, record.signature)
+            return False
+        except ControlPlaneError:
+            pass
+
+        return (
+            record.version == version
+            and record.source_commit == source_commit
+            and record.package_name == package_name
+            and record.package_size == package_size
+            and hmac.compare_digest(record.package_sha256, package_sha256)
+        )
+
+    @staticmethod
     def publish_release(
         session: Session,
         *,
@@ -793,7 +818,23 @@ class NotesControlPlane:
             .first()
         )
         if existing is not None:
-            raise ControlPlaneError("Релиз с таким channel/version_code уже зарегистрирован")
+            if not NotesControlPlane.release_can_repair(
+                existing,
+                version=manifest["version"],
+                source_commit=manifest["source_commit"],
+                package_name=package["filename"],
+                package_size=size,
+                package_sha256=sha256,
+            ):
+                raise ControlPlaneError("Релиз с таким channel/version_code уже зарегистрирован")
+
+            existing.manifest_bytes = manifest_bytes
+            existing.signature = signature.strip()
+            existing.package_path = str(resolved)
+            existing.is_active = True
+            session.commit()
+            session.refresh(existing)
+            return existing
 
         channel_head = (
             session.query(ReleaseRecord)
