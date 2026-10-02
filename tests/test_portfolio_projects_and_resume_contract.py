@@ -37,6 +37,32 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         self.assertIn('"projects/the-game"', sitemap)
         self.assertIn('"projects/churchcms"', sitemap)
 
+    def test_vanga_promo_targets_movie_audience_not_product_sales(self):
+        view = self.read("views/public/projects/views.py")
+        template = self.read("templates/public/projects/detail.html")
+        demo = self.read("templates/public/vanga/index.html")
+        home = self.read("templates/public/home/section/systems.html")
+        styles = self.read("templates/public/projects/style.css")
+
+        self.assertIn("VANGA_DETAIL", view)
+        self.assertIn("Бесплатное публичное демо · ML-эксперимент", view)
+        self.assertIn("Прогноз рейтинга фильма до выхода", view)
+        self.assertIn("EntertainmentApplication", view)
+        self.assertIn("Зрители и любители кино", view)
+
+        self.assertIn("Фильм ещё не вышел?", template)
+        self.assertIn("Не только разработчикам — прежде всего любителям кино", template)
+        self.assertIn("От параметров фильма до прогноза рейтинга", template)
+        self.assertIn("Практика машинного обучения", template)
+        self.assertIn("Какой рейтинг будет у следующей премьеры?", template)
+        self.assertIn("Это не сервис для продажи", template)
+
+        self.assertIn("Какой рейтинг может получить фильм?", demo)
+        self.assertIn("не коммерческий продукт", demo)
+        self.assertIn("Фильм ещё не вышел?", home)
+        self.assertIn(".vanga-project-preview", styles)
+        self.assertIn(".vanga-how-grid", styles)
+
     def test_churchcms_promo_explains_platform_and_roadmap(self):
         view = self.read("views/public/projects/views.py")
         template = self.read("templates/public/projects/detail.html")
