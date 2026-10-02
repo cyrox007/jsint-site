@@ -8,24 +8,35 @@
 <div class="wo-portfolio-page">
     <section class="wo-portfolio-hero">
         <div class="wo-portfolio-hero__backdrop" aria-hidden="true"></div>
+
         <div class="container wo-portfolio-hero__grid">
             <div class="wo-portfolio-hero__copy">
-                <div class="wo-breadcrumb"><a href="{{ url_for('index') }}">Главная</a><span>/</span><span>Проекты</span><span>/</span><span>Workspace Organizer</span></div>
-                <span class="wo-label">Продукт · JSInteractive</span>
+                <div class="wo-breadcrumb">
+                    <a href="{{ url_for('index') }}">Главная</a><span>/</span><span>Проекты</span><span>/</span><span>Workspace Organizer</span>
+                </div>
+                <span class="wo-label">Продукт · JSInteractive · развивается более 5 лет</span>
                 <h1>Workspace<br><span>Organizer</span></h1>
-                <strong>Self-hosted рабочее пространство для заметок, задач, файлов и командной работы.</strong>
-                <p>Продукт для тех, кому нужен контроль над данными, удобная внутренняя работа и единая среда для контента, задач и повседневных процессов.</p>
+                <strong>Self-hosted рабочая среда, которая выросла далеко за пределы приложения для заметок.</strong>
+                <p>
+                    Сегодня это единое пространство для знаний, задач, файлов, общения, профилей,
+                    администрирования и эксплуатации. Система устанавливается на собственную инфраструктуру
+                    и не требует отдавать рабочие данные внешнему SaaS.
+                </p>
+
                 <div class="wo-portfolio-actions">
                     <a class="btn btn-primary" href="{{ url_for('contact', subject='Workspace Organizer') }}">Запросить демонстрацию <span>→</span></a>
-                    <a class="btn btn-secondary" href="#capabilities">Смотреть возможности</a>
+                    <a class="btn btn-secondary" href="#capabilities">Посмотреть систему</a>
                 </div>
-                <div class="wo-meta-row">
-                    <span>Self-hosted</span><span>Stable {{ stable_version }}</span><span>Подходит для команд</span>
+
+                <div class="wo-hero-facts" aria-label="Ключевые факты о проекте">
+                    <article><strong>5+</strong><span>лет развития</span></article>
+                    <article><strong>6</strong><span>production-модулей</span></article>
+                    <article><strong>{{ stable_version }}</strong><span>текущая stable-линия</span></article>
                 </div>
             </div>
 
-            <div class="wo-app-scene" aria-label="Интерфейс Workspace Organizer">
-                <div class="wo-app-scene__glow"></div>
+            <div class="wo-app-scene" aria-label="Пример интерфейса Workspace Organizer">
+                <div class="wo-app-scene__glow" aria-hidden="true"></div>
                 <div class="wo-app-window">
                     <div class="wo-app-top">
                         <div class="wo-app-brand">
@@ -41,17 +52,17 @@
                             <span>Заметки</span>
                             <span>Задачи</span>
                             <span>Файлы</span>
-                            <span>Команда</span>
-                            <span>Календарь</span>
-                            <span>Настройки</span>
+                            <span>Messenger</span>
+                            <span>Профиль</span>
+                            <span>Admin</span>
                         </aside>
                         <div class="wo-app-main">
-                            <div class="wo-app-welcome"><strong>Добро пожаловать!</strong><small>Всё важное — рядом.</small></div>
+                            <div class="wo-app-welcome"><strong>Рабочее пространство</strong><small>Основные процессы — в одной системе.</small></div>
                             <div class="wo-app-stats">
-                                <article><span>Заметки</span><strong>128</strong></article>
-                                <article><span>Задачи</span><strong>24</strong></article>
-                                <article><span>Файлы</span><strong>892</strong></article>
-                                <article><span>Участники</span><strong>12</strong></article>
+                                <article><span>Знания</span><strong>Notes</strong></article>
+                                <article><span>Работа</span><strong>Tasks</strong></article>
+                                <article><span>Данные</span><strong>Files</strong></article>
+                                <article><span>Связь</span><strong>Chat</strong></article>
                             </div>
                             <div class="wo-app-panels">
                                 <section><strong>Недавняя активность</strong><i></i><i></i><i></i><i></i></section>
@@ -64,25 +75,176 @@
         </div>
 
         <div class="container wo-feature-strip">
-            <article><span class="wo-feature-icon wo-feature-icon--blue">▤</span><div><strong>Заметки</strong><small>Редактор и организация знаний</small></div></article>
-            <article><span class="wo-feature-icon wo-feature-icon--green">✓</span><div><strong>Задачи</strong><small>Статусы, сроки и контроль</small></div></article>
-            <article><span class="wo-feature-icon wo-feature-icon--violet">▣</span><div><strong>Файлы</strong><small>Приватное хранилище</small></div></article>
-            <article><span class="wo-feature-icon wo-feature-icon--purple">◎</span><div><strong>Команда</strong><small>Совместная работа</small></div></article>
+            <article><span class="wo-feature-icon wo-feature-icon--blue">▤</span><div><strong>Заметки</strong><small>Знания, вложения, поиск</small></div></article>
+            <article><span class="wo-feature-icon wo-feature-icon--green">✓</span><div><strong>Задачи</strong><small>Списки, доски, исполнители</small></div></article>
+            <article><span class="wo-feature-icon wo-feature-icon--violet">▣</span><div><strong>Файлы</strong><small>Private storage и общий доступ</small></div></article>
+            <article><span class="wo-feature-icon wo-feature-icon--purple">◎</span><div><strong>Messenger</strong><small>Long Poll + WebSocket</small></div></article>
         </div>
     </section>
 
     <section class="wo-portfolio-section" id="capabilities">
         <div class="container">
             <div class="portfolio-section-head">
-                <div><span class="section-kicker">Возможности</span><h2>Что умеет Workspace Organizer</h2><p>Все необходимые инструменты внутри одного self-hosted решения.</p></div>
+                <div>
+                    <span class="section-kicker">Уже работает</span>
+                    <h2>Что умеет Workspace Organizer</h2>
+                </div>
+                <p>
+                    Линия 1.0 — уже не концепт. В ней шесть изолированных production-модулей,
+                    общий контроль прав и единый интерфейс, а прикладные модули могут отсутствовать
+                    из runtime без разрушения остальной системы.
+                </p>
             </div>
+
             <div class="wo-capability-grid">
-                <article><span class="wo-feature-icon wo-feature-icon--blue">▤</span><h3>Заметки и документация</h3><p>Редактор, категории, теги, поиск и командная база знаний.</p></article>
-                <article><span class="wo-feature-icon wo-feature-icon--green">✓</span><h3>Задачи и проекты</h3><p>Статусы, приоритеты, исполнители, доски и календарь.</p></article>
-                <article><span class="wo-feature-icon wo-feature-icon--violet">▣</span><h3>Хранение файлов</h3><p>Приватные папки, версии, квоты и безопасная выдача.</p></article>
-                <article><span class="wo-feature-icon wo-feature-icon--pink">◎</span><h3>Командная работа</h3><p>Messenger, роли, комментарии и совместные процессы.</p></article>
-                <article><span class="wo-feature-icon wo-feature-icon--cyan">◇</span><h3>Роли и права доступа</h3><p>Гибкая настройка модулей и разрешений для команд.</p></article>
-                <article><span class="wo-feature-icon wo-feature-icon--purple">⬡</span><h3>Обновления и развитие</h3><p>Подписанные обновления, rollback и независимый цикл развития.</p></article>
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--blue">▤</span>
+                    <h3>Заметки и база знаний</h3>
+                    <p>Работа с личными и командными материалами, где заметка — не просто текстовое поле.</p>
+                    <ul>
+                        <li>зашифрованный текст и вложения;</li>
+                        <li>голосовые заметки, категории, теги и поиск;</li>
+                        <li>автосохранение и безопасный доступ только для просмотра.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--green">✓</span>
+                    <h3>Задачи и рабочие доски</h3>
+                    <p>От личных дел до общей доски команды с несколькими представлениями.</p>
+                    <ul>
+                        <li>список и канбан, статусы и приоритеты;</li>
+                        <li>сроки, категории, подзадачи и исполнители;</li>
+                        <li>фильтрация, поиск и общие доски.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--violet">▣</span>
+                    <h3>Приватное файловое пространство</h3>
+                    <p>Файлы хранятся вне публичного document root и выдаются через контролируемый runtime.</p>
+                    <ul>
+                        <li>папки, поиск, сортировка и drag & drop;</li>
+                        <li>квоты и ограничения по ролям;</li>
+                        <li>управляемые публичные ссылки, сроки и отзыв доступа.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--purple">◎</span>
+                    <h3>Messenger</h3>
+                    <p>Встроенное общение — полноценная часть рабочего контура, а не внешняя интеграция.</p>
+                    <ul>
+                        <li>личные и групповые диалоги, ответы и пересылка;</li>
+                        <li>файлы, голос, реакции, редактирование и статусы прочтения;</li>
+                        <li>Long Poll как базовый канал и WebSocket как ускоритель.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--cyan">◇</span>
+                    <h3>Профиль и совместная работа</h3>
+                    <p>Пользователь видит свою рабочую среду, хранение и разрешённую публичную часть других профилей.</p>
+                    <ul>
+                        <li>аватар и настройки аккаунта;</li>
+                        <li>показатели личного хранилища;</li>
+                        <li>каталог пользователей и контролируемая видимость материалов.</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <span class="wo-feature-icon wo-feature-icon--pink">⬡</span>
+                    <h3>Admin и модульная платформа</h3>
+                    <p>Администрирование охватывает не только пользователей, но и состав самой рабочей среды.</p>
+                    <ul>
+                        <li>RBAC, регистрации и приглашения, квоты и политики;</li>
+                        <li>включение и отключение разрешённых модулей без удаления их данных;</li>
+                        <li>лицензия, системные настройки и контроль состояния платформы.</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-portfolio-section wo-history">
+        <div class="container">
+            <div class="portfolio-section-head">
+                <div>
+                    <span class="section-kicker">Эволюция</span>
+                    <h2>Более пяти лет развития</h2>
+                </div>
+                <p>
+                    Проект рос постепенно: от компактного инструмента вокруг заметок до самостоятельной
+                    модульной платформы. Большая часть работы последних лет — не только новые экраны,
+                    но и эксплуатация, обновления, восстановление и изоляция модулей.
+                </p>
+            </div>
+
+            <div class="wo-timeline">
+                <article>
+                    <span>01</span>
+                    <small>Начало</small>
+                    <h3>Личный рабочий инструмент</h3>
+                    <p>Фокус на заметках, организации информации и хранении данных на собственной стороне.</p>
+                </article>
+                <article>
+                    <span>02</span>
+                    <small>Расширение</small>
+                    <h3>Из заметок — в workspace</h3>
+                    <p>Появились задачи, файлы, профиль, общие сценарии и единый административный слой.</p>
+                </article>
+                <article>
+                    <span>03</span>
+                    <small>Эксплуатация</small>
+                    <h3>Realtime и безопасные обновления</h3>
+                    <p>Messenger, WebSocket/Long Poll, web-installer, подписанный updater, backup и rollback стали частью продукта.</p>
+                </article>
+                <article>
+                    <span>04</span>
+                    <small>Линия 1.0</small>
+                    <h3>Модульная платформа</h3>
+                    <p>Шесть production-модулей переведены на изолированный runtime; {{ stable_version }} закрепляет stable-линейку, новый бренд и сервисную диагностику.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-portfolio-section wo-operations">
+        <div class="container wo-operations__grid">
+            <div class="wo-operations__intro">
+                <span class="section-kicker">Эксплуатация</span>
+                <h2>Проект умеет не только «работать», но и жить на реальном сервере</h2>
+                <p>
+                    В Workspace Organizer много инженерной работы, которую обычно не видно на промо-экране:
+                    установка, миграции, контроль состояния, обновление без ручного SQL и восстановление после ошибки.
+                </p>
+                <div class="wo-operation-callout">
+                    <strong>Fresh install из браузера</strong>
+                    <span>Без обязательного Composer на хостинге, ручного создания .env и ручного импорта SQL.</span>
+                </div>
+            </div>
+
+            <div class="wo-operation-grid">
+                <article>
+                    <small>01 / INSTALL</small>
+                    <h3>Развёртывание</h3>
+                    <p>Web-installer проверяет PHP, расширения, БД, private storage и создаёт первого администратора.</p>
+                </article>
+                <article>
+                    <small>02 / UPDATE</small>
+                    <h3>Транзакционные обновления</h3>
+                    <p>Подписанный канал, staging, backup, миграции, post-check и автоматический rollback при ошибке.</p>
+                </article>
+                <article>
+                    <small>03 / RECOVERY</small>
+                    <h3>Диагностика и восстановление</h3>
+                    <p>Сервисный журнал и одноразовый диагностический пакет помогают разбирать сбои без постоянного удалённого доступа.</p>
+                </article>
+                <article>
+                    <small>04 / HOSTING</small>
+                    <h3>Разные среды</h3>
+                    <p>Поддерживаются Windows/OSPanel, Linux, shared hosting и VPS/VDS; Messenger не зависит от обязательного WebSocket-процесса.</p>
+                </article>
             </div>
         </div>
     </section>
@@ -90,51 +252,89 @@
     <section class="wo-portfolio-section wo-audience">
         <div class="container">
             <div class="portfolio-section-head">
-                <div><span class="section-kicker">Для кого</span><h2>Кому подойдёт</h2><p>Для команд и людей, которым важен контроль над рабочей средой.</p></div>
+                <div>
+                    <span class="section-kicker">Для кого</span>
+                    <h2>Кому подойдёт</h2>
+                </div>
+                <p>Система рассчитана на сценарии, где важны собственная инфраструктура, управляемый доступ и единое рабочее пространство.</p>
             </div>
             <div class="wo-audience-grid">
-                <article><span>◎</span><div><h3>Небольшие команды</h3><p>Стартапы и компании, которым нужно единое пространство для работы.</p></div></article>
-                <article><span>▥</span><div><h3>Внутренние отделы</h3><p>Задачи, документация и рабочие процессы без внешнего SaaS.</p></div></article>
-                <article><span>▤</span><div><h3>Энтузиасты self-hosted</h3><p>Для тех, кто хочет разворачивать систему на собственном сервере.</p></div></article>
-            </div>
-        </div>
-    </section>
-
-    <section class="wo-portfolio-section wo-benefits">
-        <div class="container wo-benefits__grid">
-            <div>
-                <span class="section-kicker">Преимущества</span>
-                <h2>Почему это удобно</h2>
-                <p>Рабочая система для повседневных процессов без зависимости от сторонней платформы.</p>
-                <ul>
-                    <li>Всё в одном месте — заметки, задачи, файлы и команда</li>
-                    <li>Полный контроль над данными</li>
-                    <li>Простой и понятный интерфейс</li>
-                    <li>Гибкая настройка под процессы</li>
-                    <li>Регулярные обновления и активное развитие</li>
-                </ul>
-            </div>
-            <div class="wo-project-dashboard">
-                <div class="wo-project-dashboard__nav"><strong>Workspace Organizer</strong><span>Главная</span><span>Заметки</span><span>Задачи</span><span>Файлы</span><span>Команда</span><span>Настройки</span></div>
-                <div class="wo-project-dashboard__main">
-                    <div class="wo-project-dashboard__top">Проекты <b>Создать проект</b></div>
-                    <div class="wo-project-dashboard__cards"><i></i><i></i><i></i></div>
-                    <div class="wo-project-dashboard__rows"><span></span><span></span><span></span><span></span></div>
-                </div>
+                <article><span>◎</span><div><h3>Небольшие команды</h3><p>Когда заметки, файлы, задачи и общение хочется собрать в одном рабочем контуре.</p></div></article>
+                <article><span>▥</span><div><h3>Внутренние отделы</h3><p>Для процессов, где данные и пользователи должны оставаться под контролем своей инфраструктуры.</p></div></article>
+                <article><span>▤</span><div><h3>Self-hosted инфраструктура</h3><p>Для тех, кому важны собственный сервер, понятный upgrade-path и возможность развивать систему дальше.</p></div></article>
             </div>
         </div>
     </section>
 
     <section class="wo-portfolio-section wo-tech">
         <div class="container">
-            <div class="portfolio-section-head"><div><span class="section-kicker">Технологии</span><h2>Техническая база</h2><p>Надёжный стек и простой сценарий развёртывания.</p></div></div>
+            <div class="portfolio-section-head">
+                <div><span class="section-kicker">Технологии</span><h2>Техническая база</h2></div>
+                <p>Линия 1.0 остаётся совместимой с обычным PHP-хостингом, но при этом имеет отдельный realtime-контур, private storage и полноценный lifecycle обновлений.</p>
+            </div>
+
             <div class="wo-tech-grid">
-                <article><strong>Self-hosted</strong><small>На вашем сервере</small></article>
-                <article><strong>PHP 8.1+</strong><small>Совместимый runtime</small></article>
-                <article><strong>MySQL / MariaDB</strong><small>Основное хранилище</small></article>
-                <article><strong>Realtime</strong><small>Long Poll + WebSocket</small></article>
-                <article><strong>Автообновления</strong><small>Подписанный канал</small></article>
-                <article><strong>Панель управления</strong><small>Настройка и контроль</small></article>
+                <article><strong>PHP 8.1+</strong><small>Compatibility floor линии 1.0</small></article>
+                <article><strong>MySQL / MariaDB</strong><small>MySQL 8.0+ или MariaDB 10.5+</small></article>
+                <article><strong>Private storage</strong><small>Файлы вне document root</small></article>
+                <article><strong>Long Poll + WebSocket</strong><small>Надёжный fallback и быстрый realtime</small></article>
+                <article><strong>Signed updater</strong><small>Проверка, backup и rollback</small></article>
+                <article><strong>Isolated modules</strong><small>Раздельные runtime и ownership</small></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="wo-portfolio-section wo-roadmap">
+        <div class="container">
+            <div class="portfolio-section-head">
+                <div>
+                    <span class="section-kicker">Перспективы</span>
+                    <h2>Куда развивается Workspace Organizer</h2>
+                </div>
+                <p>
+                    Это не список обещанных дат, а опубликованное направление развития после линии 1.0.
+                    Следующие модули продолжают ту же идею: больше рабочих сценариев внутри локально разворачиваемой платформы.
+                </p>
+            </div>
+
+            <div class="wo-roadmap-grid">
+                <article>
+                    <span>1.1</span>
+                    <h3>Календарь и ежедневник</h3>
+                    <p>День, неделя, месяц, agenda, события, повторения, напоминания, временные блоки и связи с задачами, заметками и файлами.</p>
+                </article>
+                <article>
+                    <span>1.4</span>
+                    <h3>Общий медиаслой</h3>
+                    <p>Единый viewer/player для аудио и видео в Files, Notes, Messenger и будущих модулях без дублирования исходных файлов.</p>
+                </article>
+                <article>
+                    <span>1.5</span>
+                    <h3>CodeExplorer / Workspace IDE</h3>
+                    <p>Дерево проектов, несколько файлов, подсветка, поиск, diff, история и Git-операции для локальных репозиториев.</p>
+                </article>
+                <article>
+                    <span>1.6</span>
+                    <h3>Офисный контур</h3>
+                    <p>Долгосрочное направление для документов, таблиц и презентаций с обязательным исследовательским прототипом перед реализацией.</p>
+                </article>
+                <article class="wo-roadmap-card--wide">
+                    <span>Платформа</span>
+                    <h3>Устанавливаемые модули и масштабирование</h3>
+                    <p>
+                        В развитии платформы предусмотрены подписанные пакеты, dependency resolver, module-owned migrations,
+                        health-state и каталог модулей. Для линии 1.1+ зафиксирована цель — проверяемая работа с 1000 одновременно активных пользователей
+                        на документированной эталонной конфигурации.
+                    </p>
+                </article>
+                <article class="wo-roadmap-card--wide">
+                    <span>Дальше</span>
+                    <h3>Поиск, automation, offline и API</h3>
+                    <p>
+                        Универсальный поиск, системные уведомления, automation/workflows, PWA/offline, API и webhooks находятся
+                        в продуктовом backlog. Это направления исследования, а не обещание конкретной версии.
+                    </p>
+                </article>
             </div>
         </div>
     </section>
@@ -142,7 +342,10 @@
     {% if related_articles %}
     <section class="wo-portfolio-section wo-related">
         <div class="container">
-            <div class="portfolio-section-head"><div><span class="section-kicker">Материалы</span><h2>Связанные публикации</h2></div></div>
+            <div class="portfolio-section-head">
+                <div><span class="section-kicker">Материалы</span><h2>Связанные публикации</h2></div>
+                <p>Разборы разработки, эксплуатации и решений вокруг проекта.</p>
+            </div>
             <div class="portfolio-related-grid">
                 {% for item in related_articles %}
                 <a href="{{ url_for('public.articles.show', categories_slug=item.category.slug, publication_slug=item.slug) if item.category else '#' }}">
@@ -157,8 +360,12 @@
 
     <section class="wo-final-cta">
         <div class="container wo-final-cta__panel">
-            <div><span class="section-kicker">Workspace Organizer</span><h2>Нужен приватный рабочий контур для команды?</h2><p>Помогу с внедрением, настройкой и адаптацией под ваши задачи.</p></div>
-            <a class="btn btn-primary" href="{{ url_for('contact', subject='Workspace Organizer') }}">Обсудить внедрение <span>→</span></a>
+            <div>
+                <span class="section-kicker">Workspace Organizer</span>
+                <h2>Нужен собственный рабочий контур?</h2>
+                <p>Покажу текущую версию, расскажу об архитектуре и помогу оценить сценарий развёртывания.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ url_for('contact', subject='Workspace Organizer') }}">Обсудить проект <span>→</span></a>
         </div>
     </section>
 </div>

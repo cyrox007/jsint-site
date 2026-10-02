@@ -62,17 +62,19 @@ class WorkspaceOrganizerPromoPage(MethodView):
                 "operatingSystem": "Web",
                 "softwareVersion": stable_version,
                 "description": (
-                    "Self-hosted рабочее пространство для заметок, задач, "
-                    "файлов, Messenger и администрирования."
+                    "Self-hosted рабочая платформа для заметок, задач, файлов, "
+                    "Messenger, профилей, администрирования и модульного развития."
                 ),
                 "creator": author_entity(site),
                 "featureList": [
-                    "Заметки и документация",
-                    "Задачи и проекты",
-                    "Приватное файловое хранилище",
-                    "Командная работа",
-                    "Роли и права доступа",
-                    "Подписанные обновления",
+                    "Зашифрованные заметки и база знаний",
+                    "Задачи, доски и исполнители",
+                    "Приватное файловое хранилище и управляемый общий доступ",
+                    "Messenger с Long Poll и WebSocket",
+                    "Профили и каталог пользователей",
+                    "RBAC и управление составом модулей",
+                    "Подписанные обновления, backup и rollback",
+                    "Сервисная диагностика",
                 ],
                 "inLanguage": "ru-RU",
             },
@@ -90,12 +92,13 @@ class WorkspaceOrganizerPromoPage(MethodView):
             site=site,
             stable_version=stable_version,
             seo_title=(
-                "Workspace Organizer — self-hosted заметки, задачи и файлы "
+                "Workspace Organizer — self-hosted рабочая платформа "
                 "| JSInteractive"
             ),
             seo_description=(
-                "Workspace Organizer — self-hosted рабочее пространство для "
-                "заметок, задач, файлов, Messenger, ролей и командной работы."
+                "Workspace Organizer — self-hosted платформа, которая более пяти "
+                "лет развивается от заметок к модульной рабочей среде: задачи, "
+                "файлы, Messenger, профили, Admin, обновления и recovery."
             ),
             canonical_url=canonical_url,
             seo_image_url=share_image_url(site),
