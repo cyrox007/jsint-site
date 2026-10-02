@@ -1,20 +1,57 @@
 {% set about = block.settings if block is defined and block.settings else (home_settings.about if home_settings is defined else {}) %}
 <section class="portfolio-expertise" id="about">
     <div class="container">
-        <div class="portfolio-section-head">
+        <div class="portfolio-about">
+            <div class="portfolio-about__intro">
+                <span class="section-kicker">Обо мне</span>
+                <h2>Full-stack разработка — от интерфейса до инфраструктуры.</h2>
+                <p>
+                    Работаю и с фронтендом, и с бэкендом. Мне интересны не отдельные технологии сами по себе,
+                    а то, как из них собрать рабочий продукт: понятный интерфейс, API, данные, фоновые процессы,
+                    развёртывание и дальнейшую поддержку.
+                </p>
+                <p>
+                    В публичных проектах есть браузерная игра на JavaScript и Canvas, Workspace Organizer на PHP,
+                    сервисы на Flask, а также эксперименты с машинным обучением и NLP. Постоянно пробую новые языки
+                    и инструменты и применяю их там, где они действительно полезны.
+                </p>
+            </div>
+
+            <div class="portfolio-about__stack">
+                <article>
+                    <span>Frontend</span>
+                    <div><b>HTML5</b><b>CSS3</b><b>SCSS</b><b>JavaScript</b><b>Vue.js</b><b>jQuery</b></div>
+                </article>
+                <article>
+                    <span>Backend</span>
+                    <div><b>PHP</b><b>Laravel</b><b>Python</b><b>Flask</b><b>FastAPI</b><b>Go</b></div>
+                </article>
+                <article>
+                    <span>Данные</span>
+                    <div><b>MySQL</b><b>PostgreSQL</b><b>SQLite</b><b>Redis</b></div>
+                </article>
+                <article>
+                    <span>Дополнительно</span>
+                    <div><b>C#</b><b>C</b><b>Linux</b><b>Docker</b><b>Nginx</b><b>Git</b></div>
+                </article>
+            </div>
+        </div>
+
+        <div class="portfolio-section-head portfolio-section-head--expertise">
             <div>
                 <span class="section-kicker">Экспертиза</span>
                 <h2>В чём я силён</h2>
                 <p>Техническая глубина, продуктовый подход и внимание к эксплуатации.</p>
             </div>
         </div>
+
         <div class="portfolio-expertise-grid">
-            <article><span>⌘</span><h3>Backend архитектура</h3><p>Надёжные API, сервисы и интеграции.</p></article>
-            <article><span>◈</span><h3>Разработка продуктов</h3><p>От идеи до работающего сценария.</p></article>
-            <article><span>▣</span><h3>Админки и внутренние системы</h3><p>Удобные инструменты для реальной работы.</p></article>
-            <article><span>ϟ</span><h3>Realtime системы</h3><p>Онлайн-функции и устойчивые fallback-механизмы.</p></article>
-            <article><span>◇</span><h3>Безопасность</h3><p>Практические подходы к защите данных.</p></article>
-            <article><span>☁</span><h3>Self-hosted деплой</h3><p>Развёртывание и сопровождение инфраструктуры.</p></article>
+            <article><span>⌘</span><h3>Backend архитектура</h3><p>API, сервисы, интеграции и фоновые процессы.</p></article>
+            <article><span>◈</span><h3>Разработка продуктов</h3><p>От идеи и сценария до работающего интерфейса и релиза.</p></article>
+            <article><span>▣</span><h3>Админки и внутренние системы</h3><p>Инструменты, которыми удобно пользоваться каждый день.</p></article>
+            <article><span>ϟ</span><h3>Realtime системы</h3><p>WebSocket, long-poll и устойчивые fallback-механизмы.</p></article>
+            <article><span>◇</span><h3>Данные и ML</h3><p>Подготовка данных, модели и прикладные эксперименты.</p></article>
+            <article><span>☁</span><h3>Self-hosted деплой</h3><p>Linux, Docker, Nginx и сопровождение инфраструктуры.</p></article>
         </div>
     </div>
 </section>
