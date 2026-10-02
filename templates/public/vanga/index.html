@@ -151,6 +151,64 @@
             <p>История интерфейса хранится только в localStorage этого браузера. На сервере сохраняется обезличенный снимок параметров, результата и версии модели, чтобы позже можно было честно сравнить прогноз с фактическим рейтингом.</p>
         </section>
 
+        {% if verified_predictions %}
+        <section class="vanga-verified" data-vanga-reveal>
+            <div class="vanga-verified__head">
+                <div>
+                    <span class="vanga-demo__eyebrow">Vanga против реальности</span>
+                    <h2>Последние сверенные прогнозы</h2>
+                    <p>Снимок прогноза не пересчитывается новой моделью задним числом. Когда локальная IMDb-база получает фактический рейтинг, мы сравниваем его с тем, что Vanga предсказала раньше.</p>
+                </div>
+                {% if verification_summary.count %}
+                <div class="vanga-verified__summary">
+                    <span>Сверено снимков</span>
+                    <strong>{{ verification_summary.count }}</strong>
+                    {% if verification_summary.mae is not none %}
+                    <small>средняя абсолютная ошибка {{ '%.2f'|format(verification_summary.mae) }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="vanga-verified__grid">
+                {% for item in verified_predictions %}
+                <article class="vanga-verified-card">
+                    <div class="vanga-verified-card__top">
+                        <span>{{ item.year }}</span>
+                        {% if item.imdb_id %}<small>{{ item.imdb_id }}</small>{% endif %}
+                    </div>
+                    <h3>{{ item.title }}</h3>
+                    <div class="vanga-verified-card__scores">
+                        <div>
+                            <span>Vanga</span>
+                            <strong>{{ '%.2f'|format(item.rating) }}</strong>
+                        </div>
+                        <i>→</i>
+                        <div>
+                            <span>IMDb сейчас</span>
+                            <strong>{{ '%.2f'|format(item.actual_rating) }}</strong>
+                        </div>
+                    </div>
+                    <div class="vanga-verified-card__error">
+                        <span>Абсолютная ошибка</span>
+                        <b>{{ '%.2f'|format(item.absolute_error) }}</b>
+                    </div>
+                    <p>
+                        {% if item.actual_num_votes %}
+                        {{ '{:,}'.format(item.actual_num_votes).replace(',', ' ') }} голосов IMDb
+                        {% endif %}
+                        {% if item.model_generation %}
+                        · модель {{ item.model_generation }}
+                        {% endif %}
+                    </p>
+                </article>
+                {% endfor %}
+            </div>
+
+            <p class="vanga-verified__note">IMDb-рейтинг меняется по мере новых голосов, поэтому блок показывает последнее значение из локального IMDb dataset. Сверка выполняется автоматически и не меняет исходный прогноз.</p>
+        </section>
+        {% endif %}
+
         <p class="vanga-demo__note">Vanga — мой учебный ML-проект, который я оставил работать для интереса посетителей сайта. Это не коммерческий продукт и не профессиональная оценка фильма; прогноз может ошибаться.</p>
     </div>
 </section>
