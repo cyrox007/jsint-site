@@ -1,0 +1,64 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/projects/style.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<section class="project-promo project-promo--{{ project.accent }}">
+    <div class="project-promo__backdrop" aria-hidden="true"></div>
+    <div class="container project-promo__hero">
+        <a class="project-promo__back" href="{{ url_for('index') }}#systems">← Все проекты</a>
+        <span class="project-promo__eyebrow">{{ project.eyebrow }}</span>
+        <h1>{{ project.title }}</h1>
+        <strong>{{ project.summary }}</strong>
+        <p>{{ project.description }}</p>
+
+        <div class="project-promo__actions">
+            {% if project.cta_url %}
+            <a class="btn btn-primary" href="{{ project.cta_url }}">{{ project.cta_label }} <span>→</span></a>
+            {% else %}
+            <a class="btn btn-primary" href="{{ url_for('contact', subject=project.title) }}">{{ project.cta_label }} <span>→</span></a>
+            {% endif %}
+            <a class="btn btn-secondary" href="#capabilities">Возможности</a>
+        </div>
+
+        <div class="project-promo__facts">
+            {% for fact in project.facts %}<span>{{ fact }}</span>{% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section" id="capabilities">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Проект</span>
+                <h2>Что внутри</h2>
+                <p>Ключевые части и сценарии проекта.</p>
+            </div>
+        </div>
+
+        <div class="project-promo-grid">
+            {% for title, text in project.capabilities %}
+            <article>
+                <span>{{ '%02d'|format(loop.index) }}</span>
+                <h3>{{ title }}</h3>
+                <p>{{ text }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-cta">
+    <div class="container project-promo-cta__panel">
+        <div>
+            <span class="section-kicker">{{ project.title }}</span>
+            <h2>Хотите узнать подробнее?</h2>
+            <p>Напишите через форму обратной связи — обсудим проект и возможные сценарии использования.</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('contact', subject=project.title) }}">Связаться <span>→</span></a>
+    </div>
+</section>
+{% endblock %}
