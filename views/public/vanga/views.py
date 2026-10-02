@@ -167,6 +167,32 @@ def _prediction_output(prediction: dict) -> dict:
     except (TypeError, ValueError):
         rating = 0.0
 
+    resolution = prediction.get("input_resolution")
+    resolution = resolution if isinstance(resolution, dict) else {}
+    recognized: list[dict[str, str]] = []
+
+    def add_match(kind: str, match) -> None:
+        if not isinstance(match, dict):
+            return
+        original = str(match.get("input") or "").strip()
+        canonical = str(match.get("canonical") or "").strip()
+        imdb_id = str(match.get("imdb_id") or "").strip()
+        if not original or not canonical or original.casefold() == canonical.casefold():
+            return
+        recognized.append(
+            {
+                "kind": kind,
+                "input": original,
+                "canonical": canonical,
+                "imdb_id": imdb_id,
+            }
+        )
+
+    add_match("Название", resolution.get("title"))
+    add_match("Режиссёр", resolution.get("director"))
+    for match in resolution.get("actors") or []:
+        add_match("Актёр", match)
+
     return {
         "rating": round(rating, 2),
         "base": round(base, 2) if base is not None else None,
@@ -175,6 +201,7 @@ def _prediction_output(prediction: dict) -> dict:
         "factor_count": len(factors),
         "factors": factors,
         "top_factors": factors[:5],
+        "recognized_inputs": recognized,
     }
 
 
