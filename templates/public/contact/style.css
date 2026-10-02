@@ -81,6 +81,13 @@
     transition: opacity .3s ease, transform .3s ease, filter .3s ease;
 }
 
+/* После анимации форма получает hidden. Явно убираем её из layout:
+   иначе author-правило display:grid сохраняет высоту формы, и success-блок
+   визуально оказывается далеко ниже своей карточки. */
+.contact-form[hidden] {
+    display: none;
+}
+
 .contact-form label {
     display: grid;
     gap: 8px;
@@ -325,6 +332,12 @@
     transform: translateY(-8px) scale(.99);
     filter: blur(3px);
     pointer-events: none;
+}
+
+.contact-card.is-success {
+    display: grid;
+    align-items: center;
+    min-height: clamp(280px, 28vw, 360px);
 }
 
 .contact-success {
