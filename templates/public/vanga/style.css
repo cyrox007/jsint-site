@@ -132,3 +132,31 @@
 @media(max-width:900px){.vanga-quality{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.vanga-uncertainty__head{align-items:flex-start;flex-direction:column;gap:5px}.vanga-quality{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.vanga-uncertainty,.vanga-quality article{transition:none!important}}
+
+
+/* Публичная сверка исторических прогнозов с текущим IMDb */
+.vanga-verified{margin-top:22px;padding:clamp(26px,4vw,42px);border:1px solid rgba(115,157,211,.13);border-radius:22px;background:linear-gradient(150deg,rgba(7,23,38,.68),rgba(11,18,41,.62));box-shadow:0 24px 68px rgba(0,0,0,.16)}
+.vanga-verified__head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:end}
+.vanga-verified__head h2{margin:0;color:#eff8fc;font-size:clamp(30px,4vw,48px);line-height:1;letter-spacing:-.045em}
+.vanga-verified__head>div:first-child>p{max-width:760px;margin:11px 0 0;color:#7891a3;font-size:12px;line-height:1.6}
+.vanga-verified__summary{min-width:170px;padding:14px;border:1px solid rgba(101,177,211,.13);border-radius:13px;background:rgba(5,18,31,.4)}
+.vanga-verified__summary span{display:block;color:#668397;font-size:9px;text-transform:uppercase;letter-spacing:.07em}
+.vanga-verified__summary strong{display:block;margin-top:4px;color:#dff6fa;font-size:30px;letter-spacing:-.05em}
+.vanga-verified__summary small{display:block;margin-top:3px;color:#5e7b8f;font-size:9px}
+.vanga-verified__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
+.vanga-verified-card{display:grid;gap:12px;min-height:245px;padding:17px;border:1px solid rgba(105,145,193,.1);border-radius:14px;background:rgba(4,16,29,.46);transition:transform .2s ease,border-color .2s ease,background .2s ease}
+.vanga-verified-card:hover{transform:translateY(-3px);border-color:rgba(102,189,214,.23);background:rgba(6,23,38,.56)}
+.vanga-verified-card__top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.vanga-verified-card__top span{color:#7895aa;font-size:10px;font-weight:800}.vanga-verified-card__top small{color:#48647a;font:650 8px/1 "JetBrains Mono",monospace}
+.vanga-verified-card h3{margin:0;color:#eaf4f9;font-size:15px;line-height:1.3}
+.vanga-verified-card__scores{display:grid;grid-template-columns:1fr auto 1fr;gap:9px;align-items:center}
+.vanga-verified-card__scores>div{display:grid;gap:3px;padding:10px;border-radius:10px;background:rgba(7,25,39,.44)}
+.vanga-verified-card__scores span{color:#617f93;font-size:8px;text-transform:uppercase}.vanga-verified-card__scores strong{color:#eaf7fb;font-size:22px;letter-spacing:-.04em}
+.vanga-verified-card__scores i{color:#4e6c80;font-style:normal}
+.vanga-verified-card__error{display:flex;justify-content:space-between;gap:12px;align-items:center;padding-top:10px;border-top:1px solid rgba(255,255,255,.055)}
+.vanga-verified-card__error span{color:#617c90;font-size:9px}.vanga-verified-card__error b{color:#8ce0e8;font-size:15px}
+.vanga-verified-card>p{margin-top:auto;color:#4e697d;font-size:8px;line-height:1.45;word-break:break-word}
+.vanga-verified__note{margin:15px 0 0;color:#5d778a;font-size:10px;line-height:1.55}
+@media(max-width:960px){.vanga-verified__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.vanga-verified__head{grid-template-columns:1fr}.vanga-verified__summary{min-width:0}.vanga-verified__grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vanga-verified-card{transition:none!important}}

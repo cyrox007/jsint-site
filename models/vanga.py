@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,6 +44,25 @@ class VangaPrediction(Database.Base):
         index=True,
     )
     rating: Mapped[Decimal] = mapped_column(Numeric(4, 2), nullable=False)
+    actual_rating: Mapped[Decimal | None] = mapped_column(
+        Numeric(4, 2),
+        nullable=True,
+        index=True,
+    )
+    actual_num_votes: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+    absolute_error: Mapped[Decimal | None] = mapped_column(
+        Numeric(4, 2),
+        nullable=True,
+        index=True,
+    )
+    actual_rating_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
     request_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     result_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(

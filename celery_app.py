@@ -32,6 +32,10 @@ celery_app.conf.update(
             "task": "tasks.system.purge_revoked_license_keys",
             "schedule": crontab(hour=3, minute=17),
         },
+        "sync-vanga-actual-ratings": {
+            "task": "tasks.system.sync_vanga_actual_ratings",
+            "schedule": crontab(hour="*/6", minute=23),
+        },
     },
 )
 

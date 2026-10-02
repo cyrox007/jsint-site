@@ -6,6 +6,7 @@ from database import Database
 from services.notes_control_plane import NotesControlPlane
 from services.admin_notifications import AdminNotificationService
 from services.yandex_indexing import YandexIndexingService
+from services.vanga_predictions import VangaPredictionService
 
 
 logger = logging.getLogger(__name__)
@@ -61,3 +62,28 @@ def purge_revoked_license_keys():
 def deliver_admin_push(notification_id: str):
     """Отправляет безопасный push о новом событии администратору."""
     return AdminNotificationService.deliver_push(notification_id)
+
+
+
+@celery_app.task(
+    name="tasks.system.sync_vanga_actual_ratings",
+    ignore_result=True,
+    autoretry_for=(RuntimeError,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def sync_vanga_actual_ratings():
+    """Сверяет сохранённые прогнозы Vanga с текущим локальным IMDb rating."""
+    session = Database.connect_database()
+    try:
+        result = VangaPredictionService.sync_actual_ratings(session)
+        if result.get("updated"):
+            logger.info(
+                "Vanga: сверено=%s, обновлено=%s, пропущено=%s",
+                result.get("checked", 0),
+                result.get("updated", 0),
+                result.get("skipped", 0),
+            )
+        return result
+    finally:
+        session.close()

@@ -176,6 +176,18 @@ class Config:
 
     VANGA_DEMO_URL = os.getenv("VANGA_DEMO_URL", "http://127.0.0.1:9100").strip().rstrip("/")
     VANGA_DEMO_TIMEOUT_SECONDS = max(1, min(30, int(os.getenv("VANGA_DEMO_TIMEOUT_SECONDS", "10"))))
+    VANGA_ACTUAL_MIN_VOTES = max(
+        1,
+        int(os.getenv("VANGA_ACTUAL_MIN_VOTES", "1000")),
+    )
+    VANGA_ACTUAL_REFRESH_HOURS = max(
+        6,
+        min(168, int(os.getenv("VANGA_ACTUAL_REFRESH_HOURS", "24"))),
+    )
+    VANGA_ACTUAL_SYNC_BATCH = max(
+        10,
+        min(1000, int(os.getenv("VANGA_ACTUAL_SYNC_BATCH", "300"))),
+    )
 
     NOTES_CONTROL_PLANE_ENABLED = _env_bool("NOTES_CONTROL_PLANE_ENABLED", False)
     NOTES_UPDATE_API_PREFIX = os.getenv("NOTES_UPDATE_API_PREFIX", "/api/notes/v1").strip().rstrip("/")
