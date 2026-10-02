@@ -71,6 +71,18 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn('name="author" content="JSInteractive"', html)
         self.assertIn('"ProfilePage"', html)
         self.assertIn('"ItemList"', html)
+        self.assertRegex(
+            html,
+            r'<meta name="description" content="[^"]{40,}">',
+        )
+        self.assertEqual(html.count('rel="icon"'), 1)
+        self.assertIn('href="/favicon.svg"', html)
+
+    def test_root_svg_favicon(self):
+        response = self.client.get("/favicon.svg", base_url=self.base)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "image/svg+xml")
+        self.assertIn(b"<svg", response.data)
 
     def test_robots_txt(self):
         response = self.client.get("/robots.txt", base_url=self.base)
