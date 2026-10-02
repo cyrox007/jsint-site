@@ -34,10 +34,23 @@ def _release_preflight(db_session: Session, prepared: dict) -> dict:
         .first()
     )
     warnings: list[str] = []
+    repair_existing = False
     if head is not None and prepared["version_code"] <= head.version_code:
-        warnings.append(
-            f"version_code {prepared['version_code']} не выше текущей головы канала {head.version_code}."
+        repair_existing = (
+            prepared["version_code"] == head.version_code
+            and NotesControlPlane.release_can_repair(
+                head,
+                version=prepared["version"],
+                source_commit=prepared["source_commit"],
+                package_name=prepared["package_name"],
+                package_size=prepared["package_size"],
+                package_sha256=prepared["package_sha256"],
+            )
         )
+        if not repair_existing:
+            warnings.append(
+                f"version_code {prepared['version_code']} не выше текущей головы канала {head.version_code}."
+            )
     if prepared["channel"] == "stable":
         lowered = prepared["version"].lower()
         if any(marker in lowered for marker in ("alpha", "beta", "rc", "pre")):
@@ -47,6 +60,7 @@ def _release_preflight(db_session: Session, prepared: dict) -> dict:
         "head": head,
         "warnings": warnings,
         "ready": not warnings,
+        "repair_existing": repair_existing,
     }
 
 def _parse_optional_datetime(value: str, field: str) -> datetime | None:
@@ -460,6 +474,7 @@ class ReleaseGitHubPrepareView(MethodView):
                         "preflight": {
                             "ready": preflight["ready"],
                             "warnings": preflight["warnings"],
+                            "repair_existing": preflight["repair_existing"],
                             "channel_head_version": preflight["head"].version if preflight["head"] else None,
                             "channel_head_version_code": preflight["head"].version_code if preflight["head"] else None,
                         },
