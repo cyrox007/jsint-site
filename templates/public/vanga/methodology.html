@@ -1,0 +1,274 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/vanga/methodology.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<section class="vanga-method">
+    <div class="vanga-method__ambient" aria-hidden="true"><i></i><i></i></div>
+    <div class="vanga-method__shell">
+        <nav class="vanga-method__crumbs" aria-label="Навигация">
+            <a href="{{ url_for('project_promo', project_slug='vanga') }}">Vanga</a>
+            <span>→</span>
+            <strong>Методология</strong>
+        </nav>
+
+        <header class="vanga-method__hero">
+            <div>
+                <span class="vanga-method__eyebrow">Методология / без магии</span>
+                <h1>Что именно делает Vanga, когда «угадывает» рейтинг</h1>
+                <p>
+                    Vanga не знает будущего и не «смотрит» фильм до премьеры. Это CatBoost-модель,
+                    которая ищет статистические закономерности в исторических IMDb-данных и оценивает
+                    возможный рейтинг по информации, известной до релиза.
+                </p>
+                <div class="vanga-method__actions">
+                    <a class="btn btn-primary" href="{{ url_for('vanga_demo') }}">Попробовать прогноз <span>→</span></a>
+                    <a class="btn btn-secondary" href="{{ url_for('project_promo', project_slug='vanga') }}">О проекте</a>
+                </div>
+            </div>
+
+            <aside class="vanga-method__principle">
+                <span>Главный принцип</span>
+                <strong>Не подсматривать в будущее</strong>
+                <p>
+                    Исторические признаки режиссёра, сценариста и актёров считаются только
+                    по фильмам, вышедшим раньше прогнозируемого года. Post-release сигналы
+                    вроде числа голосов не используются как вход модели.
+                </p>
+            </aside>
+        </header>
+
+        <section class="vanga-method__section">
+            <div class="vanga-method__section-head">
+                <div>
+                    <span class="vanga-method__eyebrow">01 · Данные</span>
+                    <h2>IMDb — основа, а не источник готового ответа</h2>
+                </div>
+                <p>
+                    Из официальных IMDb datasets строится локальная DuckDB. Vanga берёт оттуда
+                    структуру фильма и прошлую историю участников, а не фактический рейтинг
+                    прогнозируемой картины.
+                </p>
+            </div>
+
+            <div class="vanga-method__cards vanga-method__cards--4">
+                <article><strong>title.basics</strong><p>Год, хронометраж, жанры и каноническое название.</p></article>
+                <article><strong>title.principals</strong><p>Режиссёры и актёрский состав с их IMDb ID.</p></article>
+                <article><strong>title.crew</strong><p>Сценаристы; из него строится нормализованная локальная таблица writer history.</p></article>
+                <article><strong>title.ratings</strong><p>Исторический target и прошлые рейтинги для temporal-агрегатов.</p></article>
+            </div>
+        </section>
+
+        <section class="vanga-method__section vanga-method__section--split">
+            <div>
+                <span class="vanga-method__eyebrow">02 · Feature engineering</span>
+                <h2>Признаки, которые можно было знать до выхода</h2>
+                <p>
+                    Vanga нормализует год и длительность, кодирует жанры и персоналии и строит
+                    исторические средние рейтинги. Для человека с несколькими ролями история
+                    разделяется: режиссёрские работы не смешиваются с актёрскими.
+                </p>
+            </div>
+            <div class="vanga-method__flow">
+                <article><span>Фильм</span><b>год · runtime · жанры · название</b></article>
+                <i>+</i>
+                <article><span>Люди</span><b>режиссёр · сценарист · актёры</b></article>
+                <i>+</i>
+                <article><span>Только прошлое</span><b>history до года прогноза</b></article>
+                <i>→</i>
+                <article class="is-final"><span>CatBoost</span><b>оценка 0–10</b></article>
+            </div>
+        </section>
+
+        <section class="vanga-method__section">
+            <div class="vanga-method__section-head">
+                <div>
+                    <span class="vanga-method__eyebrow">03 · Проверка</span>
+                    <h2>Временной holdout вместо случайного shuffle</h2>
+                </div>
+                <p>
+                    Последние два календарных года доступной выборки откладываются в test.
+                    Более старые годы идут в train. Так проверка ближе к реальному сценарию:
+                    обучиться на прошлом и попробовать предсказать более новые фильмы.
+                </p>
+            </div>
+
+            <div class="vanga-method__timeline">
+                <div><span>TRAIN</span><strong>старые годы</strong><i></i></div>
+                <div class="is-test"><span>TEST</span><strong>последние 2 года</strong><i></i></div>
+                <div class="is-future"><span>ЦЕЛЬ</span><strong>будущая премьера</strong></div>
+            </div>
+        </section>
+
+        <section class="vanga-method__section">
+            <div class="vanga-method__section-head">
+                <div>
+                    <span class="vanga-method__eyebrow">04 · Активная модель</span>
+                    <h2>Не рекламные цифры — metadata работающего поколения</h2>
+                </div>
+                <p>
+                    Этот блок запрашивается у локального Vanga API. Если сервис недоступен,
+                    страница методологии продолжает работать, но не подставляет выдуманные метрики.
+                </p>
+            </div>
+
+            {% if model_info %}
+            {% set quality = model_info.quality or {} %}
+            <div class="vanga-method__live">
+                <article>
+                    <span>Generation</span>
+                    <strong class="is-code">{{ model_info.generation or '—' }}</strong>
+                    <small>неизменяемое поколение активного model artifact</small>
+                </article>
+                <article>
+                    <span>Schema</span>
+                    <strong>{{ model_info.schema_version or '—' }}</strong>
+                    <small>версия feature/metadata-контракта</small>
+                </article>
+                <article>
+                    <span>MAE</span>
+                    <strong>{% if quality.mae is not none %}{{ '%.3f'|format(quality.mae) }}{% else %}—{% endif %}</strong>
+                    <small>средняя абсолютная ошибка temporal holdout</small>
+                </article>
+                <article>
+                    <span>RMSE</span>
+                    <strong>{% if quality.rmse is not none %}{{ '%.3f'|format(quality.rmse) }}{% else %}—{% endif %}</strong>
+                    <small>сильнее штрафует крупные промахи</small>
+                </article>
+                <article>
+                    <span>R²</span>
+                    <strong>{% if quality.r2 is not none %}{{ '%.3f'|format(quality.r2) }}{% else %}—{% endif %}</strong>
+                    <small>объяснённая вариация на тестовом периоде</small>
+                </article>
+                <article>
+                    <span>Test period</span>
+                    <strong>
+                        {% if quality.test_year_from and quality.test_year_to %}
+                        {{ quality.test_year_from }}–{{ quality.test_year_to }}
+                        {% else %}—{% endif %}
+                    </strong>
+                    <small>{% if quality.test_rows %}{{ quality.test_rows }} строк{% else %}temporal holdout{% endif %}</small>
+                </article>
+                <article>
+                    <span>Uncertainty</span>
+                    <strong>{{ 'есть' if model_info.uncertainty_available else 'нет' }}</strong>
+                    <small>эмпирическая калибровка диапазона по holdout errors</small>
+                </article>
+                <article>
+                    <span>Model size</span>
+                    <strong>
+                        {% if model_info.model_size_bytes %}
+                        {{ '%.1f'|format(model_info.model_size_bytes / 1024 / 1024) }} МБ
+                        {% else %}—{% endif %}
+                    </strong>
+                    <small>размер опубликованного CatBoost artifact</small>
+                </article>
+            </div>
+
+            {% if active_features %}
+            <details class="vanga-method__features">
+                <summary>Показать признаки активного поколения <span>{{ active_features|length }}</span></summary>
+                <div>
+                    {% for feature in active_features %}
+                    <article>
+                        <code>{{ feature.key }}</code>
+                        <strong>{{ feature.label }}</strong>
+                        <p>{{ feature.description }}</p>
+                    </article>
+                    {% endfor %}
+                </div>
+            </details>
+            {% endif %}
+            {% else %}
+            <div class="vanga-method__offline">
+                <strong>Активная metadata сейчас недоступна</strong>
+                <p>Методология остаётся валидной как описание pipeline, но текущие MAE, generation и feature list здесь намеренно не подменяются последними известными значениями.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="vanga-method__section vanga-method__section--explain">
+            <div>
+                <span class="vanga-method__eyebrow">05 · Объяснение результата</span>
+                <h2>SHAP отвечает на «что сдвинуло этот прогноз?»</h2>
+                <p>
+                    После inference Vanga получает вклад каждого признака относительно базового
+                    уровня модели. Положительное значение повышает итоговый прогноз, отрицательное —
+                    снижает. Это вклад в пунктах рейтинга, а не процент уверенности.
+                </p>
+            </div>
+            <div class="vanga-method__equation">
+                <span>базовый уровень</span><i>+</i><span>SHAP-вклады</span><i>=</i><strong>прогноз</strong>
+            </div>
+        </section>
+
+        <section class="vanga-method__section">
+            <div class="vanga-method__section-head">
+                <div>
+                    <span class="vanga-method__eyebrow">06 · Неопределённость</span>
+                    <h2>Почему диапазон честнее одного красивого числа</h2>
+                </div>
+                <p>
+                    При новом retrain абсолютные ошибки на temporal holdout калибруются по квантилям.
+                    Интерфейс может показать, например, центральный прогноз и диапазон, внутри которого
+                    находилась заданная доля исторических ошибок. Это не вероятность результата фильма.
+                </p>
+            </div>
+            <div class="vanga-method__range" aria-hidden="true">
+                <span>ниже</span><i></i><b>7.3</b><i></i><span>выше</span>
+            </div>
+        </section>
+
+        <section class="vanga-method__section vanga-method__section--guard">
+            <div>
+                <span class="vanga-method__eyebrow">07 · Публикация модели</span>
+                <h2>Новый retrain не должен автоматически вытеснять более точную модель</h2>
+            </div>
+            <div class="vanga-method__guard-grid">
+                <article><span>1</span><strong>Train + temporal test</strong><p>Candidate сначала получает метрики на временной выборке.</p></article>
+                <article><span>2</span><strong>Quality gate</strong><p>На сопоставимом holdout MAE сравнивается с активным поколением.</p></article>
+                <article><span>3</span><strong>Artifact checks</strong><p>Проверяются metadata и лимит размера модели без второй загрузки CatBoost в RAM.</p></article>
+                <article><span>4</span><strong>Atomic switch</strong><p>Только после проверок меняется current.json; при ошибке рабочая модель остаётся прежней.</p></article>
+            </div>
+            {% if model_info and model_info.quality_gate %}
+            <div class="vanga-method__gate">
+                <span>Quality gate активного поколения</span>
+                <strong>{{ 'пройден' if model_info.quality_gate.passed else 'не пройден' }}</strong>
+                <small>{{ model_info.quality_gate.reason or '' }}</small>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="vanga-method__section">
+            <div class="vanga-method__section-head">
+                <div>
+                    <span class="vanga-method__eyebrow">08 · Ограничения</span>
+                    <h2>Где прогнозу нельзя доверять как факту</h2>
+                </div>
+                <p>
+                    Vanga — экспериментальная статистическая модель. Она может промахиваться на необычных
+                    проектах, новых режиссёрах и актёрах, фильмах с редкой комбинацией жанров или когда
+                    до премьеры известно мало данных.
+                </p>
+            </div>
+            <div class="vanga-method__limits">
+                <article><strong>Не рецензия</strong><p>Модель не оценивает художественное качество и не заменяет мнение зрителей.</p></article>
+                <article><strong>Не вероятность</strong><p>Рейтинг 7.3 не означает «73% шанса на успех».</p></article>
+                <article><strong>Не знание будущего</strong><p>Vanga видит только признаки и исторические закономерности, а не сам будущий фильм.</p></article>
+                <article><strong>Данные меняются</strong><p>IMDb пополняется, поэтому следующие поколения модели могут обучаться на более свежей истории.</p></article>
+            </div>
+        </section>
+
+        <section class="vanga-method__cta">
+            <div>
+                <span class="vanga-method__eyebrow">Теперь можно спорить с моделью</span>
+                <h2>Выберите будущий фильм и проверьте Vanga</h2>
+                <p>А после премьеры сохранённый прогноз можно будет сравнить с фактическим IMDb-рейтингом без пересчёта задним числом.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ url_for('vanga_demo') }}">Открыть Vanga <span>→</span></a>
+        </section>
+    </div>
+</section>
+{% endblock %}
