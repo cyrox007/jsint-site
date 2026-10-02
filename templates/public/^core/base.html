@@ -14,12 +14,20 @@
     {% set page_description = seo_description if seo_description is defined and seo_description else (seo_defaults.description if has_site else "") %}
     {% set site_base_url = site.base_url if has_site and site.base_url else config.SITE_BASE_URL %}
     {% set page_canonical = canonical_url if canonical_url is defined and canonical_url else (site_base_url ~ request.path) %}
+    {% set default_share_image = "https://images.unsplash.com/photo-1776251693908-b7eb878a5e6b?auto=format&fit=crop&fm=jpg&q=82&w=1600&h=900" %}
+    {% set page_image = seo_image_url if seo_image_url is defined and seo_image_url else (seo_defaults.image_url or default_share_image) %}
+    {% set page_image_alt = seo_image_alt if seo_image_alt is defined and seo_image_alt else page_title %}
     {% set should_index = has_site and seo_defaults.robots_index and not (seo_noindex is defined and seo_noindex) %}
 
     <title>{{ page_title }}</title>
     <meta name="description" content="{{ page_description }}">
+    <meta name="author" content="JSInteractive">
     <meta name="robots" content="{{ 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1' if should_index else 'noindex,nofollow' }}">
     <link rel="canonical" href="{{ page_canonical }}">
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    {% if seo_preload_image_url is defined and seo_preload_image_url %}
+    <link rel="preload" as="image" href="{{ seo_preload_image_url }}" fetchpriority="high">
+    {% endif %}
 
     <meta property="og:title" content="{{ page_title }}">
     <meta property="og:description" content="{{ page_description }}">
@@ -27,16 +35,24 @@
     <meta property="og:type" content="{{ og_type if og_type is defined and og_type else 'website' }}">
     <meta property="og:site_name" content="{{ seo_defaults.site_name if has_site else 'JSInteractive' }}">
     <meta property="og:locale" content="{{ seo_defaults.locale if has_site else 'ru_RU' }}">
-    {% if has_site and seo_defaults.image_url %}
-    <meta property="og:image" content="{{ seo_defaults.image_url }}">
+    <meta property="og:image" content="{{ page_image }}">
+    <meta property="og:image:secure_url" content="{{ page_image }}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1600">
+    <meta property="og:image:height" content="900">
+    <meta property="og:image:alt" content="{{ page_image_alt }}">
+    {% if og_type is defined and og_type == 'article' and seo_published_at is defined and seo_published_at %}
+    <meta property="article:published_time" content="{{ seo_published_at }}">
+    {% endif %}
+    {% if og_type is defined and og_type == 'article' and seo_modified_at is defined and seo_modified_at %}
+    <meta property="article:modified_time" content="{{ seo_modified_at }}">
     {% endif %}
 
-    <meta name="twitter:card" content="{{ 'summary_large_image' if has_site and seo_defaults.image_url else 'summary' }}">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ page_title }}">
     <meta name="twitter:description" content="{{ page_description }}">
-    {% if has_site and seo_defaults.image_url %}
-    <meta name="twitter:image" content="{{ seo_defaults.image_url }}">
-    {% endif %}
+    <meta name="twitter:image" content="{{ page_image }}">
+    <meta name="twitter:image:alt" content="{{ page_image_alt }}">
 
     {% set yandex_verification = seo_defaults.yandex_verification or config.YANDEX_WEBMASTER_VERIFICATION %}
     {% if has_site and yandex_verification %}
@@ -47,9 +63,17 @@
         {% set structured_data = {
             "@context": "https://schema.org",
             "@type": "WebSite",
+            "@id": site_base_url ~ "/#website",
             "name": seo_defaults.site_name or site.name,
             "url": site_base_url,
-            "description": page_description
+            "description": seo_defaults.description or page_description,
+            "inLanguage": "ru-RU",
+            "creator": {
+                "@type": "Person",
+                "@id": site_base_url ~ "/#creator",
+                "name": "JSInteractive",
+                "url": site_base_url ~ "/#about"
+            }
         } %}
         <script type="application/ld+json">{{ structured_data|tojson }}</script>
     {% endif %}
