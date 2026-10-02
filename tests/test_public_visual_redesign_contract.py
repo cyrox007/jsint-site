@@ -42,13 +42,40 @@ class PublicVisualRedesignContractTests(unittest.TestCase):
         self.assertIn("Наши проекты", systems)
         self.assertIn('id="publications"', systems)
         self.assertIn("Workspace Organizer", systems)
+        self.assertIn("PhoenixOS", systems)
+        self.assertIn("ChurchCMS", systems)
+        self.assertNotIn("github.com", systems.lower())
+        self.assertIn("Full-stack разработка", about)
+        self.assertIn("ML / NLP", about)
         self.assertIn("В чём я силён", about)
         self.assertIn("Опыт и резюме", resume)
         self.assertIn("resume_items", resume)
+        self.assertIn("data-resume-open", resume)
+        self.assertIn("data-resume-modal", resume)
         self.assertIn("Мой подход", approach)
         self.assertIn("images.unsplash.com", styles)
         self.assertIn(".portfolio-feature-panel", styles)
         self.assertIn(".portfolio-proof", styles)
+
+    def test_resume_modal_has_smooth_accessible_interaction(self):
+        script = self.read("static/public/home.js")
+        styles = self.read("templates/public/home/style.css")
+
+        self.assertIn('event.key === "Escape"', script)
+        self.assertIn("resume-modal-open", script)
+        self.assertIn(".resume-modal.is-open", styles)
+        self.assertIn("prefers-reduced-motion", styles)
+
+    def test_project_cards_use_internal_promos(self):
+        systems = self.read("templates/public/home/section/systems.html")
+        routes = self.read("views/public/projects/routers.py")
+        view = self.read("views/public/projects/views.py")
+
+        self.assertIn("project_promo", systems)
+        self.assertNotIn("github.com", systems.lower())
+        self.assertIn('"/projects/<slug>"', routes)
+        self.assertIn('"phoenixos"', view)
+        self.assertIn('"churchcms"', view)
 
     def test_article_page_has_editorial_sidebar_and_generated_toc(self):
         template = self.read("templates/public/articles/detail.html")
