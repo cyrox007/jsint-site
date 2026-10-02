@@ -12,6 +12,8 @@ def test_vanga_demo_route_contract():
 
     assert "from views.public.vanga import routers as vanga_router" in app_source
     assert "vanga_router.install(app)" in app_source
+    assert '"/projects/vanga/methodology"' in router_source
+    assert '"vanga_methodology"' in router_source
     assert '"/demo/vanga"' in router_source
     assert '"/demo/vanga/search"' in router_source
     assert '"/demo/vanga/predict"' in router_source
