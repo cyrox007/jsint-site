@@ -85,6 +85,21 @@
     </article>
 </div>
 
+<div class="vanga-compare-action">
+    <div>
+        <span>Что будет, если изменить фильм?</span>
+        <small>Зафиксируйте этот расчёт как вариант A, поменяйте режиссёра, актёров, жанр или длительность и получите вариант B.</small>
+    </div>
+    <button
+        type="button"
+        data-vanga-pin
+        data-rating="{{ prediction_output.rating }}"
+        data-title="{{ prediction.title }}"
+        data-generation="{{ prediction.generation or '' }}"
+        data-snapshot-url="{{ snapshot_url or '' }}"
+    >Зафиксировать вариант A</button>
+</div>
+
 {% if snapshot_url %}
 <div class="vanga-share">
     <div>

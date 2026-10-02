@@ -9,6 +9,7 @@
     const predictUrl = root.dataset.predictUrl || "";
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const historyKey = "jsint:vanga:history:v1";
+    const compareKey = "jsint:vanga:compare:v1";
 
     const debounce = (fn, delay = 260) => {
         let timer = 0;
@@ -207,6 +208,7 @@
         animatePrediction({ scroll });
         initFactors(root);
         initShare(root);
+        initCompare(root);
     };
 
     const input = (name) => form?.querySelector(`[name="${name}"]`);
@@ -246,6 +248,231 @@
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean);
+
+    const currentPayload = () => ({
+        imdb_id: imdbInput?.value.trim() || null,
+        title: input("title")?.value.trim() || "",
+        director: input("director")?.value.trim() || "",
+        year: input("year")?.value.trim() || "",
+        runtime: input("runtime")?.value.trim() || "",
+        genres: normalizedGenres(),
+        actors: (actorsInput?.value || "")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .slice(0, 5),
+    });
+
+    const compareSection = root.querySelector("[data-vanga-compare]");
+    const compareA = root.querySelector("[data-vanga-compare-a]");
+    const compareATitle = root.querySelector("[data-vanga-compare-a-title]");
+    const compareB = root.querySelector("[data-vanga-compare-b]");
+    const compareBTitle = root.querySelector("[data-vanga-compare-b-title]");
+    const compareDelta = root.querySelector("[data-vanga-compare-delta]");
+    const compareChanges = root.querySelector("[data-vanga-compare-changes]");
+    const compareNote = root.querySelector("[data-vanga-compare-note]");
+
+    const readBaseline = () => {
+        try {
+            const parsed = JSON.parse(
+                window.localStorage.getItem(compareKey) || "null"
+            );
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const writeBaseline = (value) => {
+        try {
+            if (value) {
+                window.localStorage.setItem(compareKey, JSON.stringify(value));
+            } else {
+                window.localStorage.removeItem(compareKey);
+            }
+        } catch {
+            // localStorage может быть запрещён политикой браузера.
+        }
+    };
+
+    let compareBaseline = readBaseline();
+
+    const formatCompareValue = (value) => {
+        if (Array.isArray(value)) return value.join(", ") || "—";
+        return String(value ?? "").trim() || "—";
+    };
+
+    const changedFields = (before, after) => {
+        const fields = [
+            ["title", "Название"],
+            ["director", "Режиссёр"],
+            ["year", "Год"],
+            ["runtime", "Длительность"],
+            ["genres", "Жанры"],
+            ["actors", "Актёры"],
+        ];
+        return fields
+            .map(([key, label]) => ({
+                key,
+                label,
+                before: formatCompareValue(before?.[key]),
+                after: formatCompareValue(after?.[key]),
+            }))
+            .filter((item) => item.before !== item.after);
+    };
+
+    const clearCompareDelta = () => {
+        if (compareB) compareB.textContent = "—";
+        if (compareBTitle) compareBTitle.textContent = "После следующего расчёта";
+        if (compareDelta) {
+            compareDelta.classList.remove("is-positive", "is-negative", "is-neutral");
+            compareDelta.querySelector("strong").textContent = "—";
+        }
+        if (compareChanges) compareChanges.replaceChildren();
+    };
+
+    const showBaseline = () => {
+        if (!compareSection || !compareBaseline) return;
+        compareSection.hidden = false;
+        if (compareA) {
+            compareA.textContent = Number(compareBaseline.rating || 0).toFixed(2);
+        }
+        if (compareATitle) {
+            compareATitle.textContent = compareBaseline.title || "Вариант A";
+        }
+        clearCompareDelta();
+        if (compareNote) {
+            compareNote.textContent =
+                "Вариант A зафиксирован. Измените параметры формы и получите новый прогноз — сравнение появится автоматически.";
+        }
+    };
+
+    const renderComparison = (payload, output, prediction) => {
+        if (!compareBaseline || !compareSection) return;
+
+        const currentGeneration = String(
+            prediction?.generation || prediction?.model_generation || ""
+        );
+        const baselineGeneration = String(compareBaseline.generation || "");
+
+        compareSection.hidden = false;
+        if (compareA) {
+            compareA.textContent = Number(compareBaseline.rating || 0).toFixed(2);
+        }
+        if (compareATitle) {
+            compareATitle.textContent = compareBaseline.title || "Вариант A";
+        }
+
+        if (
+            baselineGeneration &&
+            currentGeneration &&
+            baselineGeneration !== currentGeneration
+        ) {
+            clearCompareDelta();
+            if (compareNote) {
+                compareNote.textContent =
+                    "Модель успела обновиться. Для честного what-if сравнения зафиксируйте вариант A заново на текущей generation.";
+            }
+            return;
+        }
+
+        const rating = Number(output?.rating ?? prediction?.rating ?? 0);
+        if (compareB) compareB.textContent = rating.toFixed(2);
+        if (compareBTitle) {
+            compareBTitle.textContent = payload?.title || "Вариант B";
+        }
+
+        const delta = rating - Number(compareBaseline.rating || 0);
+        if (compareDelta) {
+            compareDelta.classList.remove("is-positive", "is-negative", "is-neutral");
+            const tone =
+                delta > 0.005
+                    ? "is-positive"
+                    : delta < -0.005
+                      ? "is-negative"
+                      : "is-neutral";
+            compareDelta.classList.add(tone);
+            compareDelta.querySelector("strong").textContent =
+                `${delta >= 0 ? "+" : ""}${delta.toFixed(2)}`;
+        }
+
+        if (compareChanges) {
+            compareChanges.replaceChildren();
+            const changes = changedFields(compareBaseline.payload, payload);
+            if (!changes.length) {
+                const empty = document.createElement("p");
+                empty.className = "vanga-compare__empty";
+                empty.textContent =
+                    "Параметры не изменились — это повторный расчёт того же сценария.";
+                compareChanges.append(empty);
+            } else {
+                changes.forEach((change) => {
+                    const item = document.createElement("article");
+                    const label = document.createElement("span");
+                    label.textContent = change.label;
+                    const values = document.createElement("div");
+                    const before = document.createElement("strong");
+                    before.textContent = change.before;
+                    const arrow = document.createElement("i");
+                    arrow.textContent = "→";
+                    const after = document.createElement("b");
+                    after.textContent = change.after;
+                    values.append(before, arrow, after);
+                    item.append(label, values);
+                    compareChanges.append(item);
+                });
+            }
+        }
+
+        if (compareNote) {
+            compareNote.textContent =
+                "Δ показывает разницу между двумя прогнозами одной generation модели. Это what-if сравнение сценариев, а не причинная оценка влияния одного признака.";
+        }
+
+        if (!reducedMotion) {
+            window.setTimeout(() => {
+                compareSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            }, 260);
+        }
+    };
+
+    const initCompare = (scope = root) => {
+        scope.querySelectorAll("[data-vanga-pin]").forEach((button) => {
+            if (button.dataset.vangaCompareReady === "1") return;
+            button.dataset.vangaCompareReady = "1";
+            button.addEventListener("click", () => {
+                compareBaseline = {
+                    payload: currentPayload(),
+                    rating: Number(button.dataset.rating || 0),
+                    title: button.dataset.title || input("title")?.value || "Вариант A",
+                    generation: button.dataset.generation || "",
+                    snapshot_url: button.dataset.snapshotUrl || "",
+                };
+                writeBaseline(compareBaseline);
+                showBaseline();
+                button.textContent = "Вариант A зафиксирован";
+                if (!reducedMotion) {
+                    compareSection?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    });
+                }
+            });
+        });
+    };
+
+    root.querySelector("[data-vanga-compare-reset]")?.addEventListener(
+        "click",
+        () => {
+            compareBaseline = null;
+            writeBaseline(null);
+            if (compareSection) compareSection.hidden = true;
+            clearCompareDelta();
+        }
+    );
 
     const refreshGenreChips = () => {
         const selected = new Set(
@@ -689,19 +916,7 @@
                 if (submitStatus) submitStatus.textContent = states[stateIndex];
             }, 720);
 
-            const payload = {
-                imdb_id: imdbInput?.value.trim() || null,
-                title: input("title").value.trim(),
-                director: input("director").value.trim(),
-                year: input("year").value.trim(),
-                runtime: input("runtime").value.trim(),
-                genres: normalizedGenres(),
-                actors: (actorsInput?.value || "")
-                    .split(",")
-                    .map((item) => item.trim())
-                    .filter(Boolean)
-                    .slice(0, 5),
-            };
+            const payload = currentPayload();
 
             try {
                 const csrf = form.querySelector("[data-vanga-csrf]")?.value || "";
@@ -727,6 +942,7 @@
 
                 pushHistory(payload, data.output, data.snapshot);
                 initDynamicContent({ scroll: true });
+                renderComparison(payload, data.output, data.prediction);
             } catch (error) {
                 renderAjaxError(error?.message || "Сервис временно недоступен");
             } finally {
@@ -737,5 +953,15 @@
     }
 
     renderHistory();
+    if (compareBaseline) showBaseline();
     initDynamicContent({ scroll: false });
+
+    const initialPin = result?.querySelector("[data-vanga-pin]");
+    if (compareBaseline && initialPin) {
+        renderComparison(
+            currentPayload(),
+            { rating: Number(initialPin.dataset.rating || 0) },
+            { generation: initialPin.dataset.generation || "" }
+        );
+    }
 })();
