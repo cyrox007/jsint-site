@@ -21,7 +21,7 @@ class PublicVisualRedesignContractTests(unittest.TestCase):
         self.assertIn("position:fixed", styles)
         self.assertIn("border-radius:0", styles)
         self.assertIn("backdrop-filter", styles)
-        self.assertIn("public/jsinteractive-mark.svg", base)
+        self.assertIn("url_for('favicon_svg')", base)
 
     def test_home_matches_portfolio_information_architecture(self):
         page = self.read("templates/public/home/index.html")
