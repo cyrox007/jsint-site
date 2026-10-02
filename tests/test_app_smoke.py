@@ -64,6 +64,11 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn('<link rel="canonical" href=', html)
         self.assertIn('property="og:title"', html)
         self.assertIn('name="twitter:card"', html)
+        self.assertIn('content="summary_large_image"', html)
+        self.assertIn('property="og:image:width" content="1600"', html)
+        self.assertIn('name="author" content="JSInteractive"', html)
+        self.assertIn('"ProfilePage"', html)
+        self.assertIn('"ItemList"', html)
 
     def test_robots_txt(self):
         response = self.client.get("/robots.txt", base_url=self.base)
@@ -85,6 +90,17 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn(f"<loc>{config.SITE_BASE_URL}/</loc>", body)
         self.assertNotIn(config.ADMIN_ROUTE_PREFIX, body)
         self.assertNotIn(config.NOTES_UPDATE_API_PREFIX, body)
+        self.assertNotIn("/demo/vanga", body)
+        self.assertIn("/projects/vanga", body)
+        self.assertIn("/workspace-organizer", body)
+
+    def test_vanga_demo_is_noindex_and_canonicalized(self):
+        response = self.client.get("/demo/vanga", base_url=self.base)
+        html = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('content="noindex,nofollow"', html)
+        self.assertIn('/projects/vanga', html)
 
     def test_health_endpoint(self):
         response = self.client.get("/healthz", base_url=self.base)
