@@ -22,6 +22,20 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn("Технологии", html)
         self.assertIn("Наши проекты", html)
 
+    def test_internal_project_promos(self):
+        for slug, title in (
+            ("vanga", "Vanga"),
+            ("the-game", "The-Game"),
+            ("churchcms", "ChurchCMS"),
+        ):
+            with self.subTest(slug=slug):
+                response = self.client.get(
+                    f"/projects/{slug}",
+                    base_url=self.base,
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(title, response.get_data(as_text=True))
+
     def test_contact_page_is_protected_and_has_no_public_email(self):
         response = self.client.get("/contact", base_url=self.base)
         html = response.get_data(as_text=True)
