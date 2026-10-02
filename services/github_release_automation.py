@@ -461,7 +461,14 @@ class GitHubReleaseAutomation:
                 )
                 .first()
             )
-            if existing is not None:
+            if existing is not None and not NotesControlPlane.release_can_repair(
+                existing,
+                version=version,
+                source_commit=source_commit,
+                package_name=package_name,
+                package_size=package_size,
+                package_sha256=package_sha256,
+            ):
                 raise ControlPlaneError(
                     f"Релиз {version} ({channel}) уже зарегистрирован",
                     status=409,
