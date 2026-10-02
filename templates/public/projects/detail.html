@@ -5,12 +5,57 @@
 {% endblock %}
 
 {% block content %}
-<section class="project-promo project-promo--{{ project.accent }}{% if project_detail %} project-promo--detailed{% endif %}">
+<section class="project-promo project-promo--{{ project.accent }}{% if project_detail or vanga_detail %} project-promo--detailed{% endif %}">
     <div class="project-promo__backdrop" aria-hidden="true"></div>
     <div class="container project-promo__hero">
         <a class="project-promo__back" href="{{ url_for('index') }}#systems">← Все проекты</a>
 
-        {% if project_detail %}
+        {% if vanga_detail %}
+        <div class="project-promo__hero-grid project-promo__hero-grid--vanga">
+            <div class="project-promo__hero-copy">
+                <span class="project-promo__eyebrow">{{ project.eyebrow }}</span>
+                <span class="project-promo__status">{{ vanga_detail.status }}</span>
+                <span class="vanga-project-brand">Vanga</span>
+                <h1>{{ vanga_detail.hero_question }}<br><span>{{ vanga_detail.hero_answer }}</span></h1>
+                <p>{{ project.description }}</p>
+
+                <div class="project-promo__actions">
+                    <a class="btn btn-primary" href="{{ project.cta_url }}">{{ project.cta_label }} <span>→</span></a>
+                    <a class="btn btn-secondary" href="#how-vanga-works">Как это работает</a>
+                </div>
+
+                <div class="project-promo__facts">
+                    {% for fact in project.facts %}<span>{{ fact }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <div class="vanga-project-preview" aria-label="Пример прогноза рейтинга фильма">
+                <div class="vanga-project-preview__top">
+                    <span>Прогноз до премьеры</span>
+                    <strong>Какой рейтинг может получить фильм?</strong>
+                </div>
+                <div class="vanga-project-preview__movie">
+                    <div>
+                        <small>Фильм</small>
+                        <strong>The Odyssey</strong>
+                        <span>Christopher Nolan · Adventure / Drama</span>
+                    </div>
+                    <div class="vanga-project-preview__score">
+                        <strong>?</strong>
+                        <span>из 10</span>
+                    </div>
+                </div>
+                <div class="vanga-project-preview__factors">
+                    <span>режиссёр</span>
+                    <span>актёры</span>
+                    <span>жанр</span>
+                    <span>год</span>
+                    <span>хронометраж</span>
+                </div>
+                <a href="{{ project.cta_url }}">Попробовать на своём фильме →</a>
+            </div>
+        </div>
+        {% elif project_detail %}
         <div class="project-promo__hero-grid">
             <div class="project-promo__hero-copy">
                 <span class="project-promo__eyebrow">{{ project.eyebrow }}</span>
@@ -88,17 +133,19 @@
     <div class="container">
         <div class="portfolio-section-head">
             <div>
-                <span class="section-kicker">{% if project_detail %}Текущее состояние{% else %}Проект{% endif %}</span>
-                <h2>{% if project_detail %}Что уже реализовано{% else %}Что внутри{% endif %}</h2>
+                <span class="section-kicker">{% if vanga_detail %}Для зрителей{% elif project_detail %}Текущее состояние{% else %}Проект{% endif %}</span>
+                <h2>{% if vanga_detail %}Рейтинг фильма ещё до выхода{% elif project_detail %}Что уже реализовано{% else %}Что внутри{% endif %}</h2>
             </div>
-            {% if project_detail %}
+            {% if vanga_detail %}
+            <p>{{ vanga_detail.intro }}</p>
+            {% elif project_detail %}
             <p>{{ project_detail.intro }}</p>
             {% else %}
             <p>Ключевые части и сценарии проекта.</p>
             {% endif %}
         </div>
 
-        <div class="project-promo-grid{% if project_detail %} project-promo-grid--detailed{% endif %}">
+        <div class="project-promo-grid{% if project_detail or vanga_detail %} project-promo-grid--detailed{% endif %}">
             {% for title, text in project.capabilities %}
             <article>
                 <span>{{ '%02d'|format(loop.index) }}</span>
@@ -109,6 +156,102 @@
         </div>
     </div>
 </section>
+
+{% if vanga_detail %}
+<section class="project-promo-section vanga-audience">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Кому интересно</span>
+                <h2>Не только разработчикам — прежде всего любителям кино</h2>
+            </div>
+            <p>
+                Это не сервис для продажи и не коммерческий SaaS. Vanga остаётся моим ML-экспериментом,
+                который можно открыть перед премьерой, ввести известные данные о фильме и просто сравнить
+                ожидания с прогнозом модели.
+            </p>
+        </div>
+
+        <div class="vanga-audience-grid">
+            {% for title, text in vanga_detail.audiences %}
+            <article><h3>{{ title }}</h3><p>{{ text }}</p></article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section vanga-how" id="how-vanga-works">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Как работает</span>
+                <h2>От параметров фильма до прогноза рейтинга</h2>
+            </div>
+            <p>
+                Никакой магии: это статистическая ML-модель. Она не «смотрит» фильм заранее, а оценивает
+                возможный рейтинг по историческим закономерностям и данным, известным до релиза.
+            </p>
+        </div>
+
+        <div class="vanga-how-grid">
+            {% for number, title, text in vanga_detail.how_it_works %}
+            <article>
+                <span>{{ number }}</span>
+                <h3>{{ title }}</h3>
+                <p>{{ text }}</p>
+            </article>
+            {% endfor %}
+        </div>
+
+        <div class="vanga-demo-banner">
+            <div>
+                <span class="section-kicker">Попробовать сейчас</span>
+                <h3>Фильм ещё не вышел? Проверьте, какой рейтинг ему даст Vanga.</h3>
+                <p>Введите режиссёра, актёров, жанр, год и длительность — результат появится сразу.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ project.cta_url }}">Спрогнозировать рейтинг <span>→</span></a>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section vanga-story">
+    <div class="container vanga-story__grid">
+        <div>
+            <span class="section-kicker">Почему появился проект</span>
+            <h2>Практика машинного обучения, которую я решил не прятать в ноутбуке</h2>
+        </div>
+        <div>
+            <p>{{ vanga_detail.story }}</p>
+            <p>
+                В итоге получился живой проект: модель обучается отдельно, публикуется атомарно,
+                работает через локальный API и остаётся доступной посетителям сайта. Я могу дальше
+                улучшать её ради интереса, а посетители — проверять будущие премьеры и спорить с прогнозом.
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section vanga-roadmap">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Куда можно развивать</span>
+                <h2>Сделать прогноз интереснее и честнее</h2>
+            </div>
+            <p>
+                Это эксперимент без обещаний «угадать IMDb». Цель — постепенно улучшать качество именно
+                для фильмов, рейтинг которых ещё неизвестен, и понятнее показывать границы прогноза.
+            </p>
+        </div>
+
+        <div class="vanga-roadmap-grid">
+            {% for title, text in vanga_detail.roadmap %}
+            <article><h3>{{ title }}</h3><p>{{ text }}</p></article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
 {% if project_detail %}
 <section class="project-promo-section churchcms-evolution">
@@ -233,9 +376,12 @@
     <div class="container project-promo-cta__panel">
         <div>
             <span class="section-kicker">{{ project.title }}</span>
-            <h2>{% if project_detail %}Интересна архитектура или пилотный сценарий?{% else %}Хотите узнать подробнее?{% endif %}</h2>
+            <h2>{% if vanga_detail %}Какой рейтинг будет у следующей премьеры?{% elif project_detail %}Интересна архитектура или пилотный сценарий?{% else %}Хотите узнать подробнее?{% endif %}</h2>
             <p>
-                {% if project_detail %}
+                {% if vanga_detail %}
+                Попробуйте Vanga на фильме, который уже ждёте. Это бесплатный экспериментальный прогноз —
+                интереснее всего потом сравнить его с реальным рейтингом после выхода.
+                {% elif project_detail %}
                 Можно обсудить структуру сайта, федерацию нескольких организаций, миграцию legacy-контента
                 или сценарий будущего пилотного развёртывания.
                 {% else %}
@@ -243,7 +389,11 @@
                 {% endif %}
             </p>
         </div>
+        {% if vanga_detail %}
+        <a class="btn btn-primary" href="{{ project.cta_url }}">Попробовать Vanga <span>→</span></a>
+        {% else %}
         <a class="btn btn-primary" href="{{ url_for('contact', subject=project.title) }}">Связаться <span>→</span></a>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
