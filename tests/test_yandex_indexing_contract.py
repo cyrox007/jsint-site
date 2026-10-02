@@ -37,15 +37,15 @@ class YandexIndexingContractTests(unittest.TestCase):
         headers = self.read("components/security/headers.py")
 
         self.assertIn('"X-Robots-Tag"] = "noindex, nofollow"', headers)
-        self.assertIn('"/healthz", "/contact"', headers)
+        self.assertIn('"/healthz", "/contact", "/demo/vanga"', headers)
         self.assertIn('request.path.startswith("/api/")', headers)
 
     def test_articles_expose_search_metadata(self):
         article = self.read("views/public/articles/views.py")
         base = self.read("templates/public/^core/base.html")
 
-        self.assertIn('"@type": "Article"', article)
-        self.assertIn('"@type": "BreadcrumbList"', article)
+        self.assertIn('"@type": "BlogPosting"', article)
+        self.assertIn("breadcrumb_schema", article)
         self.assertIn("response.last_modified", article)
         self.assertIn("structured_data_items", base)
 
