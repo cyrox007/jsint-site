@@ -7,8 +7,12 @@
                 <span class="section-kicker">Опыт</span>
                 <h2>Опыт и резюме</h2>
                 <p>{{ resume.get('subtitle') or 'Практический опыт разработки web-приложений, внутренних систем и собственных продуктов. Фокус — на системах, которые можно поддерживать и развивать.' }}</p>
-                <a class="btn btn-primary" href="{{ url_for('contact') }}">Обсудить работу <span>→</span></a>
+                <div class="portfolio-resume__actions">
+                    <button class="btn btn-primary" type="button" data-resume-open>Подробнее <span>→</span></button>
+                    <a class="btn btn-secondary" href="{{ url_for('contact') }}">Обсудить работу</a>
+                </div>
             </div>
+
             <div class="portfolio-resume__timeline">
                 {% if resume_items %}
                     {% for item in resume_items[:3] %}
@@ -27,13 +31,72 @@
                     <article><span>03</span><div><strong>Поддержка и развитие</strong><p>Оптимизация, сопровождение и развитие проектов.</p></div></article>
                 {% endif %}
             </div>
+
             <div class="portfolio-resume__stack">
                 <span class="section-kicker">Стек</span>
                 <div>
-                    <span>Python</span><span>PHP</span><span>JavaScript</span><span>PostgreSQL</span>
-                    <span>Redis</span><span>Docker</span><span>Nginx</span><span>Linux</span><span>Git</span>
+                    <span>Python</span><span>PHP</span><span>JavaScript</span><span>Go</span>
+                    <span>PostgreSQL</span><span>MySQL</span><span>Redis</span>
+                    <span>Docker</span><span>Nginx</span><span>Linux</span><span>Git</span>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="resume-modal" data-resume-modal hidden>
+        <div class="resume-modal__backdrop" data-resume-close></div>
+        <section class="resume-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="resume-modal-title" tabindex="-1">
+            <button class="resume-modal__close" type="button" aria-label="Закрыть" data-resume-close>×</button>
+
+            <header class="resume-modal__header">
+                <span class="section-kicker">Подробное резюме</span>
+                <h2 id="resume-modal-title">Опыт, направления и технологии</h2>
+                <p>
+                    Full-stack разработка: интерфейсы, backend, API, базы данных, realtime,
+                    self-hosted инфраструктура и прикладные эксперименты с ML.
+                </p>
+            </header>
+
+            <div class="resume-modal__content">
+                <div class="resume-modal__experience">
+                    <h3>Опыт</h3>
+                    {% if resume_items %}
+                        {% for item in resume_items %}
+                        <article>
+                            <span>{{ '%02d'|format(loop.index) }}</span>
+                            <div>
+                                <div class="resume-modal__experience-head">
+                                    <strong>{{ item.position or item.company }}</strong>
+                                    {% if item.period %}<time>{{ item.period }}</time>{% endif %}
+                                </div>
+                                {% if item.company %}<b>{{ item.company }}</b>{% endif %}
+                                {% if item.description %}<p>{{ item.description }}</p>{% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    {% else %}
+                        <p class="resume-modal__empty">Подробные записи опыта можно заполнить в настройках главной страницы.</p>
+                    {% endif %}
+                </div>
+
+                <aside class="resume-modal__skills">
+                    <h3>Технологии</h3>
+                    <div>
+                        <span>HTML5</span><span>CSS3</span><span>SCSS</span><span>JavaScript</span><span>Vue.js</span>
+                        <span>PHP</span><span>Laravel</span><span>Python</span><span>Flask</span><span>FastAPI</span><span>Go</span>
+                        <span>MySQL</span><span>PostgreSQL</span><span>SQLite</span><span>Redis</span>
+                        <span>Docker</span><span>Nginx</span><span>Linux</span><span>Git</span>
+                    </div>
+
+                    <h3>Публичные направления</h3>
+                    <ul>
+                        <li>Workspace Organizer — self-hosted рабочее пространство.</li>
+                        <li>The-Game — браузерная игра на JavaScript и Canvas.</li>
+                        <li>Video-Service — Flask, Celery, Redis, PostgreSQL, FFmpeg/OpenCV.</li>
+                        <li>ML/NLP эксперименты и модели классификации текста.</li>
+                    </ul>
+                </aside>
+            </div>
+        </section>
     </div>
 </section>
