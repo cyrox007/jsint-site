@@ -85,6 +85,23 @@
     </article>
 </div>
 
+{% if snapshot_url %}
+<div class="vanga-share">
+    <div>
+        <span>Сохранённый прогноз</span>
+        <small>Версия модели и SHAP-вклады закреплены в этом снимке.</small>
+    </div>
+    <button
+        type="button"
+        data-vanga-share
+        data-share-url="{{ snapshot_url }}"
+        data-share-title="Vanga: {{ prediction.title }} — {{ '%.2f'|format(prediction_output.rating) }}/10"
+    >Поделиться</button>
+    <a href="{{ snapshot_url }}">Постоянная ссылка</a>
+    <span class="vanga-share__status" aria-live="polite" data-vanga-share-status></span>
+</div>
+{% endif %}
+
 <div class="vanga-result__top">
     <div class="vanga-result__top-head">
         <strong>Что сильнее всего изменило прогноз</strong>
