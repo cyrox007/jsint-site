@@ -967,7 +967,45 @@ class NotesControlPlane:
             ).first()
         if record is None:
             raise ControlPlaneError("Artifact not found", status=404, code="not_found")
+
+        # Никогда не отдаём клиенту manifest/signature из повреждённой записи.
+        # Ошибка реестра должна остановиться на сервере, а не превращаться в
+        # "Update manifest signature is invalid" уже на установке пользователя.
+        cls.verify_release_record(record)
         return record
+
+    @staticmethod
+    def verify_release_record(record: ReleaseRecord) -> dict[str, Any]:
+        """Проверяет подпись и неизменяемые метаданные релиза перед выдачей клиенту."""
+        try:
+            manifest = verify_update_manifest(record.manifest_bytes, record.signature)
+        except ControlPlaneError as exc:
+            raise ControlPlaneError(
+                "Подписанные метаданные релиза повреждены",
+                status=503,
+                code="release_integrity_failed",
+            ) from exc
+
+        package = manifest.get("package")
+        consistent = (
+            manifest.get("channel") == record.channel
+            and manifest.get("version") == record.version
+            and manifest.get("version_code") == record.version_code
+            and manifest.get("source_commit") == record.source_commit
+            and isinstance(package, dict)
+            and package.get("filename") == record.package_name
+            and package.get("size") == record.package_size
+            and isinstance(package.get("sha256"), str)
+            and hmac.compare_digest(package["sha256"], record.package_sha256)
+        )
+        if not consistent:
+            raise ControlPlaneError(
+                "Подписанные метаданные релиза расходятся с реестром",
+                status=503,
+                code="release_integrity_failed",
+            )
+
+        return manifest
 
     @staticmethod
     def verified_package_handle(record: ReleaseRecord):
