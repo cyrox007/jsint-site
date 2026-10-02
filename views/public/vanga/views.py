@@ -1,19 +1,27 @@
 from __future__ import annotations
 
 import json
+import logging
 import socket
+from decimal import Decimal
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from flask import render_template, request
+from flask import jsonify, render_template, request
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
+from models.vanga import VangaPrediction
 from services.site import SiteService
 from settings import config
 
 
+logger = logging.getLogger(__name__)
+
+
 DEFAULT_FORM = {
+    "imdb_id": "",
     "title": "",
     "director": "",
     "year": "",
