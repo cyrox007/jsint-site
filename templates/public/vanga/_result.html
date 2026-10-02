@@ -1,0 +1,96 @@
+{% if prediction and prediction_output %}
+<span class="vanga-result__label">Прогноз модели</span>
+
+<div class="vanga-result__score-wrap">
+    <div class="vanga-result__score-ring" data-rating-ring data-rating="{{ prediction_output.rating }}">
+        <span class="vanga-result__score-glow" aria-hidden="true"></span>
+        <strong class="vanga-result__rating" data-rating-value data-rating="{{ prediction_output.rating }}">0.00</strong>
+        <span class="vanga-result__scale">из 10</span>
+    </div>
+    <div class="vanga-result__verdict">
+        <small>Фильм</small>
+        <h2>{{ prediction.title }}</h2>
+        <p>Это прогноз, а не фактический рейтинг. Самое интересное — сравнить его с реальностью после премьеры.</p>
+        {% if prediction.generation %}
+        <span class="vanga-result__generation">Модель {{ prediction.generation }}</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if prediction_output.recognized_inputs %}
+<div class="vanga-recognition">
+    <div class="vanga-recognition__head">
+        <span>Распознано по русскому вводу</span>
+        <small>Wikidata → локальный IMDb</small>
+    </div>
+    <div class="vanga-recognition__list">
+        {% for item in prediction_output.recognized_inputs %}
+        <article>
+            <span>{{ item.kind }}</span>
+            <div>
+                <strong>{{ item.input }}</strong>
+                <i>→</i>
+                <b>{{ item.canonical }}</b>
+            </div>
+            {% if item.imdb_id %}<small>{{ item.imdb_id }}</small>{% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="vanga-result__summary">
+    {% if prediction_output.base is not none %}
+    <article>
+        <span>База модели</span>
+        <strong>{{ '%.2f'|format(prediction_output.base) }}</strong>
+        <small>ожидаемый уровень до индивидуальных поправок</small>
+    </article>
+    {% endif %}
+    <article class="is-positive">
+        <span>Повышающие факторы</span>
+        <strong>+{{ '%.2f'|format(prediction_output.positive_total) }}</strong>
+        <small>суммарный положительный SHAP-вклад</small>
+    </article>
+    <article class="is-negative">
+        <span>Снижающие факторы</span>
+        <strong>{{ '%.2f'|format(prediction_output.negative_total) }}</strong>
+        <small>суммарный отрицательный SHAP-вклад</small>
+    </article>
+    <article>
+        <span>Признаков разобрано</span>
+        <strong>{{ prediction_output.factor_count }}</strong>
+        <small>все пришедшие от модели факторы показаны ниже</small>
+    </article>
+</div>
+
+<div class="vanga-result__top">
+    <div class="vanga-result__top-head">
+        <strong>Что сильнее всего изменило прогноз</strong>
+        <span>SHAP-вклад в пунктах рейтинга</span>
+    </div>
+    {% for factor in prediction_output.top_factors %}
+    <div class="vanga-impact vanga-impact--{{ factor.tone }}" data-vanga-impact data-strength="{{ factor.strength }}">
+        <div class="vanga-impact__meta">
+            <span>{{ factor.label }}</span>
+            <b>{{ factor.formatted_value }}</b>
+        </div>
+        <div class="vanga-impact__track" aria-hidden="true"><i></i></div>
+        <small>{{ factor.direction }}</small>
+    </div>
+    {% endfor %}
+</div>
+{% elif demo_error %}
+<span class="vanga-result__label">Ошибка</span>
+<div class="vanga-result__empty-icon is-error">!</div>
+<h2>Прогноз не получен</h2>
+<p>{{ demo_error }}</p>
+{% else %}
+<span class="vanga-result__label">Попробуйте до премьеры</span>
+<div class="vanga-result__empty-icon" aria-hidden="true">
+    <i></i><i></i><i></i>
+</div>
+<h2>Найдите фильм или заполните параметры</h2>
+<p>После расчёта здесь появится рейтинг, а ниже — полная расшифровка SHAP-факторов: что повысило оценку, что снизило и насколько сильно.</p>
+<div class="vanga-result__placeholder-lines" aria-hidden="true"><i></i><i></i><i></i></div>
+{% endif %}
