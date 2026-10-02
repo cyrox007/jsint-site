@@ -181,6 +181,7 @@
             form.hidden = true;
 
             if (success) {
+                card?.classList.add('is-success');
                 success.hidden = false;
                 requestAnimationFrame(() => success.classList.add('is-visible'));
                 success.focus?.({preventScroll: true});
