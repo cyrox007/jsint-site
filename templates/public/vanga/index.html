@@ -139,6 +139,38 @@
             {% include "public/vanga/_analysis.html" %}
         </div>
 
+        <section class="vanga-compare" data-vanga-compare hidden>
+            <div class="vanga-compare__head">
+                <div>
+                    <span class="vanga-demo__eyebrow">What-if конструктор</span>
+                    <h2>Сравнение двух сценариев</h2>
+                    <p>Вариант A остаётся зафиксированным. Измените параметры формы и пересчитайте — Vanga покажет, насколько изменился прогноз и какие именно поля вы поменяли.</p>
+                </div>
+                <button type="button" data-vanga-compare-reset>Сбросить сравнение</button>
+            </div>
+
+            <div class="vanga-compare__scores">
+                <article>
+                    <span>Вариант A</span>
+                    <strong data-vanga-compare-a>—</strong>
+                    <small data-vanga-compare-a-title>Не выбран</small>
+                </article>
+                <div class="vanga-compare__delta" data-vanga-compare-delta>
+                    <span>Δ</span>
+                    <strong>—</strong>
+                    <small>изменение прогноза</small>
+                </div>
+                <article>
+                    <span>Вариант B</span>
+                    <strong data-vanga-compare-b>—</strong>
+                    <small data-vanga-compare-b-title>После следующего расчёта</small>
+                </article>
+            </div>
+
+            <div class="vanga-compare__changes" data-vanga-compare-changes></div>
+            <p class="vanga-compare__note" data-vanga-compare-note>Сравниваем только результаты одной и той же generation модели, чтобы изменение рейтинга отражало параметры фильма, а не смену модели.</p>
+        </section>
+
         <section class="vanga-history" data-vanga-history hidden>
             <div class="vanga-history__head">
                 <div>
