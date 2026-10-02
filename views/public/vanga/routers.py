@@ -21,3 +21,9 @@ def install(app: Flask) -> None:
         view_func=views.vanga_predict_api,
         methods=["POST"],
     )
+    app.add_url_rule(
+        "/demo/vanga/p/<uuid:snapshot_id>",
+        endpoint="vanga_snapshot",
+        view_func=views.vanga_snapshot,
+        methods=["GET"],
+    )
