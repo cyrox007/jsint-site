@@ -7,7 +7,7 @@
                 <h2>Наши проекты</h2>
                 <p>Полезные инструменты и сервисы для работы, бизнеса и повседневных задач.</p>
             </div>
-            <a class="portfolio-inline-link" href="#publications">Все проекты <span>→</span></a>
+            <span class="portfolio-inline-note">Проекты и эксперименты</span>
         </div>
 
         <div class="portfolio-project-grid">
@@ -17,23 +17,23 @@
                 <p>Заметки, задачи, файлы и командная работа в self-hosted контуре.</p>
                 <span class="portfolio-project-link">Подробнее →</span>
             </a>
-            <a class="portfolio-project-card" href="{{ url_for('vanga_demo') }}">
+            <a class="portfolio-project-card" href="{{ url_for('project_promo', project_slug='vanga') }}">
                 <span class="portfolio-project-icon portfolio-project-icon--violet">◉</span>
                 <h3>Vanga</h3>
                 <p>Экспериментальный ML/AI-проект с публичной демонстрацией модели.</p>
                 <span class="portfolio-project-link">Открыть демо →</span>
             </a>
-            <a class="portfolio-project-card" href="https://github.com/cyrox007/market" rel="noopener noreferrer">
+            <a class="portfolio-project-card" href="{{ url_for('project_promo', project_slug='the-game') }}">
                 <span class="portfolio-project-icon portfolio-project-icon--green">▣</span>
-                <h3>Market</h3>
-                <p>Интернет-магазин с современными инструментами каталога и управления.</p>
-                <span class="portfolio-project-link">GitHub →</span>
+                <h3>The-Game</h3>
+                <p>Браузерная игра на JavaScript с Canvas-рендерингом и адаптивным геймплеем.</p>
+                <span class="portfolio-project-link">Подробнее →</span>
             </a>
-            <a class="portfolio-project-card" href="https://github.com/cyrox007/ChurchCMS" rel="noopener noreferrer">
+            <a class="portfolio-project-card" href="{{ url_for('project_promo', project_slug='churchcms') }}">
                 <span class="portfolio-project-icon portfolio-project-icon--purple">⌂</span>
                 <h3>ChurchCMS</h3>
-                <p>CMS для приходов, школ, епархий и связанных организаций.</p>
-                <span class="portfolio-project-link">GitHub →</span>
+                <p>CMS для приходов, школ, благочиний, епархий и связанных организаций.</p>
+                <span class="portfolio-project-link">Подробнее →</span>
             </a>
         </div>
 
