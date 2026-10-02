@@ -83,10 +83,15 @@ class PublicSeoContractTests(unittest.TestCase):
 
     def test_vanga_demo_does_not_compete_with_project_page(self):
         vanga = self.read("views/public/vanga/views.py")
+        projects = self.read("views/public/projects/views.py")
         sitemap = self.read("views/public/seo.py")
 
         self.assertIn('"seo_noindex": True', vanga)
         self.assertIn('/projects/vanga', vanga)
+        self.assertIn("Прогноз рейтинга фильма до выхода — Vanga", projects)
+        self.assertIn("Фильм ещё не вышел?", projects)
+        self.assertIn("Бесплатное ML-демо", projects)
+        self.assertIn('"EntertainmentApplication"', projects)
         self.assertNotIn(
             '(urljoin(f"{base_url}/", "demo/vanga"),',
             sitemap,
