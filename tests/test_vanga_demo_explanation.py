@@ -23,6 +23,19 @@ class VangaDemoExplanationTests(unittest.TestCase):
                     "director_avg_rating": 0.67,
                     "actor_1_id": 0.0,
                 },
+                "input_resolution": {
+                    "title": {
+                        "input": "Интерстеллар",
+                        "canonical": "Interstellar",
+                        "imdb_id": "tt0816692",
+                    },
+                    "director": {
+                        "input": "Кристофер Нолан",
+                        "canonical": "Christopher Nolan",
+                        "imdb_id": "nm0634240",
+                    },
+                    "actors": [],
+                },
             }
         )
 
@@ -34,6 +47,11 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertEqual(result["factors"][1]["tone"], "negative")
         self.assertEqual(result["factors"][2]["tone"], "neutral")
         self.assertEqual(result["factors"][0]["strength"], 100.0)
+        self.assertEqual(len(result["recognized_inputs"]), 2)
+        self.assertEqual(
+            result["recognized_inputs"][0]["canonical"],
+            "Interstellar",
+        )
 
     def test_template_renders_full_shap_breakdown(self):
         template = self.read("templates/public/vanga/index.html")
@@ -46,6 +64,8 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertIn("for factor in prediction_output.factors", template)
         self.assertIn("factor.description", template)
         self.assertIn("factor.key", template)
+        self.assertIn("Распознано по русскому вводу", template)
+        self.assertIn("prediction_output.recognized_inputs", template)
         self.assertIn("public/vanga-demo.js", template)
 
     def test_animation_keeps_reduced_motion_fallback(self):
