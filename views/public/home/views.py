@@ -7,7 +7,6 @@ from components.auth.decorator import with_db_session
 from services.page import PageService
 from services.public_seo import (
     AUTHOR_DESCRIPTION,
-    AUTHOR_KNOWS_ABOUT,
     HERO_IMAGE_URL,
     author_entity,
     share_image_url,
