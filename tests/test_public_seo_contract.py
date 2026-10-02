@@ -38,7 +38,7 @@ class PublicSeoContractTests(unittest.TestCase):
             view,
         )
         self.assertIn("backend, API, админ-панели", view)
-        self.assertIn("full-stack разработка", site)
+        self.assertIn("full-stack разработчика", site)
 
     def test_articles_use_blogposting_and_rich_metadata(self):
         view = self.read("views/public/articles/views.py")
