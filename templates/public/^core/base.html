@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='public/jsinteractive-mark.svg') }}">
-    <link rel="alternate icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon_svg') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#071018">
 
@@ -11,7 +10,8 @@
     {% set site_settings = site.settings if has_site else {} %}
     {% set seo_defaults = site_settings.seo if has_site else {} %}
     {% set page_title = seo_title if seo_title is defined and seo_title else (seo_defaults.title if has_site else "JSInteractive") %}
-    {% set page_description = seo_description if seo_description is defined and seo_description else (seo_defaults.description if has_site else "") %}
+    {% set fallback_description = "JSInteractive — личный технологический сайт о full-stack разработке, backend, API, self-hosted системах, проектах и технических публикациях." %}
+    {% set page_description = seo_description if seo_description is defined and seo_description else (seo_defaults.description if has_site and seo_defaults.description else fallback_description) %}
     {% set site_base_url = site.base_url if has_site and site.base_url else config.SITE_BASE_URL %}
     {% set page_canonical = canonical_url if canonical_url is defined and canonical_url else (site_base_url ~ request.path) %}
     {% set default_share_image = "https://images.unsplash.com/photo-1776251693908-b7eb878a5e6b?auto=format&fit=crop&fm=jpg&q=82&w=1600&h=900" %}
