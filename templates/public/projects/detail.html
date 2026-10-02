@@ -1,0 +1,71 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/projects/style.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<article class="project-promo project-promo--{{ project.accent }}">
+    <section class="project-promo__hero">
+        <div class="project-promo__backdrop" aria-hidden="true"></div>
+        <div class="container project-promo__hero-grid">
+            <div>
+                <div class="project-promo__breadcrumb">
+                    <a href="{{ url_for('index') }}">Главная</a><span>/</span>
+                    <a href="{{ url_for('index') }}#systems">Проекты</a><span>/</span>
+                    <span>{{ project.name }}</span>
+                </div>
+                <span class="section-kicker">{{ project.eyebrow }}</span>
+                <h1>{{ project.name }}</h1>
+                <strong>{{ project.tagline }}</strong>
+                <p>{{ project.description }}</p>
+                <div class="project-promo__actions">
+                    <a class="btn btn-primary" href="{{ url_for('contact', subject=project.name) }}">Обсудить проект <span>→</span></a>
+                    <a class="btn btn-secondary" href="#details">Подробнее</a>
+                </div>
+            </div>
+            <div class="project-promo__visual" aria-hidden="true">
+                <div class="project-promo__orb"></div>
+                <div class="project-promo__terminal">
+                    <div class="project-promo__terminal-top"><i></i><i></i><i></i><span>{{ project.name|lower }}</span></div>
+                    <div class="project-promo__terminal-body">
+                        <b>{{ project.name }}</b>
+                        {% for fact in project.facts %}<span>{{ fact }}</span>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="project-promo__section" id="details">
+        <div class="container">
+            <div class="project-promo__facts">
+                {% for fact in project.facts %}
+                <span>{{ fact }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="project-promo__grid">
+                {% for section in project.sections %}
+                <article>
+                    <span>{{ '%02d'|format(loop.index) }}</span>
+                    <h2>{{ section.title }}</h2>
+                    <p>{{ section.text }}</p>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="project-promo__cta">
+        <div class="container project-promo__cta-panel">
+            <div>
+                <span class="section-kicker">{{ project.name }}</span>
+                <h2>Проект развивается.</h2>
+                <p>На странице показываю направление и ключевые решения без вывода пользователя наружу на GitHub.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ url_for('contact', subject=project.name) }}">Связаться <span>→</span></a>
+        </div>
+    </section>
+</article>
+{% endblock %}
