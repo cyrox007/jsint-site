@@ -55,8 +55,14 @@ class CheckoutUpdateRollbackContractTests(unittest.TestCase):
             "Миграции БД не запускались — PostgreSQL rollback не требуется.",
             script,
         )
+        self.assertIn("PRE_MIGRATION_DB_HEAD", script)
+        self.assertIn("TARGET_DB_HEAD", script)
         self.assertIn(
             'MIGRATIONS_STARTED=1',
+            script,
+        )
+        self.assertIn(
+            "Alembic уже на target revision",
             script,
         )
 
