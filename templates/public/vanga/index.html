@@ -5,76 +5,227 @@
 {% endblock %}
 
 {% block content %}
-<section class="vanga-demo">
+<section class="vanga-demo" data-vanga-demo>
+    <div class="vanga-demo__ambient" aria-hidden="true">
+        <i></i><i></i><i></i>
+    </div>
+
     <div class="vanga-demo__shell">
-        <div class="vanga-demo__intro">
+        <div class="vanga-demo__intro" data-vanga-reveal>
             <span class="vanga-demo__eyebrow">Бесплатный ML-эксперимент для любителей кино</span>
             <h1>Какой рейтинг может получить фильм?</h1>
-            <p>Введите известные параметры фильма — даже если он ещё не вышел. Vanga оценит возможный рейтинг по режиссёру, актёрам, жанру, году и длительности.</p>
+            <p>Введите известные параметры фильма — даже если он ещё не вышел. Vanga оценит возможный рейтинг и покажет, какие признаки подтолкнули прогноз вверх или вниз.</p>
             <div class="vanga-demo__status {{ 'is-ready' if service_ready else 'is-down' }}">
                 <span></span>{{ service_status }}
             </div>
         </div>
 
         <div class="vanga-demo__grid">
-            <form class="vanga-card vanga-form" method="post" action="{{ url_for('vanga_demo') }}">
+            <form class="vanga-card vanga-form" method="post" action="{{ url_for('vanga_demo') }}" data-vanga-form>
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
-                <label>
+                <div class="vanga-form__head">
+                    <div>
+                        <span>Параметры фильма</span>
+                        <strong>Дайте модели то, что уже известно</strong>
+                    </div>
+                    <div class="vanga-form__progress" aria-hidden="true"><i data-vanga-form-progress></i></div>
+                </div>
+
+                <label data-vanga-field>
                     <span>Название фильма</span>
-                    <input name="title" maxlength="240" required value="{{ form.title }}" placeholder="The Odyssey">
+                    <input name="title" maxlength="240" required value="{{ form.title }}" placeholder="The Odyssey" autocomplete="off">
+                    <small>Название используется и как набор слабых текстовых признаков.</small>
                 </label>
 
-                <label>
+                <label data-vanga-field>
                     <span>Режиссёр</span>
-                    <input name="director" maxlength="240" required value="{{ form.director }}" placeholder="Christopher Nolan">
+                    <input name="director" maxlength="240" required value="{{ form.director }}" placeholder="Christopher Nolan" autocomplete="off">
+                    <small>Vanga учитывает историю прошлых фильмов режиссёра.</small>
                 </label>
 
                 <div class="vanga-form__row">
-                    <label>
+                    <label data-vanga-field>
                         <span>Год</span>
                         <input name="year" type="number" min="1888" max="2100" required value="{{ form.year }}" placeholder="2026">
                     </label>
-                    <label>
+                    <label data-vanga-field>
                         <span>Длительность, мин</span>
                         <input name="runtime" type="number" min="1" max="1000" required value="{{ form.runtime }}" placeholder="173">
                     </label>
                 </div>
 
-                <label>
+                <label data-vanga-field>
                     <span>Жанры</span>
-                    <input name="genres" maxlength="300" required value="{{ form.genres }}" placeholder="adventure, drama">
+                    <input name="genres" maxlength="300" required value="{{ form.genres }}" placeholder="adventure, drama" autocomplete="off">
+                    <small>Можно указать несколько жанров через запятую.</small>
                 </label>
 
-                <label>
+                <label data-vanga-field>
                     <span>Актёры</span>
-                    <input name="actors" maxlength="700" value="{{ form.actors }}" placeholder="Matt Damon, Tom Holland, Anne Hathaway">
-                    <small>До пяти имён, через запятую.</small>
+                    <input name="actors" maxlength="700" value="{{ form.actors }}" placeholder="Matt Damon, Tom Holland, Anne Hathaway" autocomplete="off">
+                    <small>До пяти имён через запятую; исторические признаки строятся по первым трём.</small>
                 </label>
 
-                <button type="submit" {{ 'disabled' if not service_ready }}>Получить прогноз</button>
+                <button class="vanga-form__submit" type="submit" {{ 'disabled' if not service_ready }} data-vanga-submit>
+                    <span class="vanga-form__submit-label">Получить прогноз</span>
+                    <span class="vanga-form__submit-working" aria-hidden="true">
+                        <i></i><b data-vanga-submit-status>Собираю признаки…</b>
+                    </span>
+                </button>
             </form>
 
-            <div class="vanga-card vanga-result">
-                {% if prediction %}
+            <div class="vanga-card vanga-result{% if prediction %} has-prediction{% endif %}" data-vanga-result>
+                {% if prediction and prediction_output %}
                     <span class="vanga-result__label">Прогноз модели</span>
-                    <strong class="vanga-result__rating">{{ prediction.rating }}</strong>
-                    <span class="vanga-result__scale">из 10</span>
-                    <h2>{{ prediction.title }}</h2>
-                    <p>{{ prediction.explanation }}</p>
+
+                    <div class="vanga-result__score-wrap">
+                        <div class="vanga-result__score-ring" data-rating-ring data-rating="{{ prediction_output.rating }}">
+                            <span class="vanga-result__score-glow" aria-hidden="true"></span>
+                            <strong class="vanga-result__rating" data-rating-value data-rating="{{ prediction_output.rating }}">0.00</strong>
+                            <span class="vanga-result__scale">из 10</span>
+                        </div>
+                        <div class="vanga-result__verdict">
+                            <small>Фильм</small>
+                            <h2>{{ prediction.title }}</h2>
+                            <p>Это прогноз, а не фактический рейтинг. Самое интересное — сравнить его с реальностью после премьеры.</p>
+                        </div>
+                    </div>
+
+                    {% if prediction_output.recognized_inputs %}
+                    <div class="vanga-recognition">
+                        <div class="vanga-recognition__head">
+                            <span>Распознано по русскому вводу</span>
+                            <small>Wikidata → локальный IMDb</small>
+                        </div>
+                        <div class="vanga-recognition__list">
+                            {% for item in prediction_output.recognized_inputs %}
+                            <article>
+                                <span>{{ item.kind }}</span>
+                                <div>
+                                    <strong>{{ item.input }}</strong>
+                                    <i>→</i>
+                                    <b>{{ item.canonical }}</b>
+                                </div>
+                                {% if item.imdb_id %}<small>{{ item.imdb_id }}</small>{% endif %}
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="vanga-result__summary">
+                        {% if prediction_output.base is not none %}
+                        <article>
+                            <span>База модели</span>
+                            <strong>{{ '%.2f'|format(prediction_output.base) }}</strong>
+                            <small>ожидаемый уровень до индивидуальных поправок</small>
+                        </article>
+                        {% endif %}
+                        <article class="is-positive">
+                            <span>Повышающие факторы</span>
+                            <strong>+{{ '%.2f'|format(prediction_output.positive_total) }}</strong>
+                            <small>суммарный положительный SHAP-вклад</small>
+                        </article>
+                        <article class="is-negative">
+                            <span>Снижающие факторы</span>
+                            <strong>{{ '%.2f'|format(prediction_output.negative_total) }}</strong>
+                            <small>суммарный отрицательный SHAP-вклад</small>
+                        </article>
+                        <article>
+                            <span>Признаков разобрано</span>
+                            <strong>{{ prediction_output.factor_count }}</strong>
+                            <small>все пришедшие от модели факторы показаны ниже</small>
+                        </article>
+                    </div>
+
+                    <div class="vanga-result__top">
+                        <div class="vanga-result__top-head">
+                            <strong>Что сильнее всего изменило прогноз</strong>
+                            <span>SHAP-вклад в пунктах рейтинга</span>
+                        </div>
+                        {% for factor in prediction_output.top_factors %}
+                        <div class="vanga-impact vanga-impact--{{ factor.tone }}" data-vanga-impact data-strength="{{ factor.strength }}">
+                            <div class="vanga-impact__meta">
+                                <span>{{ factor.label }}</span>
+                                <b>{{ factor.formatted_value }}</b>
+                            </div>
+                            <div class="vanga-impact__track" aria-hidden="true"><i></i></div>
+                            <small>{{ factor.direction }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
                 {% elif demo_error %}
                     <span class="vanga-result__label">Ошибка</span>
+                    <div class="vanga-result__empty-icon is-error">!</div>
                     <h2>Прогноз не получен</h2>
                     <p>{{ demo_error }}</p>
                 {% else %}
                     <span class="vanga-result__label">Попробуйте до премьеры</span>
+                    <div class="vanga-result__empty-icon" aria-hidden="true">
+                        <i></i><i></i><i></i>
+                    </div>
                     <h2>Заполните параметры фильма</h2>
-                    <p>Можно взять уже известный фильм или будущую премьеру и посмотреть, какой рейтинг прогнозирует модель. Результат — экспериментальная оценка, а не обещание реального рейтинга.</p>
+                    <p>После расчёта здесь появится рейтинг, а ниже — полная расшифровка SHAP-факторов: что повысило оценку, что снизило и насколько сильно.</p>
+                    <div class="vanga-result__placeholder-lines" aria-hidden="true"><i></i><i></i><i></i></div>
                 {% endif %}
             </div>
         </div>
 
+        {% if prediction and prediction_output %}
+        <section class="vanga-analysis" data-vanga-analysis>
+            <div class="vanga-analysis__head" data-vanga-reveal>
+                <div>
+                    <span class="vanga-demo__eyebrow">Полная расшифровка</span>
+                    <h2>Все факторы этого прогноза</h2>
+                </div>
+                <p>
+                    Ниже — SHAP-вклады, которые вернула модель. Значение <b>+0.67</b> означает,
+                    что признак добавил примерно 0.67 пункта к прогнозу относительно базового уровня;
+                    отрицательное значение уменьшает прогноз. Это не вероятность и не «процент уверенности».
+                </p>
+            </div>
+
+            <div class="vanga-analysis__formula" data-vanga-reveal>
+                {% if prediction_output.base is not none %}
+                <span>База <b>{{ '%.2f'|format(prediction_output.base) }}</b></span>
+                <i>+</i>
+                {% endif %}
+                <span>вклады признаков</span>
+                <i>→</i>
+                <span>прогноз <b>{{ '%.2f'|format(prediction_output.rating) }}</b></span>
+            </div>
+
+            <div class="vanga-factor-grid">
+                {% for factor in prediction_output.factors %}
+                <article class="vanga-factor-card vanga-factor-card--{{ factor.tone }}" data-vanga-factor data-strength="{{ factor.strength }}">
+                    <div class="vanga-factor-card__head">
+                        <span>{{ '%02d'|format(loop.index) }}</span>
+                        <b>{{ factor.formatted_value }}</b>
+                    </div>
+                    <h3>{{ factor.label }}</h3>
+                    <p>{{ factor.description }}</p>
+                    <div class="vanga-factor-card__impact">
+                        <div><i></i></div>
+                        <span>{{ factor.direction }}</span>
+                    </div>
+                    <small class="vanga-factor-card__tech">{{ factor.key }}</small>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="vanga-analysis__note" data-vanga-reveal>
+                <strong>Как читать результат</strong>
+                <p>Большой модуль SHAP-вклада означает, что конкретный признак заметно сдвинул прогноз для этого фильма. Нулевой вклад не означает, что признак «плохой» — только то, что в этом расчёте он почти ничего не изменил.</p>
+            </div>
+        </section>
+        {% endif %}
+
         <p class="vanga-demo__note">Vanga — мой учебный ML-проект, который я оставил работать для интереса посетителей сайта. Это не коммерческий продукт и не профессиональная оценка фильма; прогноз может ошибаться.</p>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='public/vanga-demo.js') }}" defer></script>
 {% endblock %}
