@@ -18,7 +18,7 @@ from app import create_app
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
 from database import Database
 from models.control_plane import LicenseRecord, ReleaseRecord
-from services.notes_control_plane import NotesControlPlane, _build_release_manifest, verify_update_manifest
+from services.notes_control_plane import ControlPlaneError, NotesControlPlane, _build_release_manifest, verify_update_manifest
 from settings import config
 
 
@@ -375,7 +375,7 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
                 )
                 .one()
             )
-            with self.assertRaisesRegex(Exception, "уже зарегистрирован"):
+            with self.assertRaisesRegex(ControlPlaneError, "уже зарегистрирован"):
                 NotesControlPlane.publish_release(
                     session,
                     manifest_bytes=record.manifest_bytes,
