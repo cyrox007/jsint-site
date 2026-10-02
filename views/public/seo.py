@@ -16,7 +16,7 @@ from settings import config
 
 _SITEMAP_PAGE_SIZE = 100
 _SITEMAP_MAX_URLS = 50_000
-_SITEMAP_STATIC_URLS = 3
+_SITEMAP_STATIC_URLS = 5
 
 
 def _utc_date(value: datetime | None) -> str | None:
@@ -121,6 +121,8 @@ def sitemap_xml(db_session: Session) -> Response:
         (f"{base_url}/", _utc_date(home_modified)),
         (urljoin(f"{base_url}/", "demo/vanga"), None),
         (urljoin(f"{base_url}/", "workspace-organizer"), None),
+        (urljoin(f"{base_url}/", "projects/phoenixos"), None),
+        (urljoin(f"{base_url}/", "projects/churchcms"), None),
     ]
     for publication in publications:
         if publication.category is None:
