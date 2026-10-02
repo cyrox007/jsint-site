@@ -13,6 +13,9 @@ class PublicSeoContractTests(unittest.TestCase):
         base = self.read("templates/public/^core/base.html")
 
         self.assertIn('name="description"', base)
+        self.assertIn('fallback_description', base)
+        self.assertIn("url_for('favicon_svg')", base)
+        self.assertNotIn('rel="alternate icon"', base)
         self.assertIn('name="author" content="JSInteractive"', base)
         self.assertIn('rel="canonical"', base)
         self.assertIn('property="og:image"', base)
@@ -23,6 +26,16 @@ class PublicSeoContractTests(unittest.TestCase):
         self.assertIn('article:published_time', base)
         self.assertIn('application/ld+json', base)
         self.assertIn('"inLanguage": "ru-RU"', base)
+
+    def test_site_settings_restore_required_seo_defaults(self):
+        site = self.read("services/site.py")
+
+        self.assertIn('for key in ("site_name", "title", "description", "locale")', site)
+        self.assertIn("not value.strip()", site)
+
+    def test_article_description_has_nonempty_fallback(self):
+        article = self.read("views/public/articles/views.py")
+        self.assertIn("техническая публикация JSInteractive", article)
 
     def test_home_has_profile_and_project_list_schema(self):
         view = self.read("views/public/home/views.py")
