@@ -14,6 +14,7 @@ from flask.views import MethodView
 from components.auth.decorator import with_db_session
 from models.vanga import VangaPrediction
 from services.site import SiteService
+from services.vanga_predictions import VangaPredictionService
 from settings import config
 
 
@@ -550,6 +551,15 @@ class VangaDemoPage(MethodView):
             if site["base_url"]
             else "/projects/vanga"
         )
+        verified_predictions = VangaPredictionService.recent_verified(
+            db_session,
+            site_id=site_model.id,
+            limit=6,
+        )
+        verification_summary = VangaPredictionService.verification_summary(
+            db_session,
+            site_id=site_model.id,
+        )
         return {
             "site_model": site_model,
             "site": site,
@@ -562,6 +572,8 @@ class VangaDemoPage(MethodView):
             "seo_noindex": True,
             "service_ready": service_ready,
             "service_status": service_status,
+            "verified_predictions": verified_predictions,
+            "verification_summary": verification_summary,
         }
 
     def get(self, db_session):
