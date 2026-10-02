@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import with_db_session
 from models.control_plane import ReleaseRecord
 from services.page import PageService
+from services.public_seo import author_entity, breadcrumb_schema, share_image_url
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
@@ -48,19 +49,40 @@ class WorkspaceOrganizerPromoPage(MethodView):
             limit=3,
         )
 
+        base_url = (site["base_url"] or "").rstrip("/")
         structured_data_items = [
             {
                 "@context": "https://schema.org",
                 "@type": "SoftwareApplication",
+                "@id": f"{canonical_url}#software" if canonical_url else None,
                 "name": "Workspace Organizer",
+                "url": canonical_url,
                 "applicationCategory": "BusinessApplication",
+                "applicationSubCategory": "Self-hosted workspace",
                 "operatingSystem": "Web",
                 "softwareVersion": stable_version,
                 "description": (
-                    "Self-hosted рабочее пространство: заметки, задачи, "
-                    "файлы, Messenger и администрирование."
+                    "Self-hosted рабочее пространство для заметок, задач, "
+                    "файлов, Messenger и администрирования."
                 ),
-            }
+                "creator": author_entity(site),
+                "featureList": [
+                    "Заметки и документация",
+                    "Задачи и проекты",
+                    "Приватное файловое хранилище",
+                    "Командная работа",
+                    "Роли и права доступа",
+                    "Подписанные обновления",
+                ],
+                "inLanguage": "ru-RU",
+            },
+            breadcrumb_schema(
+                [
+                    ("JSInteractive", f"{base_url}/" if base_url else "/"),
+                    ("Проекты", f"{base_url}/#systems" if base_url else "/#systems"),
+                    ("Workspace Organizer", canonical_url),
+                ]
+            ),
         ]
 
         return render_template(
@@ -68,14 +90,16 @@ class WorkspaceOrganizerPromoPage(MethodView):
             site=site,
             stable_version=stable_version,
             seo_title=(
-                "Workspace Organizer — self-hosted рабочее пространство "
+                "Workspace Organizer — self-hosted заметки, задачи и файлы "
                 "| JSInteractive"
             ),
             seo_description=(
-                "Workspace Organizer объединяет заметки, задачи, файлы, "
-                "Messenger и администрирование в одном self-hosted контуре."
+                "Workspace Organizer — self-hosted рабочее пространство для "
+                "заметок, задач, файлов, Messenger, ролей и командной работы."
             ),
             canonical_url=canonical_url,
+            seo_image_url=share_image_url(site),
+            seo_image_alt="Workspace Organizer — self-hosted рабочее пространство",
             structured_data_items=structured_data_items,
             related_articles=related_articles,
         )
