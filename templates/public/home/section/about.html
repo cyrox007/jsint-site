@@ -1,20 +1,41 @@
 {% set about = block.settings if block is defined and block.settings else (home_settings.about if home_settings is defined else {}) %}
 <section class="portfolio-expertise" id="about">
     <div class="container">
-        <div class="portfolio-section-head">
+        <div class="portfolio-about-intro">
+            <div>
+                <span class="section-kicker">Обо мне</span>
+                <h2>Full-stack разработка<br>без привязки к одному стеку</h2>
+            </div>
+            <div class="portfolio-about-intro__copy">
+                <p>Работаю и с frontend, и с backend: от интерфейсов на JavaScript/Vue до сервисов на PHP и Python. В проектах использую Laravel, Flask, FastAPI, PostgreSQL, MySQL, SQLite и Redis.</p>
+                <p>Публичные репозитории охватывают разные уровни разработки — web-продукты и CMS, обработку видео, ML/NLP-эксперименты и PhoenixOS, где задача уже уходит в сторону kernel, drivers, userspace и desktop.</p>
+            </div>
+        </div>
+
+        <div class="portfolio-about-spectrum">
+            <span>Frontend · JS · Vue</span>
+            <span>PHP · Laravel</span>
+            <span>Python · Flask · FastAPI</span>
+            <span>PostgreSQL · MySQL · Redis</span>
+            <span>ML / NLP</span>
+            <span>Systems / x86-64</span>
+        </div>
+
+        <div class="portfolio-section-head portfolio-section-head--expertise">
             <div>
                 <span class="section-kicker">Экспертиза</span>
                 <h2>В чём я силён</h2>
-                <p>Техническая глубина, продуктовый подход и внимание к эксплуатации.</p>
+                <p>Собираю системы целиком: архитектура, данные, интерфейс, realtime, развёртывание и дальнейшая эксплуатация.</p>
             </div>
         </div>
+
         <div class="portfolio-expertise-grid">
-            <article><span>⌘</span><h3>Backend архитектура</h3><p>Надёжные API, сервисы и интеграции.</p></article>
-            <article><span>◈</span><h3>Разработка продуктов</h3><p>От идеи до работающего сценария.</p></article>
-            <article><span>▣</span><h3>Админки и внутренние системы</h3><p>Удобные инструменты для реальной работы.</p></article>
-            <article><span>ϟ</span><h3>Realtime системы</h3><p>Онлайн-функции и устойчивые fallback-механизмы.</p></article>
-            <article><span>◇</span><h3>Безопасность</h3><p>Практические подходы к защите данных.</p></article>
-            <article><span>☁</span><h3>Self-hosted деплой</h3><p>Развёртывание и сопровождение инфраструктуры.</p></article>
+            <article><span>⌘</span><h3>Backend архитектура</h3><p>API, бизнес-логика, очереди, интеграции и фоновые процессы.</p></article>
+            <article><span>◈</span><h3>Full-stack продукты</h3><p>Связываю интерфейс, backend и данные в один рабочий сценарий.</p></article>
+            <article><span>▣</span><h3>CMS и внутренние системы</h3><p>Админки, роли, редакторы и инструменты для ежедневной работы.</p></article>
+            <article><span>ϟ</span><h3>Realtime и async</h3><p>WebSocket, Long Poll, Celery/Redis и устойчивые fallback-механизмы.</p></article>
+            <article><span>◇</span><h3>ML и обработка данных</h3><p>NLP, обучение моделей, аналитические пайплайны и эксперименты.</p></article>
+            <article><span>☁</span><h3>Self-hosted и systems</h3><p>Linux, деплой, эксплуатация и эксперименты на уровне ОС.</p></article>
         </div>
     </div>
 </section>
