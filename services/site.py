@@ -212,7 +212,18 @@ class SiteService:
 
     @staticmethod
     def settings(site: Site) -> dict:
-        return _deep_merge(DEFAULT_SETTINGS, site.settings)
+        settings = _deep_merge(DEFAULT_SETTINGS, site.settings)
+        seo = settings.setdefault("seo", {})
+        default_seo = DEFAULT_SETTINGS["seo"]
+
+        # Пустые значения из старых настроек не должны затирать
+        # обязательные SEO-поля публичного сайта.
+        for key in ("site_name", "title", "description", "locale"):
+            value = seo.get(key)
+            if not isinstance(value, str) or not value.strip():
+                seo[key] = default_seo[key]
+
+        return settings
 
     @classmethod
     def public_config(cls, site: Site) -> dict:
