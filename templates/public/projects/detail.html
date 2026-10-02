@@ -5,10 +5,64 @@
 {% endblock %}
 
 {% block content %}
-<section class="project-promo project-promo--{{ project.accent }}">
+<section class="project-promo project-promo--{{ project.accent }}{% if project_detail %} project-promo--detailed{% endif %}">
     <div class="project-promo__backdrop" aria-hidden="true"></div>
     <div class="container project-promo__hero">
         <a class="project-promo__back" href="{{ url_for('index') }}#systems">← Все проекты</a>
+
+        {% if project_detail %}
+        <div class="project-promo__hero-grid">
+            <div class="project-promo__hero-copy">
+                <span class="project-promo__eyebrow">{{ project.eyebrow }}</span>
+                <span class="project-promo__status">{{ project_detail.status }}</span>
+                <h1>{{ project.title }}</h1>
+                <strong>{{ project.summary }}</strong>
+                <p>{{ project.description }}</p>
+
+                <div class="project-promo__actions">
+                    <a class="btn btn-primary" href="{{ url_for('contact', subject=project.title) }}">{{ project.cta_label }} <span>→</span></a>
+                    <a class="btn btn-secondary" href="#capabilities">Что уже реализовано</a>
+                </div>
+
+                <div class="project-promo__facts">
+                    {% for fact in project.facts %}<span>{{ fact }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <div class="church-network" aria-label="Схема федерации ChurchCMS">
+                <div class="church-network__head">
+                    <span>ChurchCMS federation</span>
+                    <strong>Независимые сайты, единая структура</strong>
+                </div>
+                <div class="church-network__canvas">
+                    <article class="church-node church-node--root">
+                        <small>parent</small>
+                        <strong>Епархия</strong>
+                        <span>свой ChurchCMS</span>
+                    </article>
+                    <article class="church-node church-node--left">
+                        <small>child</small>
+                        <strong>Благочиние</strong>
+                        <span>свой ChurchCMS</span>
+                    </article>
+                    <article class="church-node church-node--right">
+                        <small>peer / child</small>
+                        <strong>Духовная школа</strong>
+                        <span>свой ChurchCMS</span>
+                    </article>
+                    <article class="church-node church-node--leaf">
+                        <small>child</small>
+                        <strong>Приход</strong>
+                        <span>свой ChurchCMS</span>
+                    </article>
+                    <i class="church-link church-link--a"></i>
+                    <i class="church-link church-link--b"></i>
+                    <i class="church-link church-link--c"></i>
+                </div>
+                <p>Pairing, scopes и versioned API. Ни один узел не получает прямой доступ к чужой базе данных.</p>
+            </div>
+        </div>
+        {% else %}
         <span class="project-promo__eyebrow">{{ project.eyebrow }}</span>
         <h1>{{ project.title }}</h1>
         <strong>{{ project.summary }}</strong>
@@ -26,6 +80,7 @@
         <div class="project-promo__facts">
             {% for fact in project.facts %}<span>{{ fact }}</span>{% endfor %}
         </div>
+        {% endif %}
     </div>
 </section>
 
@@ -33,13 +88,17 @@
     <div class="container">
         <div class="portfolio-section-head">
             <div>
-                <span class="section-kicker">Проект</span>
-                <h2>Что внутри</h2>
-                <p>Ключевые части и сценарии проекта.</p>
+                <span class="section-kicker">{% if project_detail %}Текущее состояние{% else %}Проект{% endif %}</span>
+                <h2>{% if project_detail %}Что уже реализовано{% else %}Что внутри{% endif %}</h2>
             </div>
+            {% if project_detail %}
+            <p>{{ project_detail.intro }}</p>
+            {% else %}
+            <p>Ключевые части и сценарии проекта.</p>
+            {% endif %}
         </div>
 
-        <div class="project-promo-grid">
+        <div class="project-promo-grid{% if project_detail %} project-promo-grid--detailed{% endif %}">
             {% for title, text in project.capabilities %}
             <article>
                 <span>{{ '%02d'|format(loop.index) }}</span>
@@ -51,12 +110,138 @@
     </div>
 </section>
 
+{% if project_detail %}
+<section class="project-promo-section churchcms-evolution">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Эволюция проекта</span>
+                <h2>От legacy-аудита к новой платформе</h2>
+            </div>
+            <p>
+                Историческая VPDS CMS не переносится в новый runtime. Она служит референсом для данных,
+                URL и реальных редакционных сценариев, а ChurchCMS строится заново вокруг современной
+                модульной архитектуры.
+            </p>
+        </div>
+
+        <div class="church-timeline">
+            {% for number, title, text in project_detail.evolution %}
+            <article>
+                <span>{{ number }}</span>
+                <h3>{{ title }}</h3>
+                <p>{{ text }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section churchcms-federation">
+    <div class="container churchcms-federation__grid">
+        <div class="churchcms-federation__copy">
+            <span class="section-kicker">Архитектура</span>
+            <h2>Не один сайт, а сеть самостоятельных ChurchCMS</h2>
+            <p>
+                Приход, благочиние и епархия могут жить на разных серверах и у разных операторов.
+                Связь между ними не превращает систему в централизованную БД: каждый узел остаётся
+                владельцем своего контента и сам определяет, что разрешено отдавать наружу.
+            </p>
+            <div class="churchcms-scope-note">
+                <strong>Ключевой принцип</strong>
+                <span>Церковная иерархия и техническое доверие — разные вещи. Подчинение организации само по себе не выдаёт удалённых административных прав.</span>
+            </div>
+        </div>
+
+        <div class="churchcms-federation__cards">
+            {% for title, text in project_detail.federation_points %}
+            <article><h3>{{ title }}</h3><p>{{ text }}</p></article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section churchcms-profiles">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Профили установки</span>
+                <h2>Одна платформа для разных уровней организации</h2>
+            </div>
+            <p>
+                Профиль определяет стартовую конфигурацию и рекомендуемые возможности, но не запирает
+                установку в жёстком типе сайта. Предметные возможности Cathedral/Education продолжают
+                развиваться по roadmap.
+            </p>
+        </div>
+
+        <div class="church-profile-grid">
+            {% for title, text in project_detail.profiles %}
+            <article><h3>{{ title }}</h3><p>{{ text }}</p></article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section churchcms-ops">
+    <div class="container churchcms-ops__grid">
+        <div>
+            <span class="section-kicker">Эксплуатация</span>
+            <h2>CMS должна быть удобной не только разработчику</h2>
+            <p>
+                ChurchCMS проектируется для операторов, которым не нужно знать Composer, SQL, файловые пути
+                и внутреннее устройство модулей. Свежая установка проходит через четырёхшаговый web-installer,
+                а повседневная работа — через единый Admin Shell.
+            </p>
+        </div>
+        <div class="church-ops-list">
+            <article><span>01</span><div><h3>Установка</h3><p>Проверка окружения, подключение БД, миграции и создание первого superadmin из браузера.</p></div></article>
+            <article><span>02</span><div><h3>Резервные копии</h3><p>Config, uploads и логический dump БД проверяются до начала изменения установки.</p></div></article>
+            <article><span>03</span><div><h3>Подписанные обновления</h3><p>HTTPS download, цифровая подпись, staging и повторная проверка payload перед apply.</p></div></article>
+            <article><span>04</span><div><h3>Rollback</h3><p>Code-only и обратимые schema-changing обновления имеют предусмотренный путь возврата.</p></div></article>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section churchcms-roadmap">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Roadmap</span>
+                <h2>Что ещё предстоит</h2>
+            </div>
+            <p>
+                ChurchCMS находится в активной разработке. Здесь показаны именно следующие этапы,
+                а не уже готовые возможности.
+            </p>
+        </div>
+
+        <div class="church-roadmap-grid">
+            {% for title, text in project_detail.roadmap %}
+            <article>
+                <span>{{ '%02d'|format(loop.index) }}</span>
+                <h3>{{ title }}</h3>
+                <p>{{ text }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <section class="project-promo-cta">
     <div class="container project-promo-cta__panel">
         <div>
             <span class="section-kicker">{{ project.title }}</span>
-            <h2>Хотите узнать подробнее?</h2>
-            <p>Напишите через форму обратной связи — обсудим проект и возможные сценарии использования.</p>
+            <h2>{% if project_detail %}Интересна архитектура или пилотный сценарий?{% else %}Хотите узнать подробнее?{% endif %}</h2>
+            <p>
+                {% if project_detail %}
+                Можно обсудить структуру сайта, федерацию нескольких организаций, миграцию legacy-контента
+                или сценарий будущего пилотного развёртывания.
+                {% else %}
+                Напишите через форму обратной связи — обсудим проект и возможные сценарии использования.
+                {% endif %}
+            </p>
         </div>
         <a class="btn btn-primary" href="{{ url_for('contact', subject=project.title) }}">Связаться <span>→</span></a>
     </div>
