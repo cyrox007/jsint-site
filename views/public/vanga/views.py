@@ -25,6 +25,7 @@ DEFAULT_FORM = {
     "imdb_id": "",
     "title": "",
     "director": "",
+    "writer": "",
     "year": "",
     "runtime": "",
     "genres": "",
@@ -40,6 +41,14 @@ PREDICTION_FEATURES = {
     "director_id": (
         "Паттерн режиссёра",
         "Категориальный сигнал CatBoost: модель узнаёт режиссёра как отдельную сущность и учитывает исторические закономерности.",
+    ),
+    "writer_avg_rating": (
+        "История сценариста",
+        "Средний рейтинг прошлых фильмов сценариста, вышедших до указанного года.",
+    ),
+    "writer_id": (
+        "Паттерн сценариста",
+        "Категориальный сигнал CatBoost: модель учитывает исторические закономерности работ этого сценариста.",
     ),
     "actor_1_avg_rating": (
         "История актёра №1",
@@ -247,6 +256,7 @@ def _prediction_output(prediction: dict) -> dict:
 
     add_match("Название", resolution.get("title"))
     add_match("Режиссёр", resolution.get("director"))
+    add_match("Сценарист", resolution.get("writer"))
     for match in resolution.get("actors") or []:
         add_match("Актёр", match)
 
@@ -301,6 +311,7 @@ def _prepare_prediction_payload(values) -> tuple[dict[str, str], dict | None, st
     imdb_id = str(values.get("imdb_id") or "").strip()
     title = str(values.get("title") or "").strip()
     director = str(values.get("director") or "").strip()
+    writer = str(values.get("writer") or "").strip()
     year_raw = str(values.get("year") or "").strip()
     runtime_raw = str(values.get("runtime") or "").strip()
 
@@ -324,6 +335,7 @@ def _prepare_prediction_payload(values) -> tuple[dict[str, str], dict | None, st
         "imdb_id": imdb_id,
         "title": title,
         "director": director,
+        "writer": writer,
         "year": year_raw,
         "runtime": runtime_raw,
         "genres": genres_form,
@@ -334,6 +346,8 @@ def _prepare_prediction_payload(values) -> tuple[dict[str, str], dict | None, st
         return form, None, "Укажите название фильма."
     if not director or len(director) > 240:
         return form, None, "Укажите режиссёра."
+    if len(writer) > 240:
+        return form, None, "Слишком длинное имя сценариста."
     if not genres:
         return form, None, "Укажите хотя бы один жанр."
 
@@ -354,6 +368,7 @@ def _prepare_prediction_payload(values) -> tuple[dict[str, str], dict | None, st
         "imdb_id": imdb_id or None,
         "title": title,
         "director": director,
+        "writer": writer or None,
         "year": year,
         "runtime": runtime,
         "genres": genres,
@@ -397,6 +412,7 @@ def _save_prediction_snapshot(db_session, site_id, payload: dict, prediction: di
                 "imdb_id": imdb_id,
                 "title": payload.get("title"),
                 "director": payload.get("director"),
+                "writer": payload.get("writer"),
                 "year": payload.get("year"),
                 "runtime": payload.get("runtime"),
                 "genres": payload.get("genres") or [],
@@ -445,6 +461,7 @@ def _prediction_from_snapshot(record: VangaPrediction) -> tuple[dict, dict[str, 
         "imdb_id": str(record.imdb_id or ""),
         "title": str(request_data.get("title") or record.title),
         "director": str(request_data.get("director") or ""),
+        "writer": str(request_data.get("writer") or ""),
         "year": str(request_data.get("year") or record.year),
         "runtime": str(request_data.get("runtime") or ""),
         "genres": (
@@ -542,7 +559,7 @@ def vanga_search():
         path = "/search/movies?" + urlencode(params)
     elif search_type == "person":
         role = str(request.args.get("role") or "actor").strip().lower()
-        if role not in {"director", "actor"}:
+        if role not in {"director", "writer", "actor"}:
             role = "actor"
         params["role"] = role
         path = "/search/people?" + urlencode(params)
