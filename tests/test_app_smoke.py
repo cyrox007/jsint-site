@@ -21,6 +21,8 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertIn("JSInteractive", html)
         self.assertIn("Технологии", html)
         self.assertIn("Наши проекты", html)
+        self.assertIn("Разработка · Системы · Решения", html)
+        self.assertNotIn("Независимая инженерная мини-студия", html)
 
     def test_internal_project_promos(self):
         for slug, title in (
