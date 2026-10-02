@@ -13,9 +13,14 @@ def test_vanga_demo_route_contract():
     assert "from views.public.vanga import routers as vanga_router" in app_source
     assert "vanga_router.install(app)" in app_source
     assert '"/demo/vanga"' in router_source
+    assert '"/demo/vanga/search"' in router_source
+    assert '"/demo/vanga/predict"' in router_source
     assert "VANGA_DEMO_URL" in view_source
     assert '"/predict"' in view_source
+    assert '"/search/movies?"' in view_source
+    assert '"/search/people?"' in view_source
     assert 'name="_csrf_token"' in template_source
+    assert 'name="imdb_id"' in template_source
 
 
 def test_vanga_demo_is_server_side_proxy():

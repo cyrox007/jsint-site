@@ -1,19 +1,27 @@
 from __future__ import annotations
 
 import json
+import logging
 import socket
+from decimal import Decimal
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from flask import render_template, request
+from flask import jsonify, render_template, request
 from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
+from models.vanga import VangaPrediction
 from services.site import SiteService
 from settings import config
 
 
+logger = logging.getLogger(__name__)
+
+
 DEFAULT_FORM = {
+    "imdb_id": "",
     "title": "",
     "director": "",
     "year": "",
@@ -237,6 +245,234 @@ def _request_vanga(path: str, *, payload: dict | None = None, timeout: int | Non
     return result
 
 
+def _prepare_prediction_payload(values) -> tuple[dict[str, str], dict | None, str | None]:
+    """Нормализует browser/API ввод в единый контракт Vanga."""
+    imdb_id = str(values.get("imdb_id") or "").strip()
+    title = str(values.get("title") or "").strip()
+    director = str(values.get("director") or "").strip()
+    year_raw = str(values.get("year") or "").strip()
+    runtime_raw = str(values.get("runtime") or "").strip()
+
+    genres_raw = values.get("genres") or ""
+    if isinstance(genres_raw, list):
+        genres = [str(item).strip() for item in genres_raw if str(item).strip()]
+        genres_form = ", ".join(genres)
+    else:
+        genres_form = str(genres_raw).strip()
+        genres = [item.strip() for item in genres_form.split(",") if item.strip()]
+
+    actors_raw = values.get("actors") or []
+    if isinstance(actors_raw, list):
+        actors = [str(item).strip() for item in actors_raw if str(item).strip()][:5]
+        actors_form = ", ".join(actors)
+    else:
+        actors_form = str(actors_raw).strip()
+        actors = [item.strip() for item in actors_form.split(",") if item.strip()][:5]
+
+    form = {
+        "imdb_id": imdb_id,
+        "title": title,
+        "director": director,
+        "year": year_raw,
+        "runtime": runtime_raw,
+        "genres": genres_form,
+        "actors": actors_form,
+    }
+
+    if not title or len(title) > 240:
+        return form, None, "Укажите название фильма."
+    if not director or len(director) > 240:
+        return form, None, "Укажите режиссёра."
+    if not genres:
+        return form, None, "Укажите хотя бы один жанр."
+
+    try:
+        year = int(year_raw)
+        runtime = int(runtime_raw)
+    except ValueError:
+        return form, None, "Год и длительность должны быть целыми числами."
+
+    if not 1888 <= year <= 2100:
+        return form, None, "Год вне допустимого диапазона."
+    if not 1 <= runtime <= 1000:
+        return form, None, "Некорректная длительность фильма."
+    if imdb_id and (len(imdb_id) > 16 or not imdb_id.startswith("tt")):
+        return form, None, "Некорректный IMDb ID."
+
+    payload = {
+        "imdb_id": imdb_id or None,
+        "title": title,
+        "director": director,
+        "year": year,
+        "runtime": runtime,
+        "genres": genres,
+        "actors": actors,
+    }
+    return form, payload, None
+
+
+def _run_prediction(payload: dict) -> tuple[dict | None, str | None]:
+    try:
+        prediction = _request_vanga("/predict", payload=payload)
+        if not prediction.get("ok"):
+            raise RuntimeError(
+                str(prediction.get("error") or "Не удалось получить прогноз")
+            )
+        return prediction, None
+    except RuntimeError as exc:
+        return None, str(exc)
+
+
+def _save_prediction_snapshot(db_session, site_id, payload: dict, prediction: dict):
+    """Сохраняет воспроизводимый снимок прогноза без данных о посетителе."""
+    try:
+        rating = Decimal(str(prediction.get("rating"))).quantize(Decimal("0.01"))
+        imdb_id = str(
+            prediction.get("imdb_id")
+            or payload.get("imdb_id")
+            or ""
+        ).strip() or None
+
+        record = VangaPrediction(
+            site_id=site_id,
+            imdb_id=imdb_id,
+            title=str(payload.get("title") or "")[:240],
+            year=int(payload["year"]),
+            model_generation=(
+                str(prediction.get("generation") or "").strip()[:96] or None
+            ),
+            rating=rating,
+            request_data={
+                "imdb_id": imdb_id,
+                "title": payload.get("title"),
+                "director": payload.get("director"),
+                "year": payload.get("year"),
+                "runtime": payload.get("runtime"),
+                "genres": payload.get("genres") or [],
+                "actors": payload.get("actors") or [],
+            },
+            result_data={
+                "base": prediction.get("base"),
+                "contributions": prediction.get("contributions") or {},
+                "explanation": prediction.get("explanation"),
+                "input_resolution": prediction.get("input_resolution") or {},
+            },
+        )
+        db_session.add(record)
+        db_session.commit()
+        return record
+    except Exception:
+        db_session.rollback()
+        logger.exception("Не удалось сохранить снимок прогноза Vanga")
+        return None
+
+
+def _json_no_store(payload: dict, status: int = 200):
+    response = jsonify(payload)
+    response.status_code = status
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+def vanga_search():
+    query = str(request.args.get("q") or "").strip()
+    search_type = str(request.args.get("type") or "movie").strip().lower()
+    if len(query) < 2:
+        return _json_no_store({"ok": True, "items": []})
+    if len(query) > 120:
+        return _json_no_store(
+            {"ok": False, "error": "Слишком длинный поисковый запрос."},
+            400,
+        )
+
+    params = {"q": query, "limit": "8"}
+    if search_type == "movie":
+        year = str(request.args.get("year") or "").strip()
+        if year:
+            params["year"] = year
+        path = "/search/movies?" + urlencode(params)
+    elif search_type == "person":
+        role = str(request.args.get("role") or "actor").strip().lower()
+        if role not in {"director", "actor"}:
+            role = "actor"
+        params["role"] = role
+        path = "/search/people?" + urlencode(params)
+    else:
+        return _json_no_store(
+            {"ok": False, "error": "Неизвестный тип поиска."},
+            400,
+        )
+
+    try:
+        result = _request_vanga(path, timeout=5)
+    except RuntimeError as exc:
+        return _json_no_store({"ok": False, "error": str(exc)}, 503)
+
+    return _json_no_store(
+        {
+            "ok": bool(result.get("ok")),
+            "items": result.get("items") or [],
+            "generation": result.get("generation"),
+        }
+    )
+
+
+@with_db_session
+def vanga_predict_api(db_session):
+    if request.content_length is not None and request.content_length > 32 * 1024:
+        return _json_no_store({"ok": False, "error": "Слишком большой запрос."}, 413)
+
+    values = request.get_json(silent=True)
+    if not isinstance(values, dict):
+        return _json_no_store({"ok": False, "error": "Ожидается JSON."}, 400)
+
+    form, payload, error = _prepare_prediction_payload(values)
+    if error or payload is None:
+        return _json_no_store({"ok": False, "error": error, "form": form}, 400)
+
+    prediction, error = _run_prediction(payload)
+    if error or prediction is None:
+        return _json_no_store({"ok": False, "error": error}, 503)
+
+    output = _prediction_output(prediction)
+    site_model = SiteService.get_default(db_session)
+    snapshot = _save_prediction_snapshot(
+        db_session,
+        site_model.id,
+        payload,
+        prediction,
+    )
+
+    return _json_no_store(
+        {
+            "ok": True,
+            "prediction": prediction,
+            "output": output,
+            "snapshot": (
+                {
+                    "id": str(snapshot.id),
+                    "generation": snapshot.model_generation,
+                    "created_at": snapshot.created_at.isoformat(),
+                }
+                if snapshot is not None
+                else None
+            ),
+            "result_html": render_template(
+                "public/vanga/_result.html",
+                prediction=prediction,
+                prediction_output=output,
+                demo_error=None,
+            ),
+            "analysis_html": render_template(
+                "public/vanga/_analysis.html",
+                prediction=prediction,
+                prediction_output=output,
+            ),
+        }
+    )
+
+
 class VangaDemoPage(MethodView):
     decorators = [with_db_session]
 
@@ -249,7 +485,11 @@ class VangaDemoPage(MethodView):
         try:
             health = _request_vanga("/health", timeout=2)
             service_ready = bool(health.get("ok"))
-            service_status = "Модель готова" if service_ready else "Модель временно недоступна"
+            service_status = (
+                "Модель готова"
+                if service_ready
+                else "Модель временно недоступна"
+            )
         except RuntimeError:
             pass
 
@@ -259,6 +499,7 @@ class VangaDemoPage(MethodView):
             else "/projects/vanga"
         )
         return {
+            "site_model": site_model,
             "site": site,
             "seo_title": "Прогноз рейтинга фильма до выхода — Vanga",
             "seo_description": (
@@ -275,7 +516,7 @@ class VangaDemoPage(MethodView):
         return render_template(
             "public/vanga/index.html",
             **self._base_context(db_session),
-            form=DEFAULT_FORM,
+            form=dict(DEFAULT_FORM),
             prediction=None,
             prediction_output=None,
             demo_error=None,
@@ -283,53 +524,41 @@ class VangaDemoPage(MethodView):
 
     def post(self, db_session):
         context = self._base_context(db_session)
-        form = {
-            key: request.form.get(key, "").strip()
-            for key in DEFAULT_FORM
-        }
-
-        try:
-            year = int(form["year"])
-            runtime = int(form["runtime"])
-        except ValueError:
+        form, payload, error = _prepare_prediction_payload(request.form)
+        if error or payload is None:
             return render_template(
                 "public/vanga/index.html",
                 **context,
                 form=form,
                 prediction=None,
                 prediction_output=None,
-                demo_error="Год и длительность должны быть целыми числами.",
+                demo_error=error,
             ), 400
 
-        actors = [item.strip() for item in form["actors"].split(",") if item.strip()]
-        payload = {
-            "title": form["title"],
-            "director": form["director"],
-            "year": year,
-            "runtime": runtime,
-            "genres": form["genres"],
-            "actors": actors[:5],
-        }
-
-        try:
-            prediction = _request_vanga("/predict", payload=payload)
-            if not prediction.get("ok"):
-                raise RuntimeError(str(prediction.get("error") or "Не удалось получить прогноз"))
-        except RuntimeError as exc:
+        prediction, error = _run_prediction(payload)
+        if error or prediction is None:
             return render_template(
                 "public/vanga/index.html",
                 **context,
                 form=form,
                 prediction=None,
                 prediction_output=None,
-                demo_error=str(exc),
+                demo_error=error,
             ), 503
+
+        output = _prediction_output(prediction)
+        _save_prediction_snapshot(
+            db_session,
+            context["site_model"].id,
+            payload,
+            prediction,
+        )
 
         return render_template(
             "public/vanga/index.html",
             **context,
             form=form,
             prediction=prediction,
-            prediction_output=_prediction_output(prediction),
+            prediction_output=output,
             demo_error=None,
         )

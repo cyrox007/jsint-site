@@ -5,6 +5,7 @@ from models.site import Site
 from models.media import MediaAsset
 from models.contact import ContactMessage
 from models.notification import AdminNotification, AdminNotificationPreferences, DiagnosticReport
+from models.vanga import VangaPrediction
 
 # 2. Публичные страницы и контент
 from models.page import Page, PageBlock
@@ -23,6 +24,7 @@ __all__ = [
     "AdminNotification",
     "AdminNotificationPreferences",
     "DiagnosticReport",
+    "VangaPrediction",
     "Page",
     "PageBlock",
     "Category",
