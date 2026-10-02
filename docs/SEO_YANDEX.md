@@ -16,8 +16,11 @@
 - `/sitemap.xml` — главная и все опубликованные статьи, до 50 000 URL, с `lastmod`.
 - `/<YANDEX_INDEXNOW_KEY>.txt` — корневой ключ IndexNow.
 - публичные HTML-страницы содержат canonical, robots, title и description;
-- статьи содержат Schema.org `Article` и `BreadcrumbList`;
-- служебные страницы и `/contact` получают `X-Robots-Tag: noindex, nofollow`.
+- статьи содержат Schema.org `BlogPosting` и `BreadcrumbList`;
+- проекты содержат `SoftwareApplication` и `BreadcrumbList`;
+- главная содержит `ProfilePage` автора и `ItemList` проектов;
+- служебные страницы, `/contact` и демонстрационная форма `/demo/vanga` получают `X-Robots-Tag: noindex, nofollow`;
+- `/demo/vanga` имеет canonical на индексируемую страницу `/projects/vanga` и не включается в Sitemap.
 
 `/contact` намеренно не закрывается через `robots.txt`: поисковый робот должен иметь возможность увидеть директиву `noindex`.
 

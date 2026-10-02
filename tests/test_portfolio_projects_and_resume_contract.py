@@ -65,12 +65,17 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         self.assertIn('event.key === "Escape"', script)
         self.assertIn("home-portfolio.js", home)
 
-    def test_hero_allows_content_to_extend_without_clipping(self):
+    def test_hero_is_contained_and_proof_cards_are_separate(self):
         styles = self.read("templates/public/home/style.css")
 
-        self.assertIn("min-height:clamp(700px,86vh,860px)", styles)
-        self.assertIn("overflow:visible", styles)
-        self.assertIn("min-height:500px", styles)
+        self.assertIn("min-height:clamp(720px,88vh,820px)", styles)
+        self.assertIn("overflow:hidden", styles)
+        self.assertIn("min-height:520px", styles)
+        self.assertIn("grid-template-columns:repeat(4,minmax(0,1fr))", styles)
+        self.assertIn("gap:10px", styles)
+        self.assertIn("border-radius:12px", styles)
+        self.assertIn("photo-1776251693908-b7eb878a5e6b", styles)
+        self.assertNotIn("min-height:clamp(700px,86vh,860px)", styles)
 
 
 if __name__ == "__main__":

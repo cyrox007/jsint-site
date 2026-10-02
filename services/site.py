@@ -32,10 +32,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     },
     "seo": {
         "site_name": "JSInteractive",
-        "title": "JSInteractive — проекты, публикации и разработка",
+        "title": "JSInteractive — full-stack разработка и self-hosted проекты",
         "description": (
-            "Личный технологический сайт о разработке, продуктах, "
-            "архитектуре и self-hosted системах."
+            "Портфолио full-stack разработчика: backend, API, админ-панели, "
+            "self-hosted сервисы, realtime, ML-эксперименты и технические публикации."
         ),
         "image_url": "",
         "locale": "ru_RU",

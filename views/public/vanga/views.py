@@ -71,12 +71,17 @@ class VangaDemoPage(MethodView):
         except RuntimeError:
             pass
 
-        canonical_url = f"{site['base_url']}/demo/vanga" if site["base_url"] else None
+        canonical_url = (
+            f"{site['base_url']}/projects/vanga"
+            if site["base_url"]
+            else "/projects/vanga"
+        )
         return {
             "site": site,
             "seo_title": "КиноВанга — демонстрация модели | JSInteractive",
             "seo_description": "Демонстрация модели КиноВанга: прогноз рейтинга фильма по режиссёру, актёрам, жанру, году и длительности.",
             "canonical_url": canonical_url,
+            "seo_noindex": True,
             "service_ready": service_ready,
             "service_status": service_status,
         }

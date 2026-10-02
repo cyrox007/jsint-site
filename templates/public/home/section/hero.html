@@ -1,5 +1,6 @@
 {% set hero = block.settings if block is defined and block.settings else (home_settings.hero if home_settings is defined else {}) %}
-{% set hero_badge = hero.badge if hero.badge and '+УЛЬТРА' not in hero.badge else 'Разработка · Системы · Решения' %}
+{% set legacy_badge = hero.badge and ('+УЛЬТРА' in hero.badge or 'мини-студия' in hero.badge|lower) %}
+{% set hero_badge = hero.badge if hero.badge and not legacy_badge else 'Разработка · Системы · Решения' %}
 {% set hero_description = hero.description if hero.description and '+УЛЬТРА' not in hero.description else 'Личный сайт о разработке, продуктах и системах. Проекты, публикации, экспертиза и практический опыт.' %}
 <section class="portfolio-hero">
     <div class="portfolio-hero__backdrop" aria-hidden="true"></div>

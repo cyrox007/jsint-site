@@ -8,6 +8,12 @@ from flask.views import MethodView
 from components.auth.decorator import with_db_session
 from models.categories import Category
 from services.page import PageService
+from services.public_seo import (
+    author_entity,
+    breadcrumb_schema,
+    first_content_image,
+    share_image_url,
+)
 from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
@@ -54,6 +60,16 @@ class ArticleDetailView(MethodView):
 
         published_at = publication.published_at or publication.created_at
         modified_at = publication.updated_at or published_at
+        article_image_url = (
+            first_content_image(publication.content, site["base_url"] or "")
+            or share_image_url(site)
+        )
+        keywords = [category.title]
+        keywords.extend(
+            technology.name
+            for technology in (publication.technologies or [])
+            if getattr(technology, "name", None)
+        )
 
         def iso_datetime(value):
             if value is None:
@@ -75,39 +91,30 @@ class ArticleDetailView(MethodView):
         structured_data_items = [
             {
                 "@context": "https://schema.org",
-                "@type": "Article",
+                "@type": "BlogPosting",
+                "@id": f"{canonical_url}#article" if canonical_url else None,
                 "headline": publication.title,
                 "description": seo_description,
+                "image": [article_image_url],
                 "datePublished": iso_datetime(published_at),
                 "dateModified": iso_datetime(modified_at),
+                "author": author_entity(site),
+                "publisher": author_entity(site),
+                "articleSection": category.title,
+                "keywords": keywords,
+                "wordCount": word_count,
+                "inLanguage": "ru-RU",
                 "mainEntityOfPage": {
                     "@type": "WebPage",
                     "@id": canonical_url,
                 },
-                "publisher": {
-                    "@type": "Organization",
-                    "name": site_name,
-                    "url": site["base_url"],
-                },
             },
-            {
-                "@context": "https://schema.org",
-                "@type": "BreadcrumbList",
-                "itemListElement": [
-                    {
-                        "@type": "ListItem",
-                        "position": 1,
-                        "name": site_name,
-                        "item": f"{site['base_url']}/",
-                    },
-                    {
-                        "@type": "ListItem",
-                        "position": 2,
-                        "name": publication.title,
-                        "item": canonical_url,
-                    },
-                ],
-            },
+            breadcrumb_schema(
+                [
+                    (site_name, f"{site['base_url']}/"),
+                    (publication.title, canonical_url),
+                ]
+            ),
         ]
 
         response = make_response(
@@ -118,6 +125,10 @@ class ArticleDetailView(MethodView):
                 seo_title=seo_title,
                 seo_description=seo_description,
                 canonical_url=canonical_url,
+                seo_image_url=article_image_url,
+                seo_image_alt=publication.title,
+                seo_published_at=iso_datetime(published_at),
+                seo_modified_at=iso_datetime(modified_at),
                 og_type="article",
                 article_excerpt=seo_description,
                 reading_minutes=reading_minutes,
