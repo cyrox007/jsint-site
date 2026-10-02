@@ -412,7 +412,9 @@
         const warnings = Array.isArray(preflight.warnings) ? preflight.warnings : [];
         preflightNode.hidden = false;
         preflightNode.classList.toggle('has-warnings', !preflight.ready);
-        preflightResult.textContent = preflight.ready ? 'Готово к подписи' : 'Требует внимания';
+        preflightResult.textContent = preflight.repair_existing
+            ? 'Готово к восстановлению подписи'
+            : (preflight.ready ? 'Готово к подписи' : 'Требует внимания');
         preflightVersion.textContent = release.version + ' / ' + release.version_code;
         preflightHead.textContent = preflight.channel_head_version_code
             ? release.channel + ' · ' + preflight.channel_head_version + ' / ' + preflight.channel_head_version_code
@@ -544,7 +546,9 @@
                 ? ' Текущая голова канала: ' + preflight.channel_head_version + ' / ' + preflight.channel_head_version_code + '.'
                 : ' Канал пока пуст.';
             setStatus(
-                'Preflight пройден. Версия ' + release.version + ' / ' + release.version_code + '.' + head,
+                preflight.repair_existing
+                    ? 'Обнаружена повреждённая подпись уже зарегистрированного релиза. Будет переподписан тот же неизменяемый ZIP.'
+                    : 'Preflight пройден. Версия ' + release.version + ' / ' + release.version_code + '.' + head,
                 'working'
             );
 
@@ -552,7 +556,9 @@
             const signature = await signManifest(key.privateKey, key.keyId, release.manifest);
 
             setStatus(
-                'Проверки пройдены. Публикую ' + release.version + ' (' + release.channel + ')…',
+                preflight.repair_existing
+                    ? 'Проверки пройдены. Восстанавливаю подписанные метаданные ' + release.version + '…'
+                    : 'Проверки пройдены. Публикую ' + release.version + ' (' + release.channel + ')…',
                 'working'
             );
             await publishRelease(release, signature);

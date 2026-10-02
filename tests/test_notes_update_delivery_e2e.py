@@ -18,7 +18,7 @@ from app import create_app
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
 from database import Database
 from models.control_plane import LicenseRecord, ReleaseRecord
-from services.notes_control_plane import NotesControlPlane, _build_release_manifest
+from services.notes_control_plane import ControlPlaneError, NotesControlPlane, _build_release_manifest, verify_update_manifest
 from settings import config
 
 
@@ -311,6 +311,77 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
             self.assertEqual(record.last_client_version_code, 10003)
             self.assertEqual(record.last_client_channel, "stable")
             self.assertEqual(record.last_seen_action, "update-package")
+        finally:
+            session.close()
+
+    def test_corrupted_release_metadata_can_be_repaired_for_same_artifact(self):
+        session = Database.connect_database()
+        try:
+            record = (
+                session.query(ReleaseRecord)
+                .filter(
+                    ReleaseRecord.channel == "stable",
+                    ReleaseRecord.version_code == 10004,
+                )
+                .one()
+            )
+            record_id = record.id
+            package_path = record.package_path
+            record.signature = "wou1." + self.update_key_id + "." + b64url(b"x" * 64)
+            session.add(record)
+            session.commit()
+        finally:
+            session.close()
+
+        manifest_bytes, resolved = _build_release_manifest(
+            package_path=package_path,
+            version="1.0.4",
+            version_code=10004,
+            channel="stable",
+            source_commit="1" * 40,
+            min_source_version_code=10003,
+            requires_php="8.1.0",
+        )
+        domain = b"WorkspaceOrganizerUpdateManifest/v1\n"
+        signature = self.update_key.sign(
+            domain + manifest_bytes.encode("utf-8")
+        ).signature
+        signature_token = f"wou1.{self.update_key_id}.{b64url(signature)}"
+
+        session = Database.connect_database()
+        try:
+            repaired = NotesControlPlane.publish_release(
+                session,
+                manifest_bytes=manifest_bytes,
+                signature=signature_token,
+                package_path=str(resolved),
+            )
+            self.assertEqual(repaired.id, record_id)
+            self.assertTrue(repaired.is_active)
+            verified = verify_update_manifest(repaired.manifest_bytes, repaired.signature)
+            self.assertEqual(verified["version_code"], 10004)
+            self.assertEqual(verified["min_source_version_code"], 10003)
+        finally:
+            session.close()
+
+    def test_valid_release_cannot_be_republished(self):
+        session = Database.connect_database()
+        try:
+            record = (
+                session.query(ReleaseRecord)
+                .filter(
+                    ReleaseRecord.channel == "stable",
+                    ReleaseRecord.version_code == 10004,
+                )
+                .one()
+            )
+            with self.assertRaisesRegex(ControlPlaneError, "уже зарегистрирован"):
+                NotesControlPlane.publish_release(
+                    session,
+                    manifest_bytes=record.manifest_bytes,
+                    signature=record.signature,
+                    package_path=record.package_path,
+                )
         finally:
             session.close()
 
