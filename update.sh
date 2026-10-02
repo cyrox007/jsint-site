@@ -417,7 +417,14 @@ log "Проверка Python syntax."
 "${APP_DIR}/.venv/bin/python" -m compileall -q "${APP_DIR}"
 
 log "Применение Alembic migrations."
-MIGRATIONS_STARTED=1
+PRE_MIGRATION_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" current 2>/dev/null | awk 'NR==1 {print $1}')"
+TARGET_DB_HEAD="$("${APP_DIR}/.venv/bin/alembic" heads 2>/dev/null | awk 'NR==1 {print $1}')"
+if [[ -z "${PRE_MIGRATION_DB_HEAD}" || -z "${TARGET_DB_HEAD}" || "${PRE_MIGRATION_DB_HEAD}" != "${TARGET_DB_HEAD}" ]]; then
+    MIGRATIONS_STARTED=1
+    log "Схема БД может измениться: current=${PRE_MIGRATION_DB_HEAD:-unknown}, target=${TARGET_DB_HEAD:-unknown}."
+else
+    log "Alembic уже на target revision ${TARGET_DB_HEAD}; при последующем rollback restore БД не потребуется."
+fi
 "${APP_DIR}/.venv/bin/alembic" upgrade head
 
 if (( SKIP_TESTS == 0 )); then
