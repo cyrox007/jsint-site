@@ -2,8 +2,8 @@
 .portfolio-hero{
     position:relative;
     overflow:hidden;
-    min-height:690px;
-    padding:108px 0 0;
+    min-height:clamp(720px,88vh,820px);
+    padding:98px 0 24px;
     display:flex;
     flex-direction:column;
     justify-content:flex-end;
@@ -14,25 +14,28 @@
     background:
         linear-gradient(90deg,rgba(2,9,18,.95) 0%,rgba(3,12,24,.78) 34%,rgba(4,14,31,.26) 66%,rgba(3,11,23,.28) 100%),
         linear-gradient(180deg,rgba(7,16,24,.12) 0%,rgba(7,16,24,.06) 54%,#071018 100%),
-        url("https://images.unsplash.com/photo-1769134071347-e4dfda165b9c?auto=format&fit=crop&q=88&w=2400") center 48%/cover no-repeat;
-    transform:scale(1.015);
+        url("https://images.unsplash.com/photo-1776251693908-b7eb878a5e6b?auto=format&fit=crop&fm=jpg&q=82&w=2400") center 50%/cover no-repeat;
+    transform:scale(1.012);
+    filter:saturate(1.08) contrast(1.04);
 }
 .portfolio-hero__backdrop::after{
     content:"";
     position:absolute;
     inset:0;
     background:
-        radial-gradient(circle at 76% 24%,rgba(165,101,255,.22),transparent 24rem),
-        radial-gradient(circle at 66% 58%,rgba(46,149,255,.12),transparent 26rem),
-        linear-gradient(180deg,transparent 58%,rgba(7,16,24,.72) 86%,#071018 100%);
+        linear-gradient(115deg,rgba(19,86,190,.12),rgba(106,67,211,.24) 72%,rgba(8,21,49,.12)),
+        radial-gradient(circle at 73% 25%,rgba(154,93,255,.28),transparent 24rem),
+        radial-gradient(circle at 60% 62%,rgba(38,151,255,.15),transparent 25rem),
+        linear-gradient(180deg,rgba(3,10,22,.02) 45%,rgba(5,14,27,.58) 78%,#071018 100%);
 }
 .portfolio-hero__inner{
     position:relative;
     z-index:2;
     flex:1;
+    min-height:520px;
     display:flex;
     align-items:center;
-    padding:36px 0 44px;
+    padding:28px 0 34px;
 }
 .portfolio-hero__copy{max-width:700px}
 .portfolio-hero__badge{
@@ -89,32 +92,34 @@
     position:relative;
     z-index:3;
     display:grid;
-    grid-template-columns:repeat(4,1fr);
-    margin-bottom:0;
-    border:1px solid rgba(116,171,234,.17);
-    border-bottom:0;
-    border-radius:14px 14px 0 0;
-    background:rgba(4,14,27,.78);
-    backdrop-filter:blur(18px);
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+    margin-top:4px;
 }
 .portfolio-proof article{
     display:flex;
     align-items:center;
-    gap:11px;
-    min-height:72px;
-    padding:14px 16px;
-    border-right:1px solid rgba(108,158,213,.1);
+    gap:12px;
+    min-width:0;
+    min-height:68px;
+    padding:13px 14px;
+    border:1px solid rgba(105,164,232,.18);
+    border-radius:12px;
+    background:linear-gradient(145deg,rgba(8,28,50,.8),rgba(4,17,31,.72));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 12px 26px rgba(0,0,0,.12);
+    backdrop-filter:blur(16px);
 }
-.portfolio-proof article:last-child{border-right:0}
 .portfolio-proof__icon{
-    width:34px;height:34px;display:grid;place-items:center;flex:0 0 34px;
-    border:1px solid rgba(79,159,255,.28);
-    border-radius:9px;
-    background:rgba(45,104,184,.14);
-    color:#7dc8ff;
+    width:36px;height:36px;display:grid;place-items:center;flex:0 0 36px;
+    border:1px solid rgba(72,165,255,.3);
+    border-radius:10px;
+    background:linear-gradient(145deg,rgba(32,105,205,.2),rgba(28,63,131,.12));
+    color:#79cbff;
+    box-shadow:inset 0 0 18px rgba(54,166,255,.05);
 }
-.portfolio-proof strong{display:block;color:#e7f1fa;font-size:.72rem}
-.portfolio-proof small{display:block;margin-top:2px;color:#71899d;font-size:.6rem;line-height:1.35}
+.portfolio-proof article>div{min-width:0}
+.portfolio-proof strong{display:block;color:#eef6fd;font-size:.72rem;line-height:1.25}
+.portfolio-proof small{display:block;margin-top:3px;color:#7890a3;font-size:.59rem;line-height:1.35}
 
 .portfolio-projects,
 .portfolio-publications,
@@ -334,9 +339,7 @@
 @media(max-width:820px){
     .portfolio-hero{min-height:640px;padding-top:86px}
     .portfolio-hero__inner{padding:40px 0}
-    .portfolio-proof{grid-template-columns:repeat(2,1fr)}
-    .portfolio-proof article:nth-child(2){border-right:0}
-    .portfolio-proof article:nth-child(-n+2){border-bottom:1px solid rgba(196,231,255,.08)}
+    .portfolio-proof{grid-template-columns:repeat(2,minmax(0,1fr))}
     .portfolio-article-grid{grid-template-columns:1fr}
     .portfolio-contact__panel{align-items:flex-start;flex-direction:column}
 }
@@ -346,8 +349,7 @@
     .portfolio-hero__copy>p{font-size:.9rem}
     .portfolio-hero__actions{align-items:stretch;flex-direction:column}
     .portfolio-hero__actions .btn{width:100%}
-    .portfolio-proof{grid-template-columns:1fr;border-radius:12px 12px 0 0}
-    .portfolio-proof article{border-right:0;border-bottom:1px solid rgba(196,231,255,.08)}
+    .portfolio-proof{grid-template-columns:1fr}
     .portfolio-project-grid,.portfolio-expertise-grid,.portfolio-resume__panel,.portfolio-approach-grid{grid-template-columns:1fr}
     .portfolio-feature-panel__copy{padding:22px}
     .portfolio-feature-panel__visual{min-height:190px}
@@ -356,24 +358,6 @@
     .portfolio-resume__stack{grid-column:auto}
 }
 
-
-/* Доработка hero: содержимое не обрезается на низких экранах */
-.portfolio-hero{
-    min-height:clamp(700px,86vh,860px);
-    overflow:visible;
-}
-.portfolio-hero__backdrop{
-    overflow:hidden;
-    pointer-events:none;
-}
-.portfolio-hero__inner{
-    min-height:500px;
-    padding-top:58px;
-    padding-bottom:58px;
-}
-.portfolio-proof{
-    margin-top:auto;
-}
 
 /* Расширенный блок обо мне */
 .portfolio-about{
