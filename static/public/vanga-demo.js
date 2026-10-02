@@ -216,12 +216,18 @@
     const directorInput = root.querySelector(
         '[data-vanga-person-search][data-role="director"]'
     );
+    const writerInput = root.querySelector(
+        '[data-vanga-person-search][data-role="writer"]'
+    );
     const actorsInput = root.querySelector(
         '[data-vanga-person-search][data-role="actor"]'
     );
     const movieSuggestions = root.querySelector("[data-vanga-movie-suggestions]");
     const directorSuggestions = root.querySelector(
         "[data-vanga-director-suggestions]"
+    );
+    const writerSuggestions = root.querySelector(
+        "[data-vanga-writer-suggestions]"
     );
     const actorSuggestions = root.querySelector("[data-vanga-actor-suggestions]");
     const imdbInput = root.querySelector("[data-vanga-imdb-id]");
@@ -253,6 +259,7 @@
         imdb_id: imdbInput?.value.trim() || null,
         title: input("title")?.value.trim() || "",
         director: input("director")?.value.trim() || "",
+        writer: input("writer")?.value.trim() || "",
         year: input("year")?.value.trim() || "",
         runtime: input("runtime")?.value.trim() || "",
         genres: normalizedGenres(),
@@ -306,6 +313,7 @@
         const fields = [
             ["title", "Название"],
             ["director", "Режиссёр"],
+            ["writer", "Сценарист"],
             ["year", "Год"],
             ["runtime", "Длительность"],
             ["genres", "Жанры"],
@@ -567,6 +575,7 @@
                 if (item.year) input("year").value = item.year;
                 if (item.runtime) input("runtime").value = item.runtime;
                 if (item.director) directorInput.value = item.director;
+                if (item.writer && writerInput) writerInput.value = item.writer;
                 if (Array.isArray(item.genres) && item.genres.length) {
                     genresInput.value = item.genres.join(", ");
                 }
@@ -620,7 +629,11 @@
                     ? `распознано: ${item.matched_from}`
                     : item.known_for_count
                       ? `${item.known_for_count} работ в локальной базе`
-                      : role === "director" ? "режиссёр" : "актёр";
+                      : role === "director"
+                        ? "режиссёр"
+                        : role === "writer"
+                          ? "сценарист"
+                          : "актёр";
 
             const aside = document.createElement("small");
             aside.textContent = item.imdb_id || "";
@@ -698,7 +711,7 @@
     }, 300);
     movieInput?.addEventListener("input", searchMovie);
 
-    const personControllers = { director: null, actor: null };
+    const personControllers = { director: null, writer: null, actor: null };
     const personSearch = (field, container, role) =>
         debounce(async () => {
             if (!field) return;
@@ -728,6 +741,10 @@
         "input",
         personSearch(directorInput, directorSuggestions, "director")
     );
+    writerInput?.addEventListener(
+        "input",
+        personSearch(writerInput, writerSuggestions, "writer")
+    );
     actorsInput?.addEventListener(
         "input",
         personSearch(actorsInput, actorSuggestions, "actor")
@@ -737,6 +754,7 @@
         if (!event.target.closest("[data-vanga-field]")) {
             closeSuggest(movieSuggestions, movieInput);
             closeSuggest(directorSuggestions, directorInput);
+            closeSuggest(writerSuggestions, writerInput);
             closeSuggest(actorSuggestions, actorsInput);
         }
     });
@@ -745,6 +763,7 @@
         if (event.key !== "Escape") return;
         closeSuggest(movieSuggestions, movieInput);
         closeSuggest(directorSuggestions, directorInput);
+        closeSuggest(writerSuggestions, writerInput);
         closeSuggest(actorSuggestions, actorsInput);
     });
 
@@ -774,6 +793,7 @@
         if (imdbInput) imdbInput.value = payload.imdb_id || "";
         input("title").value = payload.title || "";
         input("director").value = payload.director || "";
+        input("writer").value = payload.writer || "";
         input("year").value = payload.year || "";
         input("runtime").value = payload.runtime || "";
         genresInput.value = Array.isArray(payload.genres)
