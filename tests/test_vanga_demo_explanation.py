@@ -54,7 +54,13 @@ class VangaDemoExplanationTests(unittest.TestCase):
         )
 
     def test_template_renders_full_shap_breakdown(self):
-        template = self.read("templates/public/vanga/index.html")
+        template = "\n".join(
+            [
+                self.read("templates/public/vanga/index.html"),
+                self.read("templates/public/vanga/_result.html"),
+                self.read("templates/public/vanga/_analysis.html"),
+            ]
+        )
 
         self.assertIn("Полная расшифровка", template)
         self.assertIn("Все факторы этого прогноза", template)
@@ -77,6 +83,9 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertIn("data-vanga-submit-status", script)
         self.assertIn("data-rating-value", script)
         self.assertIn("scrollIntoView", script)
+        self.assertIn("fetch(predictUrl", script)
+        self.assertIn("localStorage", script)
+        self.assertIn("data-vanga-movie-search", self.read("templates/public/vanga/index.html"))
         self.assertIn("@media(prefers-reduced-motion:reduce)", styles)
         self.assertIn(".vanga-result__score-ring", styles)
         self.assertIn(".vanga-factor-card", styles)
