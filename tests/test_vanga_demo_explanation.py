@@ -23,6 +23,23 @@ class VangaDemoExplanationTests(unittest.TestCase):
                     "director_avg_rating": 0.67,
                     "actor_1_id": 0.0,
                 },
+                "uncertainty": {
+                    "lower": 6.13,
+                    "upper": 8.49,
+                    "margin": 1.18,
+                    "coverage": 0.80,
+                    "test_year_from": 2024,
+                    "test_year_to": 2025,
+                    "test_rows": 13993,
+                },
+                "quality": {
+                    "mae": 1.02,
+                    "rmse": 1.34,
+                    "r2": 0.28,
+                    "test_year_from": 2024,
+                    "test_year_to": 2025,
+                    "test_rows": 13993,
+                },
                 "input_resolution": {
                     "title": {
                         "input": "Интерстеллар",
@@ -47,6 +64,10 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertEqual(result["factors"][1]["tone"], "negative")
         self.assertEqual(result["factors"][2]["tone"], "neutral")
         self.assertEqual(result["factors"][0]["strength"], 100.0)
+        self.assertEqual(result["uncertainty"]["coverage_percent"], 80)
+        self.assertEqual(result["uncertainty"]["margin"], 1.18)
+        self.assertEqual(result["quality"]["mae"], 1.02)
+        self.assertEqual(result["quality"]["test_rows"], 13993)
         self.assertEqual(len(result["recognized_inputs"]), 2)
         self.assertEqual(
             result["recognized_inputs"][0]["canonical"],
@@ -72,6 +93,10 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertIn("factor.key", template)
         self.assertIn("Распознано по русскому вводу", template)
         self.assertIn("prediction_output.recognized_inputs", template)
+        self.assertIn("Эмпирический диапазон", template)
+        self.assertIn("prediction_output.uncertainty", template)
+        self.assertIn("Средняя абсолютная ошибка", template)
+        self.assertIn("prediction_output.quality", template)
         self.assertIn("public/vanga-demo.js", template)
 
     def test_animation_keeps_reduced_motion_fallback(self):
