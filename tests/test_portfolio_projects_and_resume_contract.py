@@ -37,6 +37,28 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         self.assertIn('"projects/the-game"', sitemap)
         self.assertIn('"projects/churchcms"', sitemap)
 
+    def test_churchcms_promo_explains_platform_and_roadmap(self):
+        view = self.read("views/public/projects/views.py")
+        template = self.read("templates/public/projects/detail.html")
+        styles = self.read("templates/public/projects/style.css")
+
+        self.assertIn("CHURCHCMS_DETAIL", view)
+        self.assertIn("Активная разработка · Parish MVP", view)
+        self.assertIn("Федерация ChurchCMS-узлов", view)
+        self.assertIn("Telegram, VK и MAX", view)
+        self.assertIn("Legacy migration", view)
+        self.assertIn("Pilot deployments", view)
+
+        self.assertIn("Независимые сайты, единая структура", template)
+        self.assertIn("Что уже реализовано", template)
+        self.assertIn("От legacy-аудита к новой платформе", template)
+        self.assertIn("Не один сайт, а сеть самостоятельных ChurchCMS", template)
+        self.assertIn("Что ещё предстоит", template)
+
+        self.assertIn(".church-network", styles)
+        self.assertIn(".church-timeline", styles)
+        self.assertIn(".church-roadmap-grid", styles)
+
     def test_about_uses_profile_supported_fullstack_context(self):
         template = self.read("templates/public/home/section/about.html")
 
