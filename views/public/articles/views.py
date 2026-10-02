@@ -49,7 +49,14 @@ class ArticleDetailView(MethodView):
             extra.get("seo_title")
             or f"{publication.title} | {site_name}"
         ).strip()
-        seo_description = (extra.get("seo_description") or plain_text[:180]).strip()
+        seo_description = (
+            extra.get("seo_description")
+            or plain_text[:180]
+            or (
+                f"{publication.title} — техническая публикация JSInteractive "
+                f"о разработке, архитектуре и практическом опыте."
+            )
+        ).strip()
         word_count = len(re.findall(r"\b\w+\b", plain_text, flags=re.UNICODE))
         reading_minutes = max(1, math.ceil(word_count / 180))
         canonical_url = (

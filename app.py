@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, render_template, request, session
+from flask import Flask, current_app, render_template, request, session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from components.security.csrf import init_app as init_csrf
@@ -126,6 +126,18 @@ def create_app() -> Flask:
     d_inbox_router.install(app)
     notes_api.install(app)
 
+    def favicon_svg():
+        response = current_app.send_static_file("public/jsinteractive-mark.svg")
+        response.mimetype = "image/svg+xml"
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
+
+    app.add_url_rule(
+        "/favicon.svg",
+        endpoint="favicon_svg",
+        view_func=favicon_svg,
+        methods=["GET"],
+    )
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
     app.add_url_rule("/sitemap.xml", endpoint="sitemap", view_func=public_seo.sitemap_xml, methods=["GET"])
     if config.YANDEX_INDEXNOW_KEY:
