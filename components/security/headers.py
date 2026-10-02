@@ -81,7 +81,7 @@ def apply_security_headers(response):
         request.path.startswith(config.ADMIN_ROUTE_PREFIX)
         or request.path.startswith("/api/")
         or request.path.startswith(f"{config.NOTES_UPDATE_API_PREFIX}/")
-        or request.path in {"/healthz", "/contact"}
+        or request.path in {"/healthz", "/contact", "/demo/vanga"}
     )
     if private_or_non_searchable:
         response.headers["X-Robots-Tag"] = "noindex, nofollow"
