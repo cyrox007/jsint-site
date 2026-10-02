@@ -69,7 +69,10 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertEqual(result["factors"][0]["key"], "director_avg_rating")
         self.assertEqual(result["factors"][0]["tone"], "positive")
         self.assertEqual(result["factors"][1]["tone"], "negative")
-        self.assertEqual(result["factors"][2]["tone"], "neutral")
+        tones = {item["key"]: item["tone"] for item in result["factors"]}
+        self.assertEqual(tones["writer_avg_rating"], "positive")
+        self.assertEqual(tones["writer_id"], "positive")
+        self.assertEqual(tones["actor_1_id"], "neutral")
         self.assertEqual(result["factors"][0]["strength"], 100.0)
         self.assertEqual(result["uncertainty"]["coverage_percent"], 80)
         self.assertEqual(result["uncertainty"]["margin"], 1.18)
