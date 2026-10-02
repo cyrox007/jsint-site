@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from models.vanga import VangaPrediction
@@ -199,3 +199,25 @@ class VangaPredictionService:
             if len(result) >= limit:
                 break
         return result
+
+
+    @staticmethod
+    def verification_summary(
+        db: Session,
+        *,
+        site_id,
+    ) -> dict[str, float | int | None]:
+        """Агрегат по уже сверенным снимкам без искусственного ранжирования."""
+        count, avg_error = (
+            db.query(
+                func.count(VangaPrediction.id),
+                func.avg(VangaPrediction.absolute_error),
+            )
+            .filter(VangaPrediction.site_id == site_id)
+            .filter(VangaPrediction.absolute_error.isnot(None))
+            .one()
+        )
+        return {
+            "count": int(count or 0),
+            "mae": round(float(avg_error), 2) if avg_error is not None else None,
+        }
