@@ -314,6 +314,35 @@ class NotesUpdateDeliveryE2ETests(unittest.TestCase):
         finally:
             session.close()
 
+    def test_corrupted_active_release_is_not_served_to_client(self):
+        activation = self._activate_103()
+        headers = self._headers(activation["token"], version="1.0.3", version_code=10003)
+
+        session = Database.connect_database()
+        try:
+            record = (
+                session.query(ReleaseRecord)
+                .filter(
+                    ReleaseRecord.channel == "stable",
+                    ReleaseRecord.version_code == 10004,
+                )
+                .one()
+            )
+            record.signature = "wou1." + self.update_key_id + "." + b64url(b"x" * 64)
+            session.add(record)
+            session.commit()
+        finally:
+            session.close()
+
+        response = self.client.get(
+            "/api/notes/v1/stable/feed.json",
+            base_url=self.base,
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 503, response.get_data(as_text=True))
+        payload = response.get_json()
+        self.assertEqual(payload["error"], "release_integrity_failed")
+
     def test_corrupted_release_metadata_can_be_repaired_for_same_artifact(self):
         session = Database.connect_database()
         try:
