@@ -157,11 +157,56 @@
         factors.forEach((item) => observer.observe(item));
     };
 
+    const initShare = (scope = root) => {
+        scope.querySelectorAll("[data-vanga-share]").forEach((button) => {
+            if (button.dataset.vangaShareReady === "1") return;
+            button.dataset.vangaShareReady = "1";
+
+            button.addEventListener("click", async () => {
+                const url = button.dataset.shareUrl || "";
+                const title = button.dataset.shareTitle || "Прогноз Vanga";
+                const status = button.parentElement?.querySelector(
+                    "[data-vanga-share-status]"
+                );
+                if (!url) return;
+
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title,
+                            text: title,
+                            url,
+                        });
+                        if (status) status.textContent = "Окно отправки открыто";
+                        return;
+                    }
+
+                    if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(url);
+                        if (status) status.textContent = "Ссылка скопирована";
+                        return;
+                    }
+
+                    window.prompt("Скопируйте ссылку на прогноз", url);
+                } catch (error) {
+                    if (error?.name === "AbortError") return;
+                    try {
+                        await navigator.clipboard?.writeText?.(url);
+                        if (status) status.textContent = "Ссылка скопирована";
+                    } catch {
+                        window.prompt("Скопируйте ссылку на прогноз", url);
+                    }
+                }
+            });
+        });
+    };
+
     const initDynamicContent = ({ scroll = false } = {}) => {
         initReveal(root);
         initCardGlow(root);
         animatePrediction({ scroll });
         initFactors(root);
+        initShare(root);
     };
 
     const input = (name) => form?.querySelector(`[name="${name}"]`);
@@ -578,6 +623,7 @@
             rating: output?.rating ?? 0,
             generation: snapshot?.generation || null,
             snapshot_id: snapshot?.id || null,
+            snapshot_url: snapshot?.url || null,
             created_at: snapshot?.created_at || new Date().toISOString(),
         };
 
