@@ -22,6 +22,60 @@
         <span>прогноз <b>{{ '%.2f'|format(prediction_output.rating) }}</b></span>
     </div>
 
+    {% if prediction_output.quality %}
+    <div class="vanga-quality" data-vanga-reveal>
+        <article>
+            <span>Средняя абсолютная ошибка</span>
+            <strong>
+                {% if prediction_output.quality.mae is not none %}
+                ±{{ '%.2f'|format(prediction_output.quality.mae) }}
+                {% else %}
+                —
+                {% endif %}
+            </strong>
+            <p>MAE на временной тестовой выборке: в среднем прогноз отличался от фактического рейтинга примерно на это число пунктов.</p>
+        </article>
+        <article>
+            <span>RMSE</span>
+            <strong>
+                {% if prediction_output.quality.rmse is not none %}
+                {{ '%.2f'|format(prediction_output.quality.rmse) }}
+                {% else %}
+                —
+                {% endif %}
+            </strong>
+            <p>Сильнее штрафует крупные промахи, поэтому обычно выше MAE.</p>
+        </article>
+        <article>
+            <span>R²</span>
+            <strong>
+                {% if prediction_output.quality.r2 is not none %}
+                {{ '%.3f'|format(prediction_output.quality.r2) }}
+                {% else %}
+                —
+                {% endif %}
+            </strong>
+            <p>Показывает, какую долю вариации рейтингов объясняет модель на holdout-периоде.</p>
+        </article>
+        <article>
+            <span>Temporal holdout</span>
+            <strong>
+                {% if prediction_output.quality.test_year_from and prediction_output.quality.test_year_to %}
+                {{ prediction_output.quality.test_year_from }}–{{ prediction_output.quality.test_year_to }}
+                {% else %}
+                последние годы
+                {% endif %}
+            </strong>
+            <p>
+                {% if prediction_output.quality.test_rows %}
+                {{ prediction_output.quality.test_rows }} фильмов.
+                {% endif %}
+                Тест отделён по времени, а не случайным перемешиванием строк.
+            </p>
+        </article>
+    </div>
+    {% endif %}
+
     <div class="vanga-factor-grid">
         {% for factor in prediction_output.factors %}
         <article class="vanga-factor-card vanga-factor-card--{{ factor.tone }}" data-vanga-factor data-strength="{{ factor.strength }}">

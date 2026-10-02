@@ -17,6 +17,27 @@
     </div>
 </div>
 
+{% if prediction_output.uncertainty %}
+<div class="vanga-uncertainty" data-vanga-reveal>
+    <div class="vanga-uncertainty__head">
+        <span>Эмпирический диапазон</span>
+        <b>{{ prediction_output.uncertainty.lower }}–{{ prediction_output.uncertainty.upper }}</b>
+    </div>
+    <div class="vanga-uncertainty__bar" aria-hidden="true">
+        <i></i>
+        <span style="left: {{ prediction_output.uncertainty.lower * 10 }}%"></span>
+        <strong style="left: {{ prediction_output.rating * 10 }}%"></strong>
+        <span style="left: {{ prediction_output.uncertainty.upper * 10 }}%"></span>
+    </div>
+    <p>
+        На временной тестовой выборке примерно
+        <b>{{ prediction_output.uncertainty.coverage_percent }}%</b>
+        ошибок модели укладывались в ±{{ '%.2f'|format(prediction_output.uncertainty.margin) }}
+        пункта. Это не гарантия и не вероятность именно этого фильма.
+    </p>
+</div>
+{% endif %}
+
 {% if prediction_output.recognized_inputs %}
 <div class="vanga-recognition">
     <div class="vanga-recognition__head">
