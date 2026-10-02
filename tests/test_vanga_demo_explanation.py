@@ -21,6 +21,8 @@ class VangaDemoExplanationTests(unittest.TestCase):
                 "contributions": {
                     "genres_combined": -0.43,
                     "director_avg_rating": 0.67,
+                    "writer_avg_rating": 0.21,
+                    "writer_id": 0.05,
                     "actor_1_id": 0.0,
                 },
                 "uncertainty": {
@@ -51,6 +53,11 @@ class VangaDemoExplanationTests(unittest.TestCase):
                         "canonical": "Christopher Nolan",
                         "imdb_id": "nm0634240",
                     },
+                    "writer": {
+                        "input": "Джонатан Нолан",
+                        "canonical": "Jonathan Nolan",
+                        "imdb_id": "nm0254645",
+                    },
                     "actors": [],
                 },
             }
@@ -58,7 +65,7 @@ class VangaDemoExplanationTests(unittest.TestCase):
 
         self.assertEqual(result["rating"], 7.31)
         self.assertEqual(result["base"], 6.10)
-        self.assertEqual(result["factor_count"], 3)
+        self.assertEqual(result["factor_count"], 5)
         self.assertEqual(result["factors"][0]["key"], "director_avg_rating")
         self.assertEqual(result["factors"][0]["tone"], "positive")
         self.assertEqual(result["factors"][1]["tone"], "negative")
@@ -68,7 +75,12 @@ class VangaDemoExplanationTests(unittest.TestCase):
         self.assertEqual(result["uncertainty"]["margin"], 1.18)
         self.assertEqual(result["quality"]["mae"], 1.02)
         self.assertEqual(result["quality"]["test_rows"], 13993)
-        self.assertEqual(len(result["recognized_inputs"]), 2)
+        self.assertEqual(len(result["recognized_inputs"]), 3)
+        writer_factor = next(
+            item for item in result["factors"]
+            if item["key"] == "writer_avg_rating"
+        )
+        self.assertEqual(writer_factor["label"], "История сценариста")
         self.assertEqual(
             result["recognized_inputs"][0]["canonical"],
             "Interstellar",
