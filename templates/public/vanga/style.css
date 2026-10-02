@@ -160,3 +160,15 @@
 @media(max-width:960px){.vanga-verified__grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.vanga-verified__head{grid-template-columns:1fr}.vanga-verified__summary{min-width:0}.vanga-verified__grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.vanga-verified-card{transition:none!important}}
+
+
+/* Постоянная ссылка и отправка сохранённого прогноза */
+.vanga-share{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px 10px;align-items:center;margin-top:20px;padding:13px;border:1px solid rgba(103,182,214,.13);border-radius:13px;background:rgba(5,20,34,.42)}
+.vanga-share>div{display:grid;gap:3px}.vanga-share>div>span{color:#8adce5;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}.vanga-share>div>small{color:#607b8f;font-size:9px;line-height:1.4}
+.vanga-share>button,.vanga-share>a{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 11px;border-radius:9px;font:inherit;font-size:10px;text-decoration:none;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.vanga-share>button{border:1px solid rgba(96,208,222,.26);background:linear-gradient(100deg,rgba(65,187,203,.18),rgba(105,111,229,.18));color:#a9edf1}
+.vanga-share>a{border:1px solid rgba(113,149,193,.13);background:rgba(6,18,31,.38);color:#748fa2}
+.vanga-share>button:hover,.vanga-share>a:hover{transform:translateY(-1px);border-color:rgba(110,205,222,.32)}
+.vanga-share__status{grid-column:2 / -1;min-height:12px;color:#63869a;font-size:9px;text-align:right}
+@media(max-width:620px){.vanga-share{grid-template-columns:1fr 1fr}.vanga-share>div{grid-column:1 / -1}.vanga-share__status{grid-column:1 / -1;text-align:left}}
+@media(prefers-reduced-motion:reduce){.vanga-share>button,.vanga-share>a{transition:none!important}}
