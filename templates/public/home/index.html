@@ -39,3 +39,8 @@
     </div>
 </section>
 {% endblock %}
+
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='public/home-portfolio.js') }}" defer></script>
+{% endblock %}
