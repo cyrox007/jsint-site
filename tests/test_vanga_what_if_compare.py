@@ -35,6 +35,7 @@ class VangaWhatIfCompareTests(unittest.TestCase):
         self.assertIn("jsint:vanga:compare:v1", script)
         self.assertIn("renderComparison", script)
         self.assertIn("changedFields", script)
+        self.assertIn('["writer", "Сценарист"]', script)
         self.assertIn("baselineGeneration !== currentGeneration", script)
         self.assertIn("Для честного what-if сравнения", script)
         self.assertIn("what-if сравнение сценариев", script)
