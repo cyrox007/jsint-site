@@ -2,6 +2,7 @@
 
 {% block extra_head %}
 <style>{% include "public/vanga/style.css" %}</style>
+<style>{% include "public/vanga/potential-style.css" %}</style>
 {% endblock %}
 
 {% block content %}
@@ -9,7 +10,7 @@
     class="vanga-demo"
     data-vanga-demo
     data-search-url="{{ url_for('vanga_search') }}"
-    data-predict-url="{{ url_for('vanga_predict_api') }}"
+    data-predict-url="{{ url_for('vanga_predict_profile_api') }}"
 >
     <div class="vanga-demo__ambient" aria-hidden="true">
         <i></i><i></i><i></i>
@@ -18,8 +19,8 @@
     <div class="vanga-demo__shell">
         <div class="vanga-demo__intro" data-vanga-reveal>
             <span class="vanga-demo__eyebrow">Бесплатный ML-эксперимент для любителей кино</span>
-            <h1>Какой рейтинг может получить фильм?</h1>
-            <p>Найдите фильм — Vanga попробует сама подставить известные IMDb-данные. Или соберите свой сценарий вручную и посмотрите, какие признаки двигают прогноз вверх и вниз.</p>
+            <h1>Какой рейтинг и потенциал может получить фильм?</h1>
+            <p>Найдите фильм или соберите будущий проект вручную. Vanga оценит рейтинг, полноту известных данных, вероятные сильные стороны и риски — по творческой команде, параметрам и доступному до премьеры синопсису.</p>
             <div class="vanga-demo__status {{ 'is-ready' if service_ready else 'is-down' }}">
                 <span></span>{{ service_status }}
             </div>
@@ -87,7 +88,7 @@
                         data-vanga-person-search
                         data-role="writer"
                     >
-                    <small>Необязательное поле. После новой model schema история сценариста становится отдельным признаком.</small>
+                    <small>Необязательное поле. История сценариста анализируется отдельно от режиссёрской роли.</small>
                     <div class="vanga-suggest" role="listbox" hidden data-vanga-writer-suggestions></div>
                 </label>
 
@@ -137,14 +138,55 @@
                     <div class="vanga-suggest" role="listbox" hidden data-vanga-actor-suggestions></div>
                 </label>
 
+                <label class="vanga-field" data-vanga-field>
+                    <span>Официальный синопсис</span>
+                    <textarea
+                        name="synopsis"
+                        maxlength="5000"
+                        placeholder="Описание сюжета, опубликованное до премьеры…"
+                    >{{ form.get('synopsis', '') }}</textarea>
+                    <small>Необязательно. Используем только сведения, доступные до выхода фильма. Полный пострелизный пересказ сюда не подмешивается.</small>
+                </label>
+
+                <details class="vanga-source">
+                    <summary>Первоисточник / адаптация — необязательно</summary>
+                    <div class="vanga-source__body">
+                        <div class="vanga-source__row">
+                            <label class="vanga-field">
+                                <span>Тип</span>
+                                <input name="source_type" maxlength="240" placeholder="роман, комикс, игра, оригинал">
+                            </label>
+                            <label class="vanga-field">
+                                <span>Формат проекта</span>
+                                <input name="source_format" maxlength="240" placeholder="фильм, мини-сериал, сериал">
+                            </label>
+                        </div>
+                        <label class="vanga-field">
+                            <span>Название первоисточника</span>
+                            <input name="source_title" maxlength="240" placeholder="Название книги / игры / произведения">
+                        </label>
+                        <div class="vanga-source__row">
+                            <label class="vanga-field">
+                                <span>Автор / создатель</span>
+                                <input name="source_author" maxlength="240" placeholder="Автор первоисточника">
+                            </label>
+                            <label class="vanga-field">
+                                <span>Размер цикла</span>
+                                <input name="source_series_size" type="number" min="1" max="10000" placeholder="1">
+                            </label>
+                        </div>
+                        <small>На этом этапе эти данные сохраняются как pre-release контекст. Они не притворяются обученными признаками CatBoost, пока их польза не подтверждена temporal-тестами.</small>
+                    </div>
+                </details>
+
                 <button class="vanga-form__submit" type="submit" {{ 'disabled' if not service_ready }} data-vanga-submit>
-                    <span class="vanga-form__submit-label">Получить прогноз</span>
+                    <span class="vanga-form__submit-label">Получить прогноз и профиль</span>
                     <span class="vanga-form__submit-working" aria-hidden="true">
                         <i></i><b data-vanga-submit-status>Собираю признаки…</b>
                     </span>
                 </button>
 
-                <p class="vanga-form__ajax-note">Если JavaScript доступен, прогноз появится без перезагрузки страницы. Обычная отправка формы остаётся резервным сценарием.</p>
+                <p class="vanga-form__ajax-note">С JavaScript Vanga дополнительно анализирует покрытие данных, синопсис и потенциал проекта. Резервная отправка без JavaScript сохраняет базовый прогноз рейтинга.</p>
             </form>
 
             <div class="vanga-card vanga-result{% if prediction %} has-prediction{% endif %}" data-vanga-result aria-live="polite">
@@ -154,6 +196,14 @@
 
         <div data-vanga-analysis-host>
             {% include "public/vanga/_analysis.html" %}
+        </div>
+
+        <div data-vanga-potential-host>
+            {% if prediction and prediction.get('pre_release_profile') %}
+                {% with profile=prediction.get('pre_release_profile') %}
+                    {% include "public/vanga/_potential.html" %}
+                {% endwith %}
+            {% endif %}
         </div>
 
         <section class="vanga-compare" data-vanga-compare hidden>
@@ -258,11 +308,12 @@
         </section>
         {% endif %}
 
-        <p class="vanga-demo__note">Vanga — мой учебный ML-проект, который я оставил работать для интереса посетителей сайта. Это не коммерческий продукт и не профессиональная оценка фильма; прогноз может ошибаться.</p>
+        <p class="vanga-demo__note">Vanga — мой учебный ML-проект, который я оставил работать для интереса посетителей сайта. Это не коммерческий продукт и не профессиональная оценка фильма; прогноз и профиль потенциала могут ошибаться.</p>
     </div>
 </section>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='public/vanga-demo.js') }}" defer></script>
+<script src="{{ url_for('static', filename='public/vanga-potential.js') }}" defer></script>
 {% endblock %}
