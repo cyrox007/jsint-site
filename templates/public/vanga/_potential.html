@@ -1,0 +1,164 @@
+{% if profile %}
+{% set potential = profile.get('potential') or {} %}
+{% set coverage = profile.get('data_coverage') or {} %}
+{% set synopsis = profile.get('synopsis') or {} %}
+{% set level = potential.get('level') or 'uncertain' %}
+{% set level_labels = {
+    'high_upside': 'Высокий потенциал',
+    'promising': 'Перспективный',
+    'moderate': 'Умеренный потенциал',
+    'uncertain': 'Недостаточно данных'
+} %}
+<section class="vanga-potential" data-vanga-reveal>
+    <div class="vanga-potential__head">
+        <div>
+            <span class="vanga-demo__eyebrow">Pre-release профиль</span>
+            <h2>Потенциал и вероятные риски</h2>
+            <p>Это диагностический слой поверх прогноза: история творческой команды, SHAP-сигналы, полнота данных и доступный до премьеры синопсис.</p>
+        </div>
+        <div class="vanga-potential__badge vanga-potential__badge--{{ level }}">
+            <span>Потенциал</span>
+            <strong>{{ level_labels.get(level, level) }}</strong>
+            {% if potential.get('range_lower') is not none and potential.get('range_upper') is not none %}
+            <small>диапазон {{ '%.2f'|format(potential.get('range_lower')) }}–{{ '%.2f'|format(potential.get('range_upper')) }}</small>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="vanga-potential__coverage">
+        <div class="vanga-potential__coverage-head">
+            <div>
+                <span>Покрытие исходных данных</span>
+                <strong>{{ coverage.get('percent', 0) }}%</strong>
+            </div>
+            <small>
+                {% if coverage.get('level') == 'high' %}Высокое
+                {% elif coverage.get('level') == 'medium' %}Среднее
+                {% else %}Низкое{% endif %}
+            </small>
+        </div>
+        <div class="vanga-potential__coverage-bar" aria-hidden="true">
+            <i style="width: {{ coverage.get('percent', 0) }}%"></i>
+        </div>
+        {% if coverage.get('warnings') %}
+        <div class="vanga-potential__warnings">
+            {% for warning in coverage.get('warnings') %}<span>{{ warning }}</span>{% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="vanga-potential__grid">
+        <article class="vanga-potential__column is-strength">
+            <div class="vanga-potential__column-head">
+                <span>+</span>
+                <div><strong>Вероятные сильные стороны</strong><small>по текущим сигналам модели</small></div>
+            </div>
+            {% if profile.get('likely_strengths') %}
+            <div class="vanga-potential__list">
+                {% for item in profile.get('likely_strengths') %}
+                <div>
+                    <strong>{{ item.get('label') }}</strong>
+                    {% if item.get('value') is not none %}<b>{{ '%+.2f'|format(item.get('value')) }}</b>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Явных положительных сигналов пока недостаточно.</p>
+            {% endif %}
+        </article>
+
+        <article class="vanga-potential__column is-risk">
+            <div class="vanga-potential__column-head">
+                <span>!</span>
+                <div><strong>Вероятные слабые места</strong><small>риски, а не факты о готовом фильме</small></div>
+            </div>
+            {% if profile.get('likely_weaknesses') %}
+            <div class="vanga-potential__list">
+                {% for item in profile.get('likely_weaknesses') %}
+                <div>
+                    <strong>{{ item.get('label') }}</strong>
+                    {% if item.get('value') is not none %}<b>{{ '%+.2f'|format(item.get('value')) }}</b>{% endif %}
+                    {% if item.get('evidence') == 'synopsis_heuristic' %}<small>эвристика синопсиса</small>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Выраженных отрицательных сигналов сейчас нет.</p>
+            {% endif %}
+        </article>
+    </div>
+
+    <div class="vanga-potential__people">
+        {% for person in [coverage.get('director'), coverage.get('writer')] %}
+            {% if person and person.get('input') %}
+            <article>
+                <span>{{ 'Режиссёр' if person.get('role') == 'director' else 'Сценарист' }}</span>
+                <strong>{{ person.get('input') }}</strong>
+                <small>
+                    {% if person.get('known') %}
+                    {{ person.get('works_count') }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {% else %}
+                    недостаточно исторических данных
+                    {% endif %}
+                </small>
+            </article>
+            {% endif %}
+        {% endfor %}
+        {% for person in coverage.get('actors') or [] %}
+            {% if person.get('input') %}
+            <article>
+                <span>Актёр</span>
+                <strong>{{ person.get('input') }}</strong>
+                <small>
+                    {% if person.get('known') %}
+                    {{ person.get('works_count') }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {% else %}
+                    недостаточно исторических данных
+                    {% endif %}
+                </small>
+            </article>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if synopsis.get('available') %}
+    <div class="vanga-potential__synopsis">
+        <div>
+            <span>Синопсис</span>
+            <strong>{{ synopsis.get('word_count', 0) }} слов</strong>
+            <small>плотность: {{ synopsis.get('density', '—') }}</small>
+        </div>
+        <div>
+            <span>Worldbuilding-сигналы</span>
+            <strong>{{ synopsis.get('worldbuilding_signals', 0) }}</strong>
+            <small>эвристический анализ</small>
+        </div>
+        <div>
+            <span>Конфликтные сигналы</span>
+            <strong>{{ synopsis.get('conflict_signals', 0) }}</strong>
+            <small>эвристический анализ</small>
+        </div>
+        <div>
+            <span>Отношения / связи</span>
+            <strong>{{ synopsis.get('relationship_signals', 0) }}</strong>
+            <small>эвристический анализ</small>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if profile.get('source') %}
+    <div class="vanga-potential__source">
+        <span>Первоисточник</span>
+        <strong>{{ profile.get('source').get('title') or profile.get('source').get('type') or 'указан' }}</strong>
+        {% if profile.get('source').get('author') %}<small>{{ profile.get('source').get('author') }}</small>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="vanga-potential__disclaimer">
+        <strong>Что означает этот блок</strong>
+        <p>{{ profile.get('disclaimer') }}</p>
+        <p>{{ potential.get('note') }}</p>
+        {% if synopsis.get('note') %}<p>{{ synopsis.get('note') }}</p>{% endif %}
+    </div>
+</section>
+{% endif %}
