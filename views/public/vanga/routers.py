@@ -1,6 +1,6 @@
 from flask import Flask
 
-from views.public.vanga import views
+from views.public.vanga import potential, views
 
 
 def install(app: Flask) -> None:
@@ -28,8 +28,20 @@ def install(app: Flask) -> None:
         methods=["POST"],
     )
     app.add_url_rule(
+        "/demo/vanga/predict-profile",
+        endpoint="vanga_predict_profile_api",
+        view_func=potential.vanga_predict_profile_api,
+        methods=["POST"],
+    )
+    app.add_url_rule(
         "/demo/vanga/p/<uuid:snapshot_id>",
         endpoint="vanga_snapshot",
         view_func=views.vanga_snapshot,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/demo/vanga/p/<uuid:snapshot_id>/potential",
+        endpoint="vanga_snapshot_potential",
+        view_func=potential.vanga_snapshot_potential,
         methods=["GET"],
     )
