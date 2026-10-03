@@ -99,126 +99,222 @@
                         <input name="year" type="number" min="1888" max="2100" required value="{{ form.year }}" placeholder="2026">
                     </label>
                     <label class="vanga-field" data-vanga-field>
-                        <span>Хронометраж</span>
-                        <input name="runtime" type="number" min="1" max="1000" required value="{{ form.runtime }}" placeholder="120">
+                        <span>Длительность, мин</span>
+                        <input name="runtime" type="number" min="1" max="1000" required value="{{ form.runtime }}" placeholder="173">
                     </label>
                 </div>
 
-                <div class="vanga-field" data-vanga-field>
+                <label class="vanga-field" data-vanga-field>
                     <span>Жанры</span>
-                    <input type="hidden" name="genres" value="{{ form.genres }}" data-vanga-genres-input>
-                    <div class="vanga-genres" data-vanga-genres>
-                        {% for genre in genre_options %}
-                        <button type="button" data-genre="{{ genre }}" aria-pressed="false">{{ genre }}</button>
-                        {% endfor %}
+                    <input name="genres" maxlength="300" required value="{{ form.genres }}" placeholder="Sci-Fi, Drama" autocomplete="off" data-vanga-genres>
+                    <small>Выберите быстрыми кнопками или введите через запятую.</small>
+                    <div class="vanga-genre-chips" data-vanga-genre-chips>
+                        <button type="button" data-vanga-genre="Drama">Драма</button>
+                        <button type="button" data-vanga-genre="Comedy">Комедия</button>
+                        <button type="button" data-vanga-genre="Action">Боевик</button>
+                        <button type="button" data-vanga-genre="Sci-Fi">Фантастика</button>
+                        <button type="button" data-vanga-genre="Thriller">Триллер</button>
+                        <button type="button" data-vanga-genre="Adventure">Приключения</button>
+                        <button type="button" data-vanga-genre="Fantasy">Фэнтези</button>
+                        <button type="button" data-vanga-genre="Horror">Ужасы</button>
+                        <button type="button" data-vanga-genre="Romance">Мелодрама</button>
+                        <button type="button" data-vanga-genre="Animation">Анимация</button>
                     </div>
-                    <small>Можно выбрать несколько жанров.</small>
-                </div>
+                </label>
 
-                <div class="vanga-field vanga-field--search" data-vanga-field>
+                <label class="vanga-field vanga-field--search" data-vanga-field>
                     <span>Актёры</span>
-                    <div class="vanga-cast" data-vanga-cast>
-                        {% for actor in form.actors %}
-                        <div class="vanga-cast__item">
-                            <input
-                                name="actors"
-                                maxlength="240"
-                                value="{{ actor }}"
-                                placeholder="Имя актёра"
-                                autocomplete="off"
-                                aria-autocomplete="list"
-                                aria-expanded="false"
-                                data-vanga-person-search
-                                data-role="actor"
-                            >
-                            <div class="vanga-suggest" role="listbox" hidden data-vanga-actor-suggestions></div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <small>До трёх ключевых актёров.</small>
-                </div>
+                    <input
+                        name="actors"
+                        maxlength="700"
+                        value="{{ form.actors }}"
+                        placeholder="Леонардо Ди Каприо, Энн Хэтэуэй"
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        data-vanga-person-search
+                        data-role="actor"
+                    >
+                    <small>До пяти имён через запятую; поиск работает для последнего вводимого имени.</small>
+                    <div class="vanga-suggest" role="listbox" hidden data-vanga-actor-suggestions></div>
+                </label>
 
                 <label class="vanga-field" data-vanga-field>
-                    <span>Синопсис</span>
-                    <textarea name="synopsis" maxlength="5000" placeholder="Короткое описание сюжета, известное до премьеры">{{ form.synopsis if form.synopsis is defined else '' }}</textarea>
-                    <small>Используется только как диагностическая эвристика pre-release профиля, а не как post-release пересказ готового фильма.</small>
+                    <span>Официальный синопсис</span>
+                    <textarea
+                        name="synopsis"
+                        maxlength="5000"
+                        placeholder="Описание сюжета, опубликованное до премьеры…"
+                    >{{ form.get('synopsis', '') }}</textarea>
+                    <small>Необязательно. Используем только сведения, доступные до выхода фильма. Полный пострелизный пересказ сюда не подмешивается.</small>
                 </label>
 
                 <details class="vanga-source">
-                    <summary>Первоисточник / адаптация</summary>
+                    <summary>Первоисточник / адаптация — необязательно</summary>
                     <div class="vanga-source__body">
                         <div class="vanga-source__row">
                             <label class="vanga-field">
-                                <span>Тип источника</span>
-                                <input name="source_type" maxlength="240" placeholder="роман, комикс, игра…">
+                                <span>Тип</span>
+                                <input name="source_type" maxlength="240" placeholder="роман, комикс, игра, оригинал">
                             </label>
                             <label class="vanga-field">
-                                <span>Формат адаптации</span>
-                                <input name="source_format" maxlength="240" placeholder="фильм, мини-сериал…">
+                                <span>Формат проекта</span>
+                                <input name="source_format" maxlength="240" placeholder="фильм, мини-сериал, сериал">
                             </label>
                         </div>
                         <label class="vanga-field">
                             <span>Название первоисточника</span>
-                            <input name="source_title" maxlength="240" placeholder="Название произведения">
+                            <input name="source_title" maxlength="240" placeholder="Название книги / игры / произведения">
                         </label>
                         <div class="vanga-source__row">
                             <label class="vanga-field">
                                 <span>Автор / создатель</span>
-                                <input name="source_author" maxlength="240" placeholder="Автор">
+                                <input name="source_author" maxlength="240" placeholder="Автор первоисточника">
                             </label>
                             <label class="vanga-field">
                                 <span>Размер цикла</span>
                                 <input name="source_series_size" type="number" min="1" max="10000" placeholder="1">
                             </label>
                         </div>
+                        <small>На этом этапе эти данные сохраняются как pre-release контекст. Они не притворяются обученными признаками CatBoost, пока их польза не подтверждена temporal-тестами.</small>
                     </div>
                 </details>
 
-                <button class="vanga-submit" type="submit" data-vanga-submit>
-                    <span data-vanga-submit-label>Получить прогноз</span>
-                    <i aria-hidden="true"></i>
+                <button class="vanga-form__submit" type="submit" {{ 'disabled' if not service_ready }} data-vanga-submit>
+                    <span class="vanga-form__submit-label">Получить прогноз и профиль</span>
+                    <span class="vanga-form__submit-working" aria-hidden="true">
+                        <i></i><b data-vanga-submit-status>Собираю признаки…</b>
+                    </span>
                 </button>
+
+                <p class="vanga-form__ajax-note">С JavaScript Vanga дополнительно анализирует покрытие данных, синопсис и потенциал проекта. Резервная отправка без JavaScript сохраняет базовый прогноз рейтинга.</p>
             </form>
 
-            <div class="vanga-demo__result-stack">
-                <div data-vanga-result-host>
-                    {% include "public/vanga/_result.html" %}
-                </div>
-                <div data-vanga-analysis-host>
-                    {% include "public/vanga/_analysis.html" %}
-                </div>
+            <div class="vanga-card vanga-result{% if prediction %} has-prediction{% endif %}" data-vanga-result aria-live="polite">
+                {% include "public/vanga/_result.html" %}
             </div>
+        </div>
+
+        <div data-vanga-analysis-host>
+            {% include "public/vanga/_analysis.html" %}
         </div>
 
         <div data-vanga-potential-host>
-            {% include "public/vanga/_potential.html" %}
+            {% if prediction and prediction.get('pre_release_profile') %}
+                {% with profile=prediction.get('pre_release_profile') %}
+                    {% include "public/vanga/_potential.html" %}
+                {% endwith %}
+            {% endif %}
         </div>
 
-        <section class="vanga-demo__recent" data-vanga-reveal>
-            <div class="vanga-demo__section-head">
+        <section class="vanga-compare" data-vanga-compare hidden>
+            <div class="vanga-compare__head">
                 <div>
-                    <span class="vanga-demo__eyebrow">Последние проверки</span>
-                    <h2>Прогнозы, которые уже можно сравнить</h2>
+                    <span class="vanga-demo__eyebrow">What-if конструктор</span>
+                    <h2>Сравнение двух сценариев</h2>
+                    <p>Вариант A остаётся зафиксированным. Измените режиссёра, сценариста, актёров, жанр, год или длительность и пересчитайте — Vanga покажет, насколько изменился прогноз и какие именно поля вы поменяли.</p>
                 </div>
-                <a href="{{ url_for('vanga_methodology') }}">Как это считается</a>
+                <button type="button" data-vanga-compare-reset>Сбросить сравнение</button>
             </div>
-            {% if recent_predictions %}
-            <div class="vanga-demo__recent-grid">
-                {% for item in recent_predictions %}
-                <a href="{{ item.url }}" class="vanga-demo__recent-card">
-                    <span>{{ item.created_at }}</span>
-                    <strong>{{ item.title }}</strong>
-                    <small>Vanga {{ item.predicted_rating }}{% if item.actual_rating is not none %} · IMDb {{ item.actual_rating }}{% endif %}</small>
-                </a>
+
+            <div class="vanga-compare__scores">
+                <article>
+                    <span>Вариант A</span>
+                    <strong data-vanga-compare-a>—</strong>
+                    <small data-vanga-compare-a-title>Не выбран</small>
+                </article>
+                <div class="vanga-compare__delta" data-vanga-compare-delta>
+                    <span>Δ</span>
+                    <strong>—</strong>
+                    <small>изменение прогноза</small>
+                </div>
+                <article>
+                    <span>Вариант B</span>
+                    <strong data-vanga-compare-b>—</strong>
+                    <small data-vanga-compare-b-title>После следующего расчёта</small>
+                </article>
+            </div>
+
+            <div class="vanga-compare__changes" data-vanga-compare-changes></div>
+            <p class="vanga-compare__note" data-vanga-compare-note>Сравниваем только результаты одной и той же generation модели, чтобы изменение рейтинга отражало параметры фильма, а не смену модели.</p>
+        </section>
+
+        <section class="vanga-history" data-vanga-history hidden>
+            <div class="vanga-history__head">
+                <div>
+                    <span class="vanga-demo__eyebrow">Ваши последние проверки</span>
+                    <h2>История в этом браузере</h2>
+                </div>
+                <button type="button" data-vanga-history-clear>Очистить</button>
+            </div>
+            <div class="vanga-history__grid" data-vanga-history-list></div>
+            <p>История интерфейса хранится только в localStorage этого браузера. На сервере сохраняется обезличенный снимок параметров, результата и версии модели, чтобы позже можно было честно сравнить прогноз с фактическим рейтингом.</p>
+        </section>
+
+        {% if verified_predictions %}
+        <section class="vanga-verified" data-vanga-reveal>
+            <div class="vanga-verified__head">
+                <div>
+                    <span class="vanga-demo__eyebrow">Vanga против реальности</span>
+                    <h2>Последние сверенные прогнозы</h2>
+                    <p>Снимок прогноза не пересчитывается новой моделью задним числом. Когда для фильма доступен достаточно устойчивый IMDb-рейтинг, мы сравниваем его с тем значением, которое Vanga выдала в момент расчёта.</p>
+                </div>
+                {% if verification_summary.count %}
+                <div class="vanga-verified__summary">
+                    <span>Сверено снимков</span>
+                    <strong>{{ verification_summary.count }}</strong>
+                    {% if verification_summary.mae is not none %}
+                    <small>средняя абсолютная ошибка {{ '%.2f'|format(verification_summary.mae) }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="vanga-verified__grid">
+                {% for item in verified_predictions %}
+                <article class="vanga-verified-card">
+                    <div class="vanga-verified-card__top">
+                        <span>{{ item.year }}</span>
+                        {% if item.imdb_id %}<small>{{ item.imdb_id }}</small>{% endif %}
+                    </div>
+                    <h3>{{ item.title }}</h3>
+                    <div class="vanga-verified-card__scores">
+                        <div>
+                            <span>Vanga</span>
+                            <strong>{{ '%.2f'|format(item.rating) }}</strong>
+                        </div>
+                        <i>→</i>
+                        <div>
+                            <span>IMDb сейчас</span>
+                            <strong>{{ '%.2f'|format(item.actual_rating) }}</strong>
+                        </div>
+                    </div>
+                    <div class="vanga-verified-card__error">
+                        <span>Абсолютная ошибка</span>
+                        <b>{{ '%.2f'|format(item.absolute_error) }}</b>
+                    </div>
+                    <p>
+                        {% if item.actual_num_votes %}
+                        {{ '{:,}'.format(item.actual_num_votes).replace(',', ' ') }} голосов IMDb
+                        {% endif %}
+                        {% if item.model_generation %}
+                        · модель {{ item.model_generation }}
+                        {% endif %}
+                    </p>
+                </article>
                 {% endfor %}
             </div>
-            {% else %}
-            <p class="vanga-demo__empty">Пока нет публичных снимков прогноза.</p>
-            {% endif %}
+
+            <p class="vanga-verified__note">IMDb-рейтинг меняется по мере новых голосов, поэтому блок показывает последнее значение из локального IMDb dataset. В публичную сверку попадают фильмы только после достижения минимального числа голосов; исходный прогноз при обновлении рейтинга не меняется.</p>
         </section>
+        {% endif %}
+
+        <p class="vanga-demo__note">Vanga — мой учебный ML-проект, который я оставил работать для интереса посетителей сайта. Это не коммерческий продукт и не профессиональная оценка фильма; прогноз и профиль потенциала могут ошибаться.</p>
     </div>
 </section>
+{% endblock %}
 
+{% block extra_js %}
 <script src="{{ url_for('static', filename='public/vanga-demo.js') }}" defer></script>
 <script src="{{ url_for('static', filename='public/vanga-potential.js') }}" defer></script>
 {% endblock %}
