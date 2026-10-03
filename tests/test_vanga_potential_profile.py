@@ -56,6 +56,7 @@ class VangaPotentialProfileTests(unittest.TestCase):
         self.assertIn('name="source_author"', template)
         self.assertIn("vanga_predict_profile_api", template)
         self.assertIn("vanga-potential.js", template)
+        self.assertIn("data-coverage-style.css", template)
 
         self.assertIn('body.synopsis = value("synopsis")', script)
         self.assertIn("body.source = sourcePayload()", script)
@@ -71,6 +72,28 @@ class VangaPotentialProfileTests(unittest.TestCase):
         self.assertIn("риски, а не факты", partial)
         self.assertIn("эвристика синопсиса", partial)
         self.assertIn("Покрытие исходных данных", partial)
+
+    def test_profile_ui_exposes_model_familiarity_and_abstention(self):
+        partial = self.read("templates/public/vanga/_potential.html")
+        css = self.read("templates/public/vanga/data-coverage-style.css")
+
+        self.assertIn("Знакомство модели с командой", partial)
+        self.assertIn("known_people_count", partial)
+        self.assertIn("provided_people_count", partial)
+        self.assertIn("missing_feature_count", partial)
+        self.assertIn("abstention.get('recommended')", partial)
+        self.assertIn("Низкая обеспеченность историческими данными", partial)
+        self.assertIn("resolved_no_history", partial)
+        self.assertIn("не удалось сопоставить с IMDb", partial)
+        self.assertIn("vanga-potential__abstention", css)
+
+    def test_profile_ui_keeps_legacy_profile_compatible(self):
+        partial = self.read("templates/public/vanga/_potential.html")
+
+        self.assertIn("person.get('prior_count', person.get('works_count', 0))", partial)
+        self.assertIn("{% if familiarity %}", partial)
+        self.assertIn("{% elif person.get('state') %}", partial)
+        self.assertIn("недостаточно исторических данных", partial)
 
     def test_snapshot_persists_profile_and_pre_release_context(self):
         endpoint = self.read("views/public/vanga/potential.py")

@@ -1,6 +1,8 @@
 {% if profile %}
 {% set potential = profile.get('potential') or {} %}
 {% set coverage = profile.get('data_coverage') or {} %}
+{% set familiarity = coverage.get('model_familiarity') or {} %}
+{% set abstention = coverage.get('abstention') or {} %}
 {% set synopsis = profile.get('synopsis') or {} %}
 {% set level = potential.get('level') or 'uncertain' %}
 {% set level_labels = {
@@ -8,6 +10,12 @@
     'promising': 'Перспективный',
     'moderate': 'Умеренный потенциал',
     'uncertain': 'Недостаточно данных'
+} %}
+{% set state_labels = {
+    'known_history': 'есть исторические данные',
+    'resolved_no_history': 'персона найдена, но прошлых работ недостаточно',
+    'not_resolved': 'не удалось сопоставить с IMDb',
+    'not_provided': 'не указано'
 } %}
 <section class="vanga-potential" data-vanga-reveal>
     <div class="vanga-potential__head">
@@ -25,27 +33,61 @@
         </div>
     </div>
 
-    <div class="vanga-potential__coverage">
-        <div class="vanga-potential__coverage-head">
-            <div>
-                <span>Покрытие исходных данных</span>
-                <strong>{{ coverage.get('percent', 0) }}%</strong>
+    <div class="vanga-potential__coverage-grid">
+        <div class="vanga-potential__coverage">
+            <div class="vanga-potential__coverage-head">
+                <div>
+                    <span>Покрытие исходных данных</span>
+                    <strong>{{ coverage.get('percent', 0) }}%</strong>
+                </div>
+                <small>
+                    {% if coverage.get('level') == 'high' %}Высокое
+                    {% elif coverage.get('level') == 'medium' %}Среднее
+                    {% else %}Низкое{% endif %}
+                </small>
             </div>
-            <small>
-                {% if coverage.get('level') == 'high' %}Высокое
-                {% elif coverage.get('level') == 'medium' %}Среднее
-                {% else %}Низкое{% endif %}
-            </small>
+            <div class="vanga-potential__coverage-bar" aria-hidden="true">
+                <i style="width: {{ coverage.get('percent', 0) }}%"></i>
+            </div>
+            <p class="vanga-potential__coverage-note">Учитывает историю команды и доступность синопсиса для диагностического профиля.</p>
         </div>
-        <div class="vanga-potential__coverage-bar" aria-hidden="true">
-            <i style="width: {{ coverage.get('percent', 0) }}%"></i>
-        </div>
-        {% if coverage.get('warnings') %}
-        <div class="vanga-potential__warnings">
-            {% for warning in coverage.get('warnings') %}<span>{{ warning }}</span>{% endfor %}
+
+        {% if familiarity %}
+        <div class="vanga-potential__coverage vanga-potential__coverage--familiarity">
+            <div class="vanga-potential__coverage-head">
+                <div>
+                    <span>Знакомство модели с командой</span>
+                    <strong>{{ familiarity.get('percent', 0) }}%</strong>
+                </div>
+                <small>
+                    {% if familiarity.get('level') == 'high' %}Высокое
+                    {% elif familiarity.get('level') == 'medium' %}Среднее
+                    {% else %}Низкое{% endif %}
+                </small>
+            </div>
+            <div class="vanga-potential__coverage-bar" aria-hidden="true">
+                <i style="width: {{ familiarity.get('percent', 0) }}%"></i>
+            </div>
+            <p class="vanga-potential__coverage-note">
+                История есть для {{ coverage.get('known_people_count', 0) }} из {{ coverage.get('provided_people_count', 0) }} переданных участников · отсутствующих исторических каналов: {{ coverage.get('missing_feature_count', 0) }}.
+            </p>
         </div>
         {% endif %}
     </div>
+
+    {% if abstention.get('recommended') %}
+    <div class="vanga-potential__abstention" role="status">
+        <strong>Низкая обеспеченность историческими данными</strong>
+        <p>{{ abstention.get('message') or 'Точный рейтинг в этом прогнозе лучше не интерпретировать как надёжный.' }}</p>
+        <small>Число остаётся доступным для прозрачности, но модель рекомендует воздержаться от точной интерпретации.</small>
+    </div>
+    {% endif %}
+
+    {% if coverage.get('warnings') %}
+    <div class="vanga-potential__warnings">
+        {% for warning in coverage.get('warnings') %}<span>{{ warning }}</span>{% endfor %}
+    </div>
+    {% endif %}
 
     <div class="vanga-potential__grid">
         <article class="vanga-potential__column is-strength">
@@ -91,12 +133,14 @@
     <div class="vanga-potential__people">
         {% for person in [coverage.get('director'), coverage.get('writer')] %}
             {% if person and person.get('input') %}
-            <article>
+            <article class="vanga-potential__person vanga-potential__person--{{ person.get('state', 'legacy') }}">
                 <span>{{ 'Режиссёр' if person.get('role') == 'director' else 'Сценарист' }}</span>
                 <strong>{{ person.get('input') }}</strong>
                 <small>
                     {% if person.get('known') %}
-                    {{ person.get('works_count') }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {{ person.get('prior_count', person.get('works_count', 0)) }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {% elif person.get('state') %}
+                    {{ state_labels.get(person.get('state'), 'недостаточно исторических данных') }}
                     {% else %}
                     недостаточно исторических данных
                     {% endif %}
@@ -106,12 +150,14 @@
         {% endfor %}
         {% for person in coverage.get('actors') or [] %}
             {% if person.get('input') %}
-            <article>
+            <article class="vanga-potential__person vanga-potential__person--{{ person.get('state', 'legacy') }}">
                 <span>Актёр</span>
                 <strong>{{ person.get('input') }}</strong>
                 <small>
                     {% if person.get('known') %}
-                    {{ person.get('works_count') }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {{ person.get('prior_count', person.get('works_count', 0)) }} прошлых фильмов · средний рейтинг {{ '%.2f'|format(person.get('avg_rating')) }}
+                    {% elif person.get('state') %}
+                    {{ state_labels.get(person.get('state'), 'недостаточно исторических данных') }}
                     {% else %}
                     недостаточно исторических данных
                     {% endif %}
