@@ -13,6 +13,8 @@ from flask.views import MethodView
 
 from components.auth.decorator import with_db_session
 from models.vanga import VangaPrediction
+from services.page import PageService
+from services.public_seo import author_entity, breadcrumb_schema, share_image_url
 from services.site import SiteService
 from services.vanga_predictions import VangaPredictionService
 from settings import config
@@ -638,6 +640,110 @@ def vanga_predict_api(db_session):
                 prediction_output=output,
             ),
         }
+    )
+
+
+@with_db_session
+def vanga_methodology(db_session):
+    """Публичная методология эксперимента и факты об активной модели."""
+    site_model = SiteService.get_default(db_session)
+    site = SiteService.public_config(site_model)
+    PageService.apply_public_navigation(
+        db_session,
+        site_model.id,
+        site,
+    )
+
+    model_info = None
+    try:
+        payload = _request_vanga("/model-info", timeout=3)
+        if payload.get("ok"):
+            model_info = payload
+    except RuntimeError:
+        pass
+
+    feature_names = (
+        model_info.get("feature_names") or []
+        if isinstance(model_info, dict)
+        else []
+    )
+    active_features = []
+    for name in feature_names:
+        label, description = PREDICTION_FEATURES.get(
+            str(name),
+            (
+                str(name).replace("_", " ").strip().capitalize(),
+                "Технический признак активной модели.",
+            ),
+        )
+        active_features.append(
+            {
+                "key": str(name),
+                "label": label,
+                "description": description,
+            }
+        )
+
+    base_url = (site.get("base_url") or "").rstrip("/")
+    canonical_url = (
+        f"{base_url}/projects/vanga/methodology"
+        if base_url
+        else "/projects/vanga/methodology"
+    )
+    project_url = (
+        f"{base_url}/projects/vanga"
+        if base_url
+        else "/projects/vanga"
+    )
+
+    structured_data_items = [
+        {
+            "@context": "https://schema.org",
+            "@type": "TechArticle",
+            "@id": f"{canonical_url}#methodology",
+            "headline": "Как Vanga прогнозирует рейтинг фильма",
+            "description": (
+                "Методология ML-эксперимента Vanga: IMDb-данные, "
+                "temporal validation, CatBoost, SHAP, uncertainty "
+                "и защита от утечки данных из будущего."
+            ),
+            "url": canonical_url,
+            "inLanguage": "ru-RU",
+            "author": author_entity(site),
+            "about": {
+                "@type": "SoftwareApplication",
+                "name": "Vanga",
+                "url": project_url,
+                "applicationCategory": "EntertainmentApplication",
+            },
+        },
+        breadcrumb_schema(
+            [
+                ("JSInteractive", f"{base_url}/" if base_url else "/"),
+                ("Vanga", project_url),
+                ("Методология", canonical_url),
+            ]
+        ),
+    ]
+
+    return render_template(
+        "public/vanga/methodology.html",
+        site=site,
+        model_info=model_info,
+        active_features=active_features,
+        seo_title=(
+            "Как Vanga прогнозирует рейтинг фильма — методология ML-модели"
+        ),
+        seo_description=(
+            "Как устроен прогноз рейтинга фильма в Vanga: IMDb-данные, "
+            "CatBoost, временная тестовая выборка, MAE, SHAP, диапазон ошибки "
+            "и защита от data leakage."
+        ),
+        canonical_url=canonical_url,
+        seo_image_url=share_image_url(site),
+        seo_image_alt="Методология ML-эксперимента Vanga",
+        structured_data_items=structured_data_items,
+        seo_noindex=False,
     )
 
 

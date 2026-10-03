@@ -21,7 +21,7 @@
 
                 <div class="project-promo__actions">
                     <a class="btn btn-primary" href="{{ project.cta_url }}">{{ project.cta_label }} <span>→</span></a>
-                    <a class="btn btn-secondary" href="#how-vanga-works">Как это работает</a>
+                    <a class="btn btn-secondary" href="{{ url_for('vanga_methodology') }}">Как это работает</a>
                 </div>
 
                 <div class="project-promo__facts">
@@ -47,6 +47,7 @@
                 </div>
                 <div class="vanga-project-preview__factors">
                     <span>режиссёр</span>
+                    <span>сценарист</span>
                     <span>актёры</span>
                     <span>жанр</span>
                     <span>год</span>
@@ -203,11 +204,20 @@
             {% endfor %}
         </div>
 
+        <div class="vanga-methodology-link">
+            <div>
+                <span class="section-kicker">Без «магии нейросети»</span>
+                <h3>Откуда берётся прогноз и почему модель не должна подсматривать в будущее</h3>
+                <p>На отдельной странице разобраны IMDb datasets, temporal holdout, признаки режиссёра, сценариста и актёров, SHAP, диапазон ошибки и правила публикации нового поколения модели.</p>
+            </div>
+            <a class="btn btn-secondary" href="{{ url_for('vanga_methodology') }}">Открыть методологию <span>→</span></a>
+        </div>
+
         <div class="vanga-demo-banner">
             <div>
                 <span class="section-kicker">Попробовать сейчас</span>
                 <h3>Фильм ещё не вышел? Проверьте, какой рейтинг ему даст Vanga.</h3>
-                <p>Введите режиссёра, актёров, жанр, год и длительность — результат появится сразу.</p>
+                <p>Введите режиссёра, сценариста, актёров, жанр, год и длительность — результат появится сразу.</p>
             </div>
             <a class="btn btn-primary" href="{{ project.cta_url }}">Спрогнозировать рейтинг <span>→</span></a>
         </div>

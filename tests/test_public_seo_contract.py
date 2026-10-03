@@ -98,6 +98,28 @@ class PublicSeoContractTests(unittest.TestCase):
         )
         self.assertIn('"projects/vanga"', sitemap)
 
+    def test_vanga_methodology_is_indexable_and_in_sitemap(self):
+        vanga = self.read("views/public/vanga/views.py")
+        router = self.read("views/public/vanga/routers.py")
+        template = self.read("templates/public/vanga/methodology.html")
+        sitemap = self.read("views/public/seo.py")
+        project = self.read("templates/public/projects/detail.html")
+
+        self.assertIn('"/projects/vanga/methodology"', router)
+        self.assertIn("def vanga_methodology", vanga)
+        self.assertIn('_request_vanga("/model-info"', vanga)
+        self.assertIn('"@type": "TechArticle"', vanga)
+        self.assertIn("seo_noindex=False", vanga)
+
+        self.assertIn("Временной holdout", template)
+        self.assertIn("title.crew", template)
+        self.assertIn("SHAP", template)
+        self.assertIn("Quality gate", template)
+        self.assertIn("Не подсматривать в будущее", template)
+
+        self.assertIn('"projects/vanga/methodology"', sitemap)
+        self.assertIn("url_for('vanga_methodology')", project)
+
     def test_robots_and_sitemap_keep_indexing_hygiene(self):
         seo = self.read("views/public/seo.py")
 
