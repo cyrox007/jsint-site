@@ -92,7 +92,7 @@ class VangaPotentialProfileTests(unittest.TestCase):
 
         self.assertIn("person.get('prior_count', person.get('works_count', 0))", partial)
         self.assertIn("{% if familiarity %}", partial)
-        self.assertIn("{% if person.get('state') %}", partial)
+        self.assertIn("{% elif person.get('state') %}", partial)
         self.assertIn("недостаточно исторических данных", partial)
 
     def test_snapshot_persists_profile_and_pre_release_context(self):
