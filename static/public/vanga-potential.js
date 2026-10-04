@@ -106,3 +106,24 @@
             });
     }
 })();
+
+(() => {
+    // Future catalog — progressive enhancement. Если загрузка не удалась,
+    // базовая форма Vanga остаётся полностью рабочей.
+    const root = document.querySelector("[data-vanga-demo]");
+    if (!root || document.querySelector("script[data-vanga-future-loader]")) return;
+
+    if (!document.querySelector("link[data-vanga-future-style]")) {
+        const style = document.createElement("link");
+        style.rel = "stylesheet";
+        style.href = "/static/public/vanga-future.css";
+        style.dataset.vangaFutureStyle = "1";
+        document.head.append(style);
+    }
+
+    const script = document.createElement("script");
+    script.src = "/static/public/vanga-future.js";
+    script.defer = true;
+    script.dataset.vangaFutureLoader = "1";
+    document.head.append(script);
+})();
