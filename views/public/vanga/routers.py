@@ -1,6 +1,6 @@
 from flask import Flask
 
-from views.public.vanga import future, potential, views
+from views.public.vanga import accuracy, future, potential, views
 
 
 def install(app: Flask) -> None:
@@ -8,6 +8,12 @@ def install(app: Flask) -> None:
         "/projects/vanga/methodology",
         endpoint="vanga_methodology",
         view_func=views.vanga_methodology,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/projects/vanga/accuracy",
+        endpoint="vanga_accuracy",
+        view_func=accuracy.vanga_accuracy,
         methods=["GET"],
     )
     app.add_url_rule(
@@ -49,6 +55,12 @@ def install(app: Flask) -> None:
         "/demo/vanga/p/<uuid:snapshot_id>",
         endpoint="vanga_snapshot",
         view_func=views.vanga_snapshot,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/demo/vanga/p/<uuid:snapshot_id>/share.svg",
+        endpoint="vanga_snapshot_share_svg",
+        view_func=accuracy.vanga_snapshot_share_svg,
         methods=["GET"],
     )
     app.add_url_rule(
