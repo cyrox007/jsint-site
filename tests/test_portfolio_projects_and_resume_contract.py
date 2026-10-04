@@ -14,11 +14,13 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
 
         self.assertIn("project_promo", template)
         self.assertIn("project_slug='vanga'", template)
-        self.assertIn("project_slug='the-game'", template)
+        self.assertIn("the_game_project", template)
         self.assertIn("project_slug='churchcms'", template)
         self.assertNotIn("github.com", template.lower())
         self.assertNotIn("<h3>Market</h3>", template)
         self.assertIn("<h3>The-Game</h3>", template)
+        self.assertIn("Dino и Breakout", template)
+        self.assertIn("архив", template.lower())
 
     def test_project_promo_registry_and_routes_exist(self):
         app = self.read("app.py")
@@ -28,6 +30,7 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         sitemap = self.read("views/public/seo.py")
 
         self.assertIn("projects_router.install(app)", app)
+        self.assertIn('"/projects/the-game"', router)
         self.assertIn('"/projects/<project_slug>"', router)
         self.assertIn('"vanga": ProjectPromo(', view)
         self.assertIn('"the-game": ProjectPromo(', view)
@@ -36,6 +39,32 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         self.assertIn('"projects/vanga"', sitemap)
         self.assertIn('"projects/the-game"', sitemap)
         self.assertIn('"projects/churchcms"', sitemap)
+
+    def test_the_game_is_positioned_as_historical_learning_archive(self):
+        router = self.read("views/public/projects/routers.py")
+        view = self.read("views/public/projects/the_game.py")
+        template = self.read("templates/public/projects/the_game.html")
+        styles = self.read("templates/public/projects/the_game.css")
+        home = self.read("templates/public/home/section/systems.html")
+
+        self.assertIn("TheGameProjectPage", router)
+        self.assertIn("GameApplication", view)
+        self.assertIn("https://cyrox007.github.io/The-Game/", view)
+        self.assertIn("Dino runner", view)
+        self.assertIn("Breakout", view)
+
+        self.assertIn("Учебный архив", template)
+        self.assertIn("Старый учебный проект", template)
+        self.assertIn("не выдаётся за пример моей текущей архитектуры", template)
+        self.assertIn("Dino", template)
+        self.assertIn("Breakout", template)
+        self.assertIn("Запустить обе игры", template)
+        self.assertIn("Зачем оставлять старый код", template)
+
+        self.assertIn(".the-game-console", styles)
+        self.assertIn(".the-game-history-grid", styles)
+        self.assertIn(".the-game-game-grid", styles)
+        self.assertIn("Dino и Breakout", home)
 
     def test_vanga_promo_targets_movie_audience_not_product_sales(self):
         view = self.read("views/public/projects/views.py")
