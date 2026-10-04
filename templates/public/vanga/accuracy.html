@@ -1,0 +1,58 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>
+.vanga-accuracy{max-width:1180px;margin:0 auto;padding:clamp(2rem,5vw,5rem) 1rem 5rem}.vanga-accuracy__hero{max-width:850px;margin-bottom:2rem}.vanga-accuracy__hero h1{font-size:clamp(2.2rem,5vw,4.4rem);line-height:1;margin:.6rem 0 1rem}.vanga-accuracy__hero p{max-width:760px;font-size:1.05rem;opacity:.78}.vanga-accuracy__summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin:2rem 0}.vanga-accuracy__card,.vanga-accuracy__table-wrap{border:1px solid color-mix(in srgb,currentColor 12%,transparent);border-radius:20px;background:color-mix(in srgb,var(--surface,#111827) 96%,transparent)}.vanga-accuracy__card{padding:1.2rem}.vanga-accuracy__card span{display:block;opacity:.66;font-size:.85rem}.vanga-accuracy__card strong{display:block;font-size:2rem;margin:.35rem 0}.vanga-accuracy__section{margin-top:2.4rem}.vanga-accuracy__section h2{margin:0 0 .45rem}.vanga-accuracy__section>p{opacity:.7;max-width:780px}.vanga-accuracy__table-wrap{overflow:auto}.vanga-accuracy table{width:100%;border-collapse:collapse}.vanga-accuracy th,.vanga-accuracy td{padding:.85rem 1rem;border-bottom:1px solid color-mix(in srgb,currentColor 9%,transparent);text-align:left;white-space:nowrap}.vanga-accuracy th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;opacity:.58}.vanga-accuracy tr:last-child td{border-bottom:0}.vanga-accuracy__empty{padding:2rem;text-align:center;opacity:.72}.vanga-accuracy__note{margin-top:2rem;padding:1rem 1.2rem;border-left:3px solid currentColor;background:color-mix(in srgb,currentColor 5%,transparent);opacity:.8}@media(max-width:640px){.vanga-accuracy th,.vanga-accuracy td{padding:.72rem .65rem}}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="vanga-accuracy">
+    <header class="vanga-accuracy__hero">
+        <span class="vanga-demo__eyebrow">Vanga против реальности</span>
+        <h1>Накопленная точность прогнозов</h1>
+        <p>Здесь считаются только сохранённые прогнозы, для которых позже появился достаточно устойчивый IMDb-рейтинг. Исходный прогноз не пересчитывается новой моделью задним числом.</p>
+    </header>
+
+    <div class="vanga-accuracy__summary">
+        <article class="vanga-accuracy__card"><span>Сверено snapshot</span><strong>{{ report.count }}</strong><small>immutable прогнозов</small></article>
+        <article class="vanga-accuracy__card"><span>Средняя абсолютная ошибка</span><strong>{% if report.mae is not none %}{{ '%.2f'|format(report.mae) }}{% else %}—{% endif %}</strong><small>MAE в пунктах IMDb</small></article>
+        <article class="vanga-accuracy__card"><span>Последняя сверка</span><strong>{% if report.latest_actual_at %}{{ report.latest_actual_at.strftime('%d.%m.%Y') }}{% else %}—{% endif %}</strong><small>timestamp фактического observation</small></article>
+    </div>
+
+    {% macro accuracy_table(rows, first_label) -%}
+    <div class="vanga-accuracy__table-wrap">
+        {% if rows %}
+        <table>
+            <thead><tr><th>{{ first_label }}</th><th>Прогнозов</th><th>MAE</th><th>Средний прогноз</th><th>Средний IMDb</th></tr></thead>
+            <tbody>
+            {% for item in rows %}
+                <tr><td>{{ item.label }}</td><td>{{ item.count }}</td><td>{{ '%.2f'|format(item.mae) }}</td><td>{{ '%.2f'|format(item.mean_predicted) }}</td><td>{{ '%.2f'|format(item.mean_actual) }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<div class="vanga-accuracy__empty">Пока недостаточно сверенных прогнозов.</div>{% endif %}
+    </div>
+    {%- endmacro %}
+
+    <section class="vanga-accuracy__section">
+        <h2>По generation модели</h2>
+        <p>Не смешиваем разные поколения модели: это позволяет увидеть качество той версии, которая реально сделала прогноз.</p>
+        {{ accuracy_table(report.by_generation, 'Generation') }}
+    </section>
+
+    <section class="vanga-accuracy__section">
+        <h2>По году фильма</h2>
+        <p>Разрез помогает не скрывать временные сдвиги общей средней метрикой.</p>
+        {{ accuracy_table(report.by_year, 'Год') }}
+    </section>
+
+    <section class="vanga-accuracy__section">
+        <h2>По покрытию данных</h2>
+        <p>Coverage берётся только из сохранённого pre-release profile. Старые snapshot без этого поля остаются в категории «Не определено».</p>
+        {{ accuracy_table(report.by_coverage, 'Покрытие') }}
+    </section>
+
+    <p class="vanga-accuracy__note">{{ report.disclaimer }} Эта страница не является обещанием точности для конкретного будущего фильма и не превращает корреляции модели в причинные утверждения.</p>
+</section>
+{% endblock %}
