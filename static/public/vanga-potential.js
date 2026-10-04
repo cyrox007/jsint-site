@@ -13,6 +13,29 @@
     const value = (name) =>
         String(form.querySelector(`[name="${name}"]`)?.value || "").trim();
 
+    const parseNames = (raw, limit) => {
+        const result = [];
+        String(raw || "")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .forEach((item) => {
+                if (!result.includes(item) && result.length < limit) result.push(item);
+            });
+        return result;
+    };
+
+    const extraTeam = (role) => {
+        const field = form.querySelector(`[data-vanga-team-values="${role}"]`);
+        if (!field?.value) return [];
+        try {
+            const values = JSON.parse(field.value);
+            return Array.isArray(values) ? values.map((item) => String(item).trim()).filter(Boolean) : [];
+        } catch {
+            return [];
+        }
+    };
+
     const sourcePayload = () => {
         const source = {};
         const mapping = {
@@ -30,10 +53,30 @@
         return source;
     };
 
+    const compactActorCards = () => {
+        const people = host.querySelector(".vanga-potential__people");
+        if (!people || people.querySelector("[data-vanga-cast-overflow]")) return;
+        const actors = [...people.querySelectorAll(".vanga-potential__person")].filter(
+            (card) => card.querySelector("span")?.textContent?.trim() === "Актёр"
+        );
+        if (actors.length <= 8) return;
+
+        const details = document.createElement("details");
+        details.className = "vanga-cast-overflow";
+        details.dataset.vangaCastOverflow = "1";
+        const summary = document.createElement("summary");
+        summary.textContent = `Ещё ${actors.length - 8} участников principal cast`;
+        const grid = document.createElement("div");
+        grid.className = "vanga-cast-overflow__grid";
+        actors.slice(8).forEach((card) => grid.append(card));
+        details.append(summary, grid);
+        people.after(details);
+    };
+
     const renderProfile = (html, { scroll = false } = {}) => {
         host.innerHTML = html || "";
         if (!html) return;
-
+        compactActorCards();
         host.querySelectorAll("[data-vanga-reveal]").forEach((item) => {
             item.classList.add("is-visible");
         });
@@ -58,12 +101,24 @@
         ) {
             try {
                 const body = JSON.parse(init.body);
+                const primaryDirector = value("director");
+                const directors = [primaryDirector, ...extraTeam("director")]
+                    .map((item) => String(item || "").trim())
+                    .filter((item, index, all) => item && all.indexOf(item) === index)
+                    .slice(0, 8);
+                const actors = [
+                    ...parseNames(value("actors"), 32),
+                    ...extraTeam("actor"),
+                ]
+                    .filter((item, index, all) => item && all.indexOf(item) === index)
+                    .slice(0, 32);
+
+                body.director = directors[0] || primaryDirector;
+                body.directors = directors;
+                body.actors = actors;
                 body.synopsis = value("synopsis");
                 body.source = sourcePayload();
-                nextInit = {
-                    ...init,
-                    body: JSON.stringify(body),
-                };
+                nextInit = { ...init, body: JSON.stringify(body) };
                 isPotentialPrediction = true;
             } catch {
                 // Основной AJAX-контур сам покажет ошибку некорректного JSON.
@@ -71,18 +126,14 @@
         }
 
         const response = await originalFetch(input, nextInit);
-
         if (isPotentialPrediction) {
             try {
                 const data = await response.clone().json();
-                if (data?.ok) {
-                    renderProfile(data.profile_html || "", { scroll: false });
-                }
+                if (data?.ok) renderProfile(data.profile_html || "", { scroll: false });
             } catch {
                 // Профиль является дополнительным слоем и не ломает прогноз.
             }
         }
-
         return response;
     };
 
@@ -97,9 +148,7 @@
         })
             .then((response) => response.json())
             .then((data) => {
-                if (data?.ok && data.profile_html) {
-                    renderProfile(data.profile_html);
-                }
+                if (data?.ok && data.profile_html) renderProfile(data.profile_html);
             })
             .catch(() => {
                 // Старый snapshot может не содержать pre-release profile.
@@ -108,22 +157,29 @@
 })();
 
 (() => {
-    // Future catalog — progressive enhancement. Если загрузка не удалась,
-    // базовая форма Vanga остаётся полностью рабочей.
     const root = document.querySelector("[data-vanga-demo]");
-    if (!root || document.querySelector("script[data-vanga-future-loader]")) return;
+    if (!root) return;
 
-    if (!document.querySelector("link[data-vanga-future-style]")) {
+    const loadStyle = (href, marker) => {
+        if (document.querySelector(`link[${marker}]`)) return;
         const style = document.createElement("link");
         style.rel = "stylesheet";
-        style.href = "/static/public/vanga-future.css";
-        style.dataset.vangaFutureStyle = "1";
+        style.href = href;
+        style.setAttribute(marker, "1");
         document.head.append(style);
-    }
+    };
+    const loadScript = (src, marker) => {
+        if (document.querySelector(`script[${marker}]`)) return;
+        const script = document.createElement("script");
+        script.src = src;
+        script.defer = true;
+        script.setAttribute(marker, "1");
+        document.head.append(script);
+    };
 
-    const script = document.createElement("script");
-    script.src = "/static/public/vanga-future.js";
-    script.defer = true;
-    script.dataset.vangaFutureLoader = "1";
-    document.head.append(script);
+    // Progressive enhancement: основная форма остаётся рабочей без этих файлов.
+    loadStyle("/static/public/vanga-future.css", "data-vanga-future-style");
+    loadScript("/static/public/vanga-future.js", "data-vanga-future-loader");
+    loadStyle("/static/public/vanga-team.css", "data-vanga-team-style");
+    loadScript("/static/public/vanga-team.js", "data-vanga-team-loader");
 })();

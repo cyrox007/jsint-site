@@ -1,0 +1,181 @@
+.vanga-team-extra {
+    margin: -0.1rem 0 1rem;
+    padding: 0.9rem;
+    border: 1px solid color-mix(in srgb, currentColor 13%, transparent);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface, #111827) 94%, transparent);
+}
+
+.vanga-team-extra__head {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+}
+
+.vanga-team-extra__head strong {
+    font-size: 0.95rem;
+}
+
+.vanga-team-extra__head small {
+    max-width: 34rem;
+    opacity: 0.68;
+    text-align: right;
+}
+
+.vanga-team-extra__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.65rem;
+}
+
+.vanga-team-extra__chips:empty {
+    margin: 0;
+}
+
+.vanga-team-extra__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.36rem 0.42rem 0.36rem 0.65rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    font-size: 0.84rem;
+}
+
+.vanga-team-extra__chip b {
+    font-weight: 600;
+}
+
+.vanga-team-extra__chip button {
+    width: 1.55rem;
+    height: 1.55rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: color-mix(in srgb, currentColor 9%, transparent);
+    color: inherit;
+    cursor: pointer;
+}
+
+.vanga-team-extra__search {
+    position: relative;
+}
+
+.vanga-team-extra__search > input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.72rem 0.82rem;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface, #111827) 96%, transparent);
+    color: inherit;
+}
+
+.vanga-team-extra__search > input:disabled {
+    opacity: 0.55;
+}
+
+.vanga-team-extra__suggestions {
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    padding: 0.35rem;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 12px;
+    background: var(--surface, #111827);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+}
+
+.vanga-team-extra__suggestions button {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.62rem 0.7rem;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.vanga-team-extra__suggestions button:hover,
+.vanga-team-extra__suggestions button:focus-visible {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.vanga-team-extra__suggestions small {
+    opacity: 0.58;
+}
+
+.vanga-shap-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0 1.4rem;
+}
+
+.vanga-shap-group {
+    padding: 0.9rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 15px;
+    background: color-mix(in srgb, var(--surface, #111827) 95%, transparent);
+}
+
+.vanga-shap-group__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+}
+
+.vanga-shap-group__head strong {
+    font-size: 0.9rem;
+}
+
+.vanga-shap-group__head b {
+    font-variant-numeric: tabular-nums;
+}
+
+.vanga-shap-group__track {
+    height: 4px;
+    margin: 0.7rem 0 0.45rem;
+    overflow: hidden;
+    border-radius: 99px;
+    background: color-mix(in srgb, currentColor 9%, transparent);
+}
+
+.vanga-shap-group__track i {
+    display: block;
+    height: 100%;
+    width: var(--group-strength, 0%);
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0.72;
+}
+
+.vanga-shap-group small {
+    opacity: 0.65;
+}
+
+.vanga-shap-group--positive { color: var(--success, #2f9e68); }
+.vanga-shap-group--negative { color: var(--danger, #d65d66); }
+.vanga-shap-group--neutral { color: inherit; }
+
+@media (max-width: 720px) {
+    .vanga-team-extra__head {
+        display: block;
+    }
+
+    .vanga-team-extra__head small {
+        display: block;
+        margin-top: 0.25rem;
+        text-align: left;
+    }
+}
