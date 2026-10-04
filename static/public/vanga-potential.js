@@ -13,6 +13,29 @@
     const value = (name) =>
         String(form.querySelector(`[name="${name}"]`)?.value || "").trim();
 
+    const parseNames = (raw, limit) => {
+        const result = [];
+        String(raw || "")
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .forEach((item) => {
+                if (!result.includes(item) && result.length < limit) result.push(item);
+            });
+        return result;
+    };
+
+    const extraTeam = (role) => {
+        const field = form.querySelector(`[data-vanga-team-values="${role}"]`);
+        if (!field?.value) return [];
+        try {
+            const values = JSON.parse(field.value);
+            return Array.isArray(values) ? values.map((item) => String(item).trim()).filter(Boolean) : [];
+        } catch {
+            return [];
+        }
+    };
+
     const sourcePayload = () => {
         const source = {};
         const mapping = {
@@ -58,6 +81,21 @@
         ) {
             try {
                 const body = JSON.parse(init.body);
+                const primaryDirector = value("director");
+                const directors = [primaryDirector, ...extraTeam("director")]
+                    .map((item) => String(item || "").trim())
+                    .filter((item, index, all) => item && all.indexOf(item) === index)
+                    .slice(0, 8);
+                const actors = [
+                    ...parseNames(value("actors"), 32),
+                    ...extraTeam("actor"),
+                ]
+                    .filter((item, index, all) => item && all.indexOf(item) === index)
+                    .slice(0, 32);
+
+                body.director = directors[0] || primaryDirector;
+                body.directors = directors;
+                body.actors = actors;
                 body.synopsis = value("synopsis");
                 body.source = sourcePayload();
                 nextInit = {
@@ -108,22 +146,31 @@
 })();
 
 (() => {
-    // Future catalog — progressive enhancement. Если загрузка не удалась,
-    // базовая форма Vanga остаётся полностью рабочей.
     const root = document.querySelector("[data-vanga-demo]");
-    if (!root || document.querySelector("script[data-vanga-future-loader]")) return;
+    if (!root) return;
 
-    if (!document.querySelector("link[data-vanga-future-style]")) {
+    const loadStyle = (href, marker) => {
+        if (document.querySelector(`link[${marker}]`)) return;
         const style = document.createElement("link");
         style.rel = "stylesheet";
-        style.href = "/static/public/vanga-future.css";
-        style.dataset.vangaFutureStyle = "1";
+        style.href = href;
+        style.setAttribute(marker, "1");
         document.head.append(style);
-    }
+    };
 
-    const script = document.createElement("script");
-    script.src = "/static/public/vanga-future.js";
-    script.defer = true;
-    script.dataset.vangaFutureLoader = "1";
-    document.head.append(script);
+    const loadScript = (src, marker) => {
+        if (document.querySelector(`script[${marker}]`)) return;
+        const script = document.createElement("script");
+        script.src = src;
+        script.defer = true;
+        script.setAttribute(marker, "1");
+        document.head.append(script);
+    };
+
+    // Оба блока являются progressive enhancement: при ошибке загрузки
+    // основная ручная форма и prediction остаются рабочими.
+    loadStyle("/static/public/vanga-future.css", "data-vanga-future-style");
+    loadScript("/static/public/vanga-future.js", "data-vanga-future-loader");
+    loadStyle("/static/public/vanga-team.css", "data-vanga-team-style");
+    loadScript("/static/public/vanga-team.js", "data-vanga-team-loader");
 })();
