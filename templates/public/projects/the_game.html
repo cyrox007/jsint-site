@@ -1,0 +1,149 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/projects/style.css" %}</style>
+<style>{% include "public/projects/the_game.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<section class="project-promo project-promo--green project-promo--the-game">
+    <div class="project-promo__backdrop" aria-hidden="true"></div>
+    <div class="container project-promo__hero the-game-hero">
+        <a class="project-promo__back" href="{{ url_for('index') }}#systems">← Все проекты</a>
+
+        <div class="the-game-hero__grid">
+            <div class="project-promo__hero-copy">
+                <span class="project-promo__eyebrow">Учебный архив · JavaScript / Canvas · 2022</span>
+                <span class="project-promo__status">Старый учебный проект · восстановлен для live demo</span>
+                <h1>The-Game</h1>
+                <strong>Две небольшие браузерные игры, на которых я когда-то изучал Canvas и игровой цикл.</strong>
+                <p>
+                    Этот проект не выдаётся за пример моей текущей архитектуры. Это сохранённая работа 2022 года:
+                    ранний Dino-runner и ещё более ранний Breakout. В 2026 году я не стал переписывать их с нуля,
+                    а убрал самые заметные технические проблемы, вернул обе игры в live demo и привёл интерфейс к одному виду.
+                </p>
+
+                <div class="project-promo__actions">
+                    <a class="btn btn-primary" href="{{ demo_url }}" rel="noopener" target="_blank">Запустить обе игры <span>↗</span></a>
+                    <a class="btn btn-secondary" href="#history">Зачем оставлять старый код</a>
+                </div>
+
+                <div class="project-promo__facts">
+                    <span>2 игры</span>
+                    <span>Vanilla JS</span>
+                    <span>Canvas API</span>
+                    <span>GitHub Pages</span>
+                </div>
+            </div>
+
+            <div class="the-game-console" aria-label="Две игры проекта The-Game">
+                <div class="the-game-console__bar">
+                    <span></span><span></span><span></span>
+                    <strong>THE-GAME / ARCHIVE</strong>
+                </div>
+                <div class="the-game-console__screen">
+                    <article>
+                        <span class="the-game-console__number">01</span>
+                        <div>
+                            <small>Runner</small>
+                            <h2>Dino</h2>
+                            <p>Прыжок, препятствия, очки, лучший результат и простые игровые сущности.</p>
+                        </div>
+                    </article>
+                    <article>
+                        <span class="the-game-console__number">02</span>
+                        <div>
+                            <small>Arcade</small>
+                            <h2>Breakout</h2>
+                            <p>Платформа, мяч, кирпичи, столкновения и управление мышью или клавиатурой.</p>
+                        </div>
+                    </article>
+                </div>
+                <div class="the-game-console__footer">
+                    <span>2022 → cleanup 2026</span>
+                    <a href="{{ demo_url }}" rel="noopener" target="_blank">open live demo ↗</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section" id="history">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Контекст</span>
+                <h2>Не showcase современной архитектуры, а снимок процесса обучения</h2>
+            </div>
+            <p>
+                Старые учебные проекты полезны именно своей честностью: по ним видно, какие задачи я решал раньше,
+                где допускал лишнюю работу и как сегодня подошёл бы к той же задаче иначе.
+            </p>
+        </div>
+
+        <div class="the-game-history-grid">
+            <article>
+                <span>01</span>
+                <h3>Оригинальный код сохранён узнаваемым</h3>
+                <p>Никакого переноса на React, TypeScript или игровой движок. Это всё ещё небольшой vanilla JS / Canvas-проект.</p>
+            </article>
+            <article>
+                <span>02</span>
+                <h3>Исправлены реальные технические огрехи</h3>
+                <p>Счёт больше не зависит от FPS, таймеры корректно останавливаются, аудио переиспользуется, а игровой цикл запускается и завершается явно.</p>
+            </article>
+            <article>
+                <span>03</span>
+                <h3>Возвращён забытый Breakout</h3>
+                <p>В репозитории сохранилась вторая игра, но она больше не запускалась. Теперь обе механики доступны с общего стартового экрана.</p>
+            </article>
+            <article>
+                <span>04</span>
+                <h3>Live demo остаётся статическим</h3>
+                <p>Игры не требуют backend и работают непосредственно в браузере через GitHub Pages — как и подобает такому учебному эксперименту.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section the-game-games">
+    <div class="container">
+        <div class="portfolio-section-head">
+            <div>
+                <span class="section-kicker">Что внутри</span>
+                <h2>Два этапа одного учебного проекта</h2>
+            </div>
+            <p>Обе игры теперь оформлены как одна небольшая коллекция с общей оболочкой, но каждая сохраняет собственную механику.</p>
+        </div>
+
+        <div class="the-game-game-grid">
+            <article>
+                <div class="the-game-game-card__preview the-game-game-card__preview--dino" aria-hidden="true">
+                    <i class="the-game-dino"></i><i class="the-game-cactus"></i><i class="the-game-ground"></i>
+                </div>
+                <span>GAME 01</span>
+                <h3>Dino</h3>
+                <p>Runner: пробел запускает прыжок, препятствия появляются с псевдослучайным интервалом, результат хранится в sessionStorage.</p>
+            </article>
+            <article>
+                <div class="the-game-game-card__preview the-game-game-card__preview--breakout" aria-hidden="true">
+                    <i class="the-game-ball"></i><i class="the-game-paddle"></i>
+                    <b></b><b></b><b></b><b></b><b></b><b></b>
+                </div>
+                <span>GAME 02</span>
+                <h3>Breakout</h3>
+                <p>Классическая Canvas-аркада: мяч, платформа, кирпичи, жизни, столкновения и управление стрелками или указателем.</p>
+            </article>
+        </div>
+
+        <div class="the-game-demo-banner">
+            <div>
+                <span class="section-kicker">Живой архив</span>
+                <h3>Лучше один раз запустить, чем изображать из старой учебной игры серьёзный продукт.</h3>
+                <p>Откроется GitHub Pages со стартовым экраном, где можно выбрать Dino или Breakout.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ demo_url }}" rel="noopener" target="_blank">Открыть The-Game <span>↗</span></a>
+        </div>
+    </div>
+</section>
+{% endblock %}
