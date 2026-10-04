@@ -3,12 +3,11 @@
     <div class="vanga-analysis__head" data-vanga-reveal>
         <div>
             <span class="vanga-demo__eyebrow">Полная расшифровка</span>
-            <h2>Все факторы этого прогноза</h2>
+            <h2>Что именно сдвинуло прогноз</h2>
         </div>
         <p>
-            Ниже — SHAP-вклады, которые вернула модель. Значение <b>+0.67</b> означает,
-            что признак добавил примерно 0.67 пункта к прогнозу относительно базового уровня;
-            отрицательное значение уменьшает прогноз. Это не вероятность и не «процент уверенности».
+            SHAP-вклад показывает, насколько конкретный признак сдвинул прогноз относительно базового уровня.
+            Сначала факторы объединены в понятные блоки, ниже остаётся полный технический список без потери деталей.
         </p>
     </div>
 
@@ -26,35 +25,17 @@
     <div class="vanga-quality" data-vanga-reveal>
         <article>
             <span>Средняя абсолютная ошибка</span>
-            <strong>
-                {% if prediction_output.quality.mae is not none %}
-                ±{{ '%.2f'|format(prediction_output.quality.mae) }}
-                {% else %}
-                —
-                {% endif %}
-            </strong>
+            <strong>{% if prediction_output.quality.mae is not none %}±{{ '%.2f'|format(prediction_output.quality.mae) }}{% else %}—{% endif %}</strong>
             <p>MAE на временной тестовой выборке: в среднем прогноз отличался от фактического рейтинга примерно на это число пунктов.</p>
         </article>
         <article>
             <span>RMSE</span>
-            <strong>
-                {% if prediction_output.quality.rmse is not none %}
-                {{ '%.2f'|format(prediction_output.quality.rmse) }}
-                {% else %}
-                —
-                {% endif %}
-            </strong>
+            <strong>{% if prediction_output.quality.rmse is not none %}{{ '%.2f'|format(prediction_output.quality.rmse) }}{% else %}—{% endif %}</strong>
             <p>Сильнее штрафует крупные промахи, поэтому обычно выше MAE.</p>
         </article>
         <article>
             <span>R²</span>
-            <strong>
-                {% if prediction_output.quality.r2 is not none %}
-                {{ '%.3f'|format(prediction_output.quality.r2) }}
-                {% else %}
-                —
-                {% endif %}
-            </strong>
+            <strong>{% if prediction_output.quality.r2 is not none %}{{ '%.3f'|format(prediction_output.quality.r2) }}{% else %}—{% endif %}</strong>
             <p>Показывает, какую долю вариации рейтингов объясняет модель на holdout-периоде.</p>
         </article>
         <article>
@@ -62,20 +43,41 @@
             <strong>
                 {% if prediction_output.quality.test_year_from and prediction_output.quality.test_year_to %}
                 {{ prediction_output.quality.test_year_from }}–{{ prediction_output.quality.test_year_to }}
-                {% else %}
-                последние годы
-                {% endif %}
+                {% else %}последние годы{% endif %}
             </strong>
-            <p>
-                {% if prediction_output.quality.test_rows %}
-                {{ prediction_output.quality.test_rows }} фильмов.
-                {% endif %}
-                Тест отделён по времени, а не случайным перемешиванием строк.
-            </p>
+            <p>{% if prediction_output.quality.test_rows %}{{ prediction_output.quality.test_rows }} фильмов. {% endif %}Тест отделён по времени, а не случайным перемешиванием строк.</p>
         </article>
     </div>
     {% endif %}
 
+    {% if prediction_output.factor_groups %}
+    <div class="vanga-analysis__head" data-vanga-reveal>
+        <div>
+            <span class="vanga-demo__eyebrow">Grouped SHAP</span>
+            <h2>Вклад смысловых блоков</h2>
+        </div>
+        <p>Это сумма SHAP-вкладов уже рассчитанных признаков внутри группы, а не новая модель и не причинная оценка качества блока.</p>
+    </div>
+    <div class="vanga-shap-groups" data-vanga-reveal>
+        {% for group in prediction_output.factor_groups %}
+        <article class="vanga-shap-group vanga-shap-group--{{ group.tone }}" style="--group-strength: {{ group.strength }}%">
+            <div class="vanga-shap-group__head">
+                <strong>{{ group.label }}</strong>
+                <b>{{ group.formatted_value }}</b>
+            </div>
+            <div class="vanga-shap-group__track" aria-hidden="true"><i></i></div>
+            <small>{{ group.count }} признаков · +{{ '%.2f'|format(group.positive) }} / {{ '%.2f'|format(group.negative) }}</small>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="vanga-analysis__head" data-vanga-reveal>
+        <div>
+            <span class="vanga-demo__eyebrow">Техническая детализация</span>
+            <h2>Все признаки</h2>
+        </div>
+    </div>
     <div class="vanga-factor-grid">
         {% for factor in prediction_output.factors %}
         <article class="vanga-factor-card vanga-factor-card--{{ factor.tone }}" data-vanga-factor data-strength="{{ factor.strength }}">
@@ -84,6 +86,7 @@
                 <b>{{ factor.formatted_value }}</b>
             </div>
             <h3>{{ factor.label }}</h3>
+            {% if factor.group_label %}<small>{{ factor.group_label }}</small>{% endif %}
             <p>{{ factor.description }}</p>
             <div class="vanga-factor-card__impact">
                 <div><i></i></div>
@@ -96,7 +99,7 @@
 
     <div class="vanga-analysis__note" data-vanga-reveal>
         <strong>Как читать результат</strong>
-        <p>Большой модуль SHAP-вклада означает, что конкретный признак заметно сдвинул прогноз для этого фильма. Нулевой вклад не означает, что признак «плохой» — только то, что в этом расчёте он почти ничего не изменил.</p>
+        <p>Большой модуль SHAP-вклада означает заметный сдвиг конкретного расчёта. Нулевой вклад не означает, что признак «плохой». Сумма внутри группы показывает вклад блока только для этого прогноза и не доказывает причинность.</p>
     </div>
 </section>
 {% endif %}
