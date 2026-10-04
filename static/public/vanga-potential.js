@@ -53,10 +53,30 @@
         return source;
     };
 
+    const compactActorCards = () => {
+        const people = host.querySelector(".vanga-potential__people");
+        if (!people || people.querySelector("[data-vanga-cast-overflow]")) return;
+        const actors = [...people.querySelectorAll(".vanga-potential__person")].filter(
+            (card) => card.querySelector("span")?.textContent?.trim() === "Актёр"
+        );
+        if (actors.length <= 8) return;
+
+        const details = document.createElement("details");
+        details.className = "vanga-cast-overflow";
+        details.dataset.vangaCastOverflow = "1";
+        const summary = document.createElement("summary");
+        summary.textContent = `Ещё ${actors.length - 8} участников principal cast`;
+        const grid = document.createElement("div");
+        grid.className = "vanga-cast-overflow__grid";
+        actors.slice(8).forEach((card) => grid.append(card));
+        details.append(summary, grid);
+        people.after(details);
+    };
+
     const renderProfile = (html, { scroll = false } = {}) => {
         host.innerHTML = html || "";
         if (!html) return;
-
+        compactActorCards();
         host.querySelectorAll("[data-vanga-reveal]").forEach((item) => {
             item.classList.add("is-visible");
         });
@@ -98,10 +118,7 @@
                 body.actors = actors;
                 body.synopsis = value("synopsis");
                 body.source = sourcePayload();
-                nextInit = {
-                    ...init,
-                    body: JSON.stringify(body),
-                };
+                nextInit = { ...init, body: JSON.stringify(body) };
                 isPotentialPrediction = true;
             } catch {
                 // Основной AJAX-контур сам покажет ошибку некорректного JSON.
@@ -109,18 +126,14 @@
         }
 
         const response = await originalFetch(input, nextInit);
-
         if (isPotentialPrediction) {
             try {
                 const data = await response.clone().json();
-                if (data?.ok) {
-                    renderProfile(data.profile_html || "", { scroll: false });
-                }
+                if (data?.ok) renderProfile(data.profile_html || "", { scroll: false });
             } catch {
                 // Профиль является дополнительным слоем и не ломает прогноз.
             }
         }
-
         return response;
     };
 
@@ -135,9 +148,7 @@
         })
             .then((response) => response.json())
             .then((data) => {
-                if (data?.ok && data.profile_html) {
-                    renderProfile(data.profile_html);
-                }
+                if (data?.ok && data.profile_html) renderProfile(data.profile_html);
             })
             .catch(() => {
                 // Старый snapshot может не содержать pre-release profile.
@@ -157,7 +168,6 @@
         style.setAttribute(marker, "1");
         document.head.append(style);
     };
-
     const loadScript = (src, marker) => {
         if (document.querySelector(`script[${marker}]`)) return;
         const script = document.createElement("script");
@@ -167,8 +177,7 @@
         document.head.append(script);
     };
 
-    // Оба блока являются progressive enhancement: при ошибке загрузки
-    // основная ручная форма и prediction остаются рабочими.
+    // Progressive enhancement: основная форма остаётся рабочей без этих файлов.
     loadStyle("/static/public/vanga-future.css", "data-vanga-future-style");
     loadScript("/static/public/vanga-future.js", "data-vanga-future-loader");
     loadStyle("/static/public/vanga-team.css", "data-vanga-team-style");
