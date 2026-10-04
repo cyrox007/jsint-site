@@ -59,7 +59,7 @@ class VangaP10TeamContractTests(unittest.TestCase):
 
         self.assertIn("body.directors = directors", potential)
         self.assertIn(".slice(0, 32)", potential)
-        self.assertIn("data-vanga-team-values", team)
+        self.assertIn("hidden.dataset.vangaTeamValues = role", team)
         self.assertIn("Режиссёрская команда", team)
         self.assertIn("Grouped SHAP", analysis)
         self.assertIn("prediction_output.factor_groups", analysis)
