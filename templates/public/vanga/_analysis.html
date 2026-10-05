@@ -103,3 +103,6 @@
     </div>
 </section>
 {% endif %}
+
+{# Простой режим загружается всегда; расширенные данные и future catalog — только по запросу пользователя. #}
+<script src="{{ url_for('static', filename='public/vanga-simple-mode.js') }}" defer></script>
