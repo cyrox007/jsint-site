@@ -57,6 +57,12 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
         self.assertNotIn("kind='diagnostic', status=selected_status", template)
         self.assertNotIn("status='archived', kind=selected_kind", template)
 
+    def test_admin_header_actions_stay_inside_viewport(self):
+        css = self.read("templates/dashboard/^core/ui.css")
+        self.assertIn(".admin-page__heading{min-width:0;flex:1 1 auto}", css)
+        self.assertIn("flex:0 0 auto;flex-wrap:wrap", css)
+        self.assertIn("justify-content:flex-start;flex:0 1 auto", css)
+
     def test_contact_creates_notification_after_message_is_flushed(self):
         contact = self.read("views/public/contact/views.py")
         self.assertIn("db_session.flush()", contact)
