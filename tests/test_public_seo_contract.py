@@ -42,7 +42,9 @@ class PublicSeoContractTests(unittest.TestCase):
         site = self.read("services/site.py")
 
         self.assertIn('for key in ("site_name", "title", "description", "locale")', site)
-        self.assertIn("not value.strip()", site)
+        self.assertIn('SEO_EMPTY_SENTINELS = {"none", "null", "undefined"}', site)
+        self.assertIn("normalized = value.strip().lower() if isinstance(value, str) else \"\"", site)
+        self.assertIn("if not normalized or normalized in SEO_EMPTY_SENTINELS", site)
 
     def test_article_description_has_nonempty_fallback(self):
         article = self.read("views/public/articles/views.py")
