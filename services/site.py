@@ -24,6 +24,7 @@ PUBLIC_BLOCKED_LINK_HOSTS = {
     "codeberg.org",
     "www.codeberg.org",
 }
+SEO_EMPTY_SENTINELS = {"none", "null", "undefined"}
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "brand": {
@@ -216,11 +217,12 @@ class SiteService:
         seo = settings.setdefault("seo", {})
         default_seo = DEFAULT_SETTINGS["seo"]
 
-        # Пустые значения из старых настроек не должны затирать
-        # обязательные SEO-поля публичного сайта.
+        # Пустые и сериализованные null-значения из старых настроек не должны
+        # затирать обязательные SEO-поля публичного сайта.
         for key in ("site_name", "title", "description", "locale"):
             value = seo.get(key)
-            if not isinstance(value, str) or not value.strip():
+            normalized = value.strip().lower() if isinstance(value, str) else ""
+            if not normalized or normalized in SEO_EMPTY_SENTINELS:
                 seo[key] = default_seo[key]
 
         return settings
