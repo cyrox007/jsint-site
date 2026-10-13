@@ -360,6 +360,19 @@ def _source_floor_for_version(version_code: int) -> int:
     return version_code - 1
 
 
+def _resolve_release_codes(version_code: int, version_code_override: int | None = None,
+                           min_source_version_code_override: int | None = None) -> int:
+    if version_code_override is not None and version_code_override != version_code:
+        raise ControlPlaneError("Код версии должен совпадать с VERSION_CODE внутри ZIP")
+    min_source_version_code = (
+        min_source_version_code_override if min_source_version_code_override is not None
+        else _source_floor_for_version(version_code)
+    )
+    if not 0 < min_source_version_code < version_code:
+        raise ControlPlaneError("Минимальный код исходной версии должен быть положительным и меньше кода выпуска")
+    return min_source_version_code
+
+
 def _reuse_existing_package(
     package_name: str,
     package_size: int,
@@ -498,14 +511,9 @@ class GitHubReleaseAutomation:
                 code="release_storage_mismatch",
             )
 
-        if version_code_override is not None and version_code_override != version_code:
-            raise ControlPlaneError("Код версии должен совпадать с VERSION_CODE внутри ZIP")
-        min_source_version_code = (
-            min_source_version_code_override if min_source_version_code_override is not None
-            else _source_floor_for_version(version_code)
+        min_source_version_code = _resolve_release_codes(
+            version_code, version_code_override, min_source_version_code_override
         )
-        if not 0 < min_source_version_code < version_code:
-            raise ControlPlaneError("Минимальный код исходной версии должен быть положительным и меньше кода выпуска")
         requires_php = config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP
         if version_code >= 11000 and tuple(int(x) for x in requires_php.split(".")) < (8, 2):
             requires_php = "8.2.0"
