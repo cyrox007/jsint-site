@@ -27,6 +27,17 @@ class PublicSeoContractTests(unittest.TestCase):
         self.assertIn('application/ld+json', base)
         self.assertIn('"inLanguage": "ru-RU"', base)
 
+    def test_public_title_has_nonempty_fallback(self):
+        base = self.read("templates/public/^core/base.html")
+
+        self.assertIn("seo_defaults.title if has_site and seo_defaults.title", base)
+        self.assertIn('site.name if has_site and site.name else "JSInteractive"', base)
+        self.assertIn("seo_title if seo_title is defined and seo_title else site_title", base)
+        self.assertNotIn(
+            'seo_defaults.title if has_site else "JSInteractive"',
+            base,
+        )
+
     def test_site_settings_restore_required_seo_defaults(self):
         site = self.read("services/site.py")
 

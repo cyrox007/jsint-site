@@ -9,7 +9,8 @@
     {% set has_site = site is defined and site %}
     {% set site_settings = site.settings if has_site else {} %}
     {% set seo_defaults = site_settings.seo if has_site else {} %}
-    {% set page_title = seo_title if seo_title is defined and seo_title else (seo_defaults.title if has_site else "JSInteractive") %}
+    {% set site_title = (seo_defaults.title if has_site and seo_defaults.title else (site.name if has_site and site.name else "JSInteractive")) %}
+    {% set page_title = seo_title if seo_title is defined and seo_title else site_title %}
     {% set fallback_description = "JSInteractive — личный технологический сайт о full-stack разработке, backend, API, self-hosted системах, проектах и технических публикациях." %}
     {% set page_description = seo_description if seo_description is defined and seo_description else (seo_defaults.description if has_site and seo_defaults.description else fallback_description) %}
     {% set site_base_url = site.base_url if has_site and site.base_url else config.SITE_BASE_URL %}
