@@ -15,6 +15,16 @@ from services.publication_channel import PublicationChannelService
 from services.site import SiteService
 
 
+SEO_EMPTY_SENTINELS = {"none", "null", "undefined"}
+
+
+def _clean_seo_value(value) -> str:
+    raw = str(value or "").strip()
+    if not raw or raw.lower() in SEO_EMPTY_SENTINELS:
+        return ""
+    return raw
+
+
 class MainPage(MethodView):
     decorators = [with_db_session]
 
@@ -45,18 +55,14 @@ class MainPage(MethodView):
             limit=5,
         )
 
-        seo_title = (
-            page.seo_title
-            if page is not None and page.seo_title
-            else "JSInteractive — full-stack разработка и self-hosted проекты"
-        )
-        seo_description = (
-            page.seo_description
-            if page is not None and page.seo_description
-            else (
-                "Портфолио full-stack разработчика: backend, API, админ-панели, "
-                "self-hosted сервисы, realtime, ML-эксперименты и технические публикации."
-            )
+        seo_title = _clean_seo_value(
+            page.seo_title if page is not None else None
+        ) or "JSInteractive — full-stack разработка и self-hosted проекты"
+        seo_description = _clean_seo_value(
+            page.seo_description if page is not None else None
+        ) or (
+            "Портфолио full-stack разработчика: backend, API, админ-панели, "
+            "self-hosted сервисы, realtime, ML-эксперименты и технические публикации."
         )
         canonical_url = f"{site['base_url']}/" if site["base_url"] else None
         base_url = (site["base_url"] or "").rstrip("/")
