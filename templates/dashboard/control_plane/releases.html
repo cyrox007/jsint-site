@@ -89,6 +89,12 @@
             </div>
 
             <div class="admin-card__body admin-form">
+                <details class="operator-section">
+                    <summary>Коды версий (необязательно)</summary>
+                    <label>Код выпуска <input type="number" name="version_code" min="1" step="1" placeholder="Из ZIP автоматически"></label>
+                    <label>Минимальный код установленной версии <input type="number" name="min_source_version_code" min="1" step="1" placeholder="Для 1.1.0: 10016"></label>
+                    <p>Пустые поля рассчитываются автоматически. Код выпуска должен совпадать с кодом внутри ZIP. Минимальная версия определяет, каким установкам предлагается обновление.</p>
+                </details>
                 <div class="operator-section">
                     <div class="operator-section__heading">
                         <span>1</span>

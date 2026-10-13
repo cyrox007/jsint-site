@@ -30,6 +30,9 @@ class ReleaseSourceFloorTests(unittest.TestCase):
                     expected_source,
                 )
 
+    def test_110_accepts_prepared_1016(self):
+        self.assertEqual(_source_floor_for_version(11000), 10016)
+
     def test_generic_versions_are_also_sequential(self):
         self.assertEqual(_source_floor_for_version(2), 1)
         self.assertEqual(_source_floor_for_version(42), 41)
