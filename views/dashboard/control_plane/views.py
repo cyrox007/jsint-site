@@ -426,7 +426,14 @@ class ReleaseGitHubPrepareView(MethodView):
         tag = request.form.get("tag", "").strip()
         json_mode = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         try:
-            prepared = GitHubReleaseAutomation.prepare(db_session, tag=tag)
+            overrides = {}
+            for field in ("version_code", "min_source_version_code"):
+                raw = request.form.get(field, "").strip()
+                if raw:
+                    if not raw.isascii() or not raw.isdecimal() or int(raw) <= 0:
+                        raise ControlPlaneError("Коды версий должны быть положительными целыми числами")
+                    overrides[field + "_override"] = int(raw)
+            prepared = GitHubReleaseAutomation.prepare(db_session, tag=tag, **overrides)
         except ControlPlaneError as exc:
             if json_mode:
                 return jsonify(

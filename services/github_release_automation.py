@@ -351,10 +351,26 @@ def _source_floor_for_version(version_code: int) -> int:
     if version_code == 10014:
         return 10012
 
+    if version_code == 11000:
+        return 10016
+
     # Все следующие релизы публикуются только для непосредственно предыдущей
     # версии. Так manifest не заявляет более широкую совместимость, чем реально
     # проверяется, а update feed естественно выдаёт обновления последовательно.
     return version_code - 1
+
+
+def _resolve_release_codes(version_code: int, version_code_override: int | None = None,
+                           min_source_version_code_override: int | None = None) -> int:
+    if version_code_override is not None and version_code_override != version_code:
+        raise ControlPlaneError("Код версии должен совпадать с VERSION_CODE внутри ZIP")
+    min_source_version_code = (
+        min_source_version_code_override if min_source_version_code_override is not None
+        else _source_floor_for_version(version_code)
+    )
+    if not 0 < min_source_version_code < version_code:
+        raise ControlPlaneError("Минимальный код исходной версии должен быть положительным и меньше кода выпуска")
+    return min_source_version_code
 
 
 def _reuse_existing_package(
@@ -382,7 +398,8 @@ def _reuse_existing_package(
 
 class GitHubReleaseAutomation:
     @classmethod
-    def prepare(cls, session: Session, *, tag: str = "") -> dict[str, Any]:
+    def prepare(cls, session: Session, *, tag: str = "", version_code_override: int | None = None,
+                min_source_version_code_override: int | None = None) -> dict[str, Any]:
         release = _release(tag.strip())
         tag_name = str(release.get("tag_name", "")).strip()
         if _TAG_RE.fullmatch(tag_name) is None:
@@ -494,7 +511,12 @@ class GitHubReleaseAutomation:
                 code="release_storage_mismatch",
             )
 
-        min_source_version_code = _source_floor_for_version(version_code)
+        min_source_version_code = _resolve_release_codes(
+            version_code, version_code_override, min_source_version_code_override
+        )
+        requires_php = config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP
+        if version_code >= 11000 and tuple(int(x) for x in requires_php.split(".")) < (8, 2):
+            requires_php = "8.2.0"
         manifest, resolved_path = NotesControlPlane.prepare_release_manifest(
             package_path=stored["path"],
             version=version,
@@ -502,7 +524,7 @@ class GitHubReleaseAutomation:
             channel=channel,
             source_commit=source_commit,
             min_source_version_code=min_source_version_code,
-            requires_php=config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP,
+            requires_php=requires_php,
         )
 
         return {
@@ -515,8 +537,9 @@ class GitHubReleaseAutomation:
             "channel": channel,
             "source_commit": source_commit,
             "min_source_version_code": min_source_version_code,
-            "requires_php": config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP,
+            "requires_php": requires_php,
             "package_name": stored["filename"],
             "package_size": stored["size"],
             "package_sha256": stored["sha256"],
         }
+
