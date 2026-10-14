@@ -101,6 +101,10 @@ def _license_id(value: str) -> str:
 
 def _license_context(db_session: Session, *, tab: str = "registry", **extra):
     records = db_session.query(LicenseRecord).order_by(LicenseRecord.created_at.desc()).all()
+    reissue_id = request.args.get("reissue", "").strip() if tab == "issue" else ""
+    reissue_license = next((record for record in records if str(record.id) == reissue_id), None)
+    if reissue_id and reissue_license is None:
+        abort(404)
     license_rows = [
         {
             "record": record,
@@ -119,6 +123,16 @@ def _license_context(db_session: Session, *, tab: str = "registry", **extra):
         "issued_license_token": None,
         "license_trusted_keys": LICENSE_TRUSTED_KEYS,
         "suggested_license_id": _license_id(""),
+        "reissue_license": reissue_license,
+        "license_feature_options": [
+            ("workspace.notes", "Заметки"),
+            ("workspace.tasks", "Задачи"),
+            ("workspace.files", "Файлы"),
+            ("workspace.messenger", "Мессенджер"),
+            ("workspace.profile", "Профиль"),
+            ("workspace.admin", "Администрирование"),
+            ("workspace.calendar", "Календарь (1.1+)"),
+        ],
         "stats": {
             "total": len(records),
             "active": sum(1 for row in records if row.status == "active"),

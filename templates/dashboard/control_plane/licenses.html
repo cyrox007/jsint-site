@@ -115,6 +115,7 @@
                 {% endif %}
 
                 <div class="license-row__actions">
+                    <a class="btn secondary btn-small" href="{{ url_for('admin.licenses.index', tab='issue', reissue=item.id) }}">Изменить модули / перевыпустить</a>
                     {% if item.status == 'active' %}
                     <form method="post" action="{{ url_for('admin.licenses.activation', license_row_id=item.id) }}">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -145,9 +146,9 @@
 
     {% elif tab == 'issue' %}
     <section class="admin-card operator-form">
-        <form id="license-issue-form" method="post" action="{{ url_for('admin.licenses.issue') }}">
+        <form id="license-issue-form" method="post" action="{{ url_for('admin.licenses.issue', reissue=reissue_license.id if reissue_license else none) }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" id="license-id" value="{{ suggested_license_id }}">
+            <input type="hidden" id="license-id" value="{{ reissue_license.license_id if reissue_license else suggested_license_id }}">
             <input type="hidden" id="license-signed-token" name="signed_license">
             <input type="file" id="license-signing-key-file" accept=".license-secret" hidden>
 
@@ -176,26 +177,25 @@
                         <label class="admin-form-grid__wide">
                             Installation ID
                             <input name="installation_id" autocomplete="off"
-                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required>
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value="{{ reissue_license.installation_id if reissue_license else '' }}" required>
                         </label>
                         <label class="admin-form-grid__wide">
                             Владелец лицензии
                             <input name="customer" maxlength="160" autocomplete="organization"
-                                   placeholder="Организация или ФИО" required>
+                                   placeholder="Организация или ФИО" value="{{ reissue_license.customer or '' if reissue_license else '' }}" required>
                         </label>
                         <label>
                             Редакция
                             <select name="edition" required>
-                                <option value="personal">personal</option>
-                                <option value="team" selected>team</option>
-                                <option value="business">business</option>
-                                <option value="enterprise">enterprise</option>
+                                {% for edition in ['personal', 'team', 'business', 'enterprise'] %}
+                                <option value="{{ edition }}" {{ 'selected' if edition == (reissue_license.edition if reissue_license else 'team') }}>{{ edition }}</option>
+                                {% endfor %}
                             </select>
                         </label>
                         <label>
                             Максимум пользователей
                             <input type="number" name="max_users" min="1" max="1000000"
-                                   step="1" inputmode="numeric" required>
+                                   step="1" inputmode="numeric" value="{{ reissue_license.max_users or '' if reissue_license else '' }}" required>
                         </label>
                     </div>
                 </div>
@@ -211,11 +211,11 @@
                     <div class="admin-form-grid">
                         <label>
                             Начало действия, UTC
-                            <input type="datetime-local" id="license-not-before" required>
+                            <input type="datetime-local" id="license-not-before" value="{{ reissue_license.license_not_before.strftime('%Y-%m-%dT%H:%M') if reissue_license and reissue_license.license_not_before else '' }}" required>
                         </label>
                         <label>
                             Окончание лицензии, UTC
-                            <input type="datetime-local" id="license-expires-at" required>
+                            <input type="datetime-local" id="license-expires-at" value="{{ reissue_license.license_expires_at.strftime('%Y-%m-%dT%H:%M') if reissue_license and reissue_license.license_expires_at else '' }}" required>
                         </label>
                     </div>
                     <p class="admin-form-note">
@@ -223,6 +223,23 @@
                         Ограничение по <code>version_code</code> для обычного выпуска не задаётся.
                     </p>
                 </div>
+
+                <fieldset class="operator-section">
+                    <legend>Разрешённые модули</legend>
+                    <p class="admin-form-note">Отметьте доступные модули. Изменения вступят в силу после выпуска и активации нового токена в Workspace. Календарь требует версии 1.1 или новее.</p>
+                    <div class="admin-form-grid">
+                        {% for code, label in license_feature_options %}
+                        <label><input type="checkbox" name="license_feature" value="{{ code }}" {{ 'checked' if not reissue_license or code in (reissue_license.features or []) }}> {{ label }}</label>
+                        {% endfor %}
+                        {% if reissue_license %}
+                        {% set known_features = license_feature_options|map(attribute=0)|list %}
+                        {% for code in reissue_license.features or [] if code not in known_features %}
+                        <label><input type="checkbox" name="license_feature" value="{{ code }}" checked> {{ code }}</label>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if reissue_license %}<p class="admin-form-note">Перевыпуск обновит запись этой установки и сбросит её доступ к обновлениям. Активируйте новый токен в Workspace, чтобы восстановить доступ.</p>{% endif %}
+                </fieldset>
 
                 <div class="operator-section operator-section--security">
                     <div class="operator-section__heading">
@@ -323,14 +340,6 @@
     const keyDatabaseName = 'workspace-license-key';
     const keyStoreName = 'keys';
     const keyRecordName = 'license-key';
-    const standardFeatures = [
-        'workspace.notes',
-        'workspace.tasks',
-        'workspace.files',
-        'workspace.messenger',
-        'workspace.profile',
-        'workspace.admin',
-    ];
     let selectedKey = null;
 
     function setStatus(message, state = 'idle') {
@@ -565,6 +574,7 @@
     }
 
     function buildLicensePayload() {
+        const selectedFeatures = Array.from(form.querySelectorAll('input[name="license_feature"]:checked'), input => input.value);
         const installationId = String(form.elements.installation_id.value || '').trim().toLowerCase();
         const customer = String(form.elements.customer.value || '').trim();
         const edition = String(form.elements.edition.value || '').trim().toLowerCase();
@@ -593,7 +603,7 @@
             not_before: notBefore,
             max_users: maxUsers,
             customer,
-            features: standardFeatures,
+            features: selectedFeatures,
         };
     }
 
