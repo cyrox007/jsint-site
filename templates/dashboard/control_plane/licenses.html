@@ -224,17 +224,17 @@
                     </p>
                 </div>
 
-                <fieldset class="operator-section">
+                <fieldset class="operator-section license-features">
                     <legend>Разрешённые модули</legend>
                     <p class="admin-form-note">Отметьте доступные модули. Изменения вступят в силу после выпуска и активации нового токена в Workspace. Календарь требует версии 1.1 или новее.</p>
-                    <div class="admin-form-grid">
+                    <div class="license-features__grid">
                         {% for code, label in license_feature_options %}
-                        <label><input type="checkbox" name="license_feature" value="{{ code }}" {{ 'checked' if not reissue_license or code in (reissue_license.features or []) }}> {{ label }}</label>
+                        <label class="license-feature"><input type="checkbox" name="license_feature" value="{{ code }}" {{ 'checked' if not reissue_license or code in (reissue_license.features or []) }}><span>{{ label }}</span></label>
                         {% endfor %}
                         {% if reissue_license %}
                         {% set known_features = license_feature_options|map(attribute=0)|list %}
                         {% for code in reissue_license.features or [] if code not in known_features %}
-                        <label><input type="checkbox" name="license_feature" value="{{ code }}" checked> {{ code }}</label>
+                        <label class="license-feature"><input type="checkbox" name="license_feature" value="{{ code }}" checked><span>{{ code }}</span></label>
                         {% endfor %}
                         {% endif %}
                     </div>
