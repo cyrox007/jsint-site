@@ -16,6 +16,7 @@ build/
 
 db.py
 uploads/
+storage/webpush-vapid.pem
 .env
 .env.*
 !.env.example

@@ -1,7 +1,7 @@
 from flask import Flask
 
 from settings import config
-from views.dashboard.inbox import views
+from views.dashboard.inbox import views, webpush
 
 
 def install(app: Flask) -> None:
@@ -15,6 +15,26 @@ def install(app: Flask) -> None:
         f"{prefix}/settings",
         view_func=views.InboxSettingsPage.as_view("admin.inbox.settings"),
         methods=["GET", "POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/web-push/state",
+        view_func=webpush.WebPushStateApi.as_view("admin.inbox.web_push_state"),
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        f"{prefix}/web-push/subscribe",
+        view_func=webpush.WebPushSubscribeApi.as_view("admin.inbox.web_push_subscribe"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/web-push/unsubscribe",
+        view_func=webpush.WebPushUnsubscribeApi.as_view("admin.inbox.web_push_unsubscribe"),
+        methods=["POST"],
+    )
+    app.add_url_rule(
+        f"{prefix}/web-push/test",
+        view_func=webpush.WebPushTestApi.as_view("admin.inbox.web_push_test"),
+        methods=["POST"],
     )
     app.add_url_rule(
         f"{prefix}/<uuid:notification_id>",

@@ -5,6 +5,7 @@ from components.background.status import record_background_heartbeat
 from database import Database
 from services.notes_control_plane import NotesControlPlane
 from services.admin_notifications import AdminNotificationService
+from services.web_push import WebPushService
 from services.yandex_indexing import YandexIndexingService
 from services.vanga_predictions import VangaPredictionService
 
@@ -55,14 +56,26 @@ def purge_revoked_license_keys():
 @celery_app.task(
     name="tasks.system.deliver_admin_push",
     ignore_result=True,
-    autoretry_for=(RuntimeError,),
-    retry_backoff=True,
-    retry_kwargs={"max_retries": 3},
 )
 def deliver_admin_push(notification_id: str):
-    """Отправляет безопасный push о новом событии администратору."""
-    return AdminNotificationService.deliver_push(notification_id)
+    """Доставляет событие в PWA и, если настроен, в старый резервный канал."""
+    result = {"web_push": None, "legacy": None}
 
+    try:
+        result["web_push"] = WebPushService.deliver_notification_by_id(notification_id)
+    except Exception as exc:
+        logger.exception("Не удалось выполнить нативную Web Push-доставку: %s", exc)
+        result["web_push"] = {"error": str(exc)}
+
+    # Старый HTTP/ntfy-канал оставлен только как необязательный резервный путь.
+    # Основной пользовательский сценарий больше от него не зависит.
+    try:
+        result["legacy"] = AdminNotificationService.deliver_push(notification_id)
+    except Exception as exc:
+        logger.warning("Резервный push-канал недоступен: %s", exc)
+        result["legacy"] = False
+
+    return result
 
 
 @celery_app.task(

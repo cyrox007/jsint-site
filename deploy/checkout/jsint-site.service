@@ -13,6 +13,8 @@ Environment=GUNICORN_WORKERS=1
 Environment=GUNICORN_THREADS=4
 Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=/home/projects/js/.env
+StateDirectory=jsint-site/webpush
+StateDirectoryMode=0750
 ExecStart=/home/projects/js/.venv/bin/gunicorn --bind ${APP_BIND} --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout 30 --graceful-timeout 20 --access-logfile - --error-logfile - wsgi:app
 Restart=on-failure
 RestartSec=3
@@ -30,7 +32,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 ReadOnlyPaths=/home/projects/js
-ReadWritePaths=/var/lib/jsint-site/notes-releases /var/lib/jsint-site/diagnostics
+ReadWritePaths=/var/lib/jsint-site/notes-releases /var/lib/jsint-site/diagnostics /var/lib/jsint-site/webpush
 
 [Install]
 WantedBy=multi-user.target

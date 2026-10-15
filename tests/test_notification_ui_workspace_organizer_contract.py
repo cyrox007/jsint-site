@@ -29,9 +29,10 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn("AdminNotification.status == \"new\"", app)
         self.assertIn("<span>Уведомления</span>", sidebar)
         self.assertIn("admin.inbox.settings", router)
-        self.assertIn("URL темы ntfy", settings)
-        self.assertIn("Проверить доставку сейчас", settings)
+        self.assertIn("Включить уведомления", settings)
+        self.assertIn("Отправить тест", settings)
         self.assertIn("Диагностика Notes", settings)
+        self.assertNotIn("URL темы ntfy", settings)
 
     def test_inbox_and_contacts_default_to_attention_queue(self):
         inbox = self.read("views/dashboard/inbox/views.py")
@@ -48,15 +49,15 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn("Прочитанные", contact_template)
         self.assertIn("Архив", contact_template)
 
-    def test_push_test_reports_delivery_synchronously(self):
-        inbox = self.read("views/dashboard/inbox/views.py")
+    def test_native_push_test_reports_delivery_synchronously(self):
+        api = self.read("views/dashboard/inbox/webpush.py")
         settings = self.read("templates/dashboard/inbox/settings.html")
 
-        self.assertIn("AdminNotificationService.deliver_push(notification.id)", inbox)
-        self.assertNotIn("enqueue_push(notification.id)", inbox)
-        self.assertIn("Тест push не доставлен", inbox)
-        self.assertIn("Тестовый push успешно принят сервером канала", inbox)
-        self.assertIn("Проверка выполняется сразу", settings)
+        self.assertIn("WebPushService.deliver_notification", api)
+        self.assertIn("result[\"delivered\"]", api)
+        self.assertIn("Push не доставлен", api)
+        self.assertIn("Отправить тест", settings)
+        self.assertIn("Тест отправлен", settings)
 
     def test_admin_panel_is_installable_pwa_without_private_cache(self):
         app = self.read("app.py")
@@ -71,10 +72,11 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn('"display": "standalone"', manifest)
         self.assertIn('"start_url": "."', manifest)
         self.assertNotIn("caches.open", worker)
-        self.assertNotIn("fetch", worker)
+        self.assertNotIn("addEventListener('fetch'", worker)
+        self.assertIn("addEventListener('push'", worker)
         self.assertIn("notificationclick", worker)
 
-    def test_push_token_encryption_round_trip_and_url_validation(self):
+    def test_legacy_push_token_crypto_remains_available_for_optional_fallback(self):
         token = "secret-token-for-test"
         encrypted = AdminNotificationService._encrypt_token(token)
 

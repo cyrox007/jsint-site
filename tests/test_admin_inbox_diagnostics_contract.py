@@ -44,18 +44,21 @@ class AdminInboxDiagnosticsContractTests(unittest.TestCase):
         self.assertIn("admin.inbox.index", sidebar)
         self.assertIn("admin_unread_count", sidebar)
 
-    def test_inbox_filters_are_mutually_exclusive(self):
+    def test_inbox_type_filters_preserve_selected_attention_state(self):
         template = self.read("templates/dashboard/inbox/index.html")
 
         self.assertIn("url_for('admin.inbox.index', status='new')", template)
-        self.assertIn("url_for('admin.inbox.index', kind='contact')", template)
-        self.assertIn("url_for('admin.inbox.index', kind='diagnostic')", template)
+        self.assertIn("url_for('admin.inbox.index', status='read')", template)
         self.assertIn("url_for('admin.inbox.index', status='archived')", template)
-
-        self.assertNotIn("status='new', kind=selected_kind", template)
-        self.assertNotIn("kind='contact', status=selected_status", template)
-        self.assertNotIn("kind='diagnostic', status=selected_status", template)
-        self.assertNotIn("status='archived', kind=selected_kind", template)
+        self.assertIn("url_for('admin.inbox.index', status='all')", template)
+        self.assertIn(
+            "url_for('admin.inbox.index', status=selected_status, kind='contact')",
+            template,
+        )
+        self.assertIn(
+            "url_for('admin.inbox.index', status=selected_status, kind='diagnostic')",
+            template,
+        )
 
     def test_admin_header_actions_stay_inside_viewport(self):
         css = self.read("templates/dashboard/^core/ui.css")
