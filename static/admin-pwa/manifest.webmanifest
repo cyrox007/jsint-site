@@ -1,0 +1,28 @@
+{
+  "name": "JSInteractive Admin",
+  "short_name": "JSI Admin",
+  "description": "Панель управления JSInteractive: обращения, диагностика, лицензии и релизы.",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f2ec",
+  "theme_color": "#c74761",
+  "icons": [
+    {
+      "src": "/static/favicon/icons8-pastel-glyph-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon/icons8-pastel-glyph-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon/icons8-pastel-glyph-128.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
