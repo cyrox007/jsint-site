@@ -13,6 +13,8 @@ Environment=GUNICORN_WORKERS=1
 Environment=GUNICORN_THREADS=4
 Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=/etc/jsint-site.env
+StateDirectory=jsint-site/webpush
+StateDirectoryMode=0750
 ExecStart=/opt/jsint-site/current/.venv/bin/gunicorn --bind ${APP_BIND} --workers ${GUNICORN_WORKERS} --threads ${GUNICORN_THREADS} --timeout 30 --graceful-timeout 20 --access-logfile - --error-logfile - wsgi:app
 Restart=on-failure
 RestartSec=3
