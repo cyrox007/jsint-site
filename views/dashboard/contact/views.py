@@ -18,10 +18,12 @@ class ContactInboxPage(MethodView):
     @with_db_session
     def get(self, db_session: Session):
         site = resolve_admin_site(db_session)
-        status = request.args.get("status", "").strip()
+        status = request.args.get("status", "new").strip() or "new"
+        if status not in {"new", "read", "archived", "all"}:
+            status = "new"
 
         query = db_session.query(ContactMessage).filter(ContactMessage.site_id == site.id)
-        if status in {"new", "read", "archived"}:
+        if status != "all":
             query = query.filter(ContactMessage.status == status)
 
         messages = (
@@ -39,6 +41,7 @@ class ContactInboxPage(MethodView):
             .count()
             for state in ("new", "read", "archived")
         }
+        counts["all"] = sum(counts.values())
 
         return render_template(
             "dashboard/contact/index.html",
@@ -83,7 +86,7 @@ class ContactInboxPage(MethodView):
         db_session.add(message)
         db_session.commit()
         flash("Статус обращения обновлён", "success")
-        return redirect(url_for("admin.contact.index", site_id=site.id))
+        return redirect(url_for("admin.contact.index", site_id=site.id, status="new"))
 
     @staticmethod
     def _message(db_session: Session, site_id: UUID) -> ContactMessage:
