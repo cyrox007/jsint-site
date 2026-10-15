@@ -35,7 +35,7 @@ class WebPushService:
         if configured:
             return Path(configured)
         if config.IS_PRODUCTION:
-            return Path("/var/lib/jsint-site/webpush-vapid.pem")
+            return Path("/var/lib/jsint-site/webpush/vapid-private.pem")
         return Path(config.BASE_DIR) / "storage" / "webpush-vapid.pem"
 
     @classmethod
