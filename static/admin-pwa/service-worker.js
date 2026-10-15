@@ -2,8 +2,8 @@
  * Service Worker панели управления.
  *
  * Намеренно не кэшируем HTML, API и приватные ответы: административные данные
- * должны всегда запрашиваться у сервера после проверки сессии. Worker нужен
- * для installability PWA и корректной обработки перехода из уведомлений.
+ * всегда запрашиваются у сервера после проверки сессии. Worker отвечает за
+ * installability PWA и системные Web Push-уведомления.
  */
 self.addEventListener('install', () => {
     self.skipWaiting();
@@ -11,6 +11,30 @@ self.addEventListener('install', () => {
 
 self.addEventListener('activate', event => {
     event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('push', event => {
+    let payload = {};
+    try {
+        payload = event.data ? event.data.json() : {};
+    } catch (_error) {
+        payload = {title: 'JSInteractive', body: event.data ? event.data.text() : ''};
+    }
+
+    const title = payload.title || 'JSInteractive';
+    const options = {
+        body: payload.body || 'Новое событие требует внимания.',
+        icon: '/static/favicon/icons8-pastel-glyph-192.png',
+        badge: '/static/favicon/icons8-pastel-glyph-70.png',
+        tag: payload.tag || 'jsinteractive-admin',
+        renotify: payload.severity === 'urgent',
+        requireInteraction: payload.severity === 'urgent',
+        data: {
+            url: payload.url || './'
+        }
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', event => {
