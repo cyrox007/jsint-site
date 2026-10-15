@@ -52,9 +52,7 @@
             });
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('{{ url_for("admin_pwa_service_worker") }}', {
-                    scope: '{{ config.ADMIN_ROUTE_PREFIX if config is defined else request.script_root }}'
-                }).catch(error => {
+                navigator.serviceWorker.register('{{ url_for("admin_pwa_service_worker") }}').catch(error => {
                     console.warn('Не удалось зарегистрировать PWA панели управления:', error);
                 });
             }
