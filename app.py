@@ -90,10 +90,13 @@ def create_app() -> Flask:
                 .filter(AdminNotification.status == "new")
                 .count()
             )
+            # В выпадающем центре показываем только события, которые ещё требуют
+            # внимания. Прочитанные и архивные доступны в истории Inbox.
             recent_notifications = (
                 db_session.query(AdminNotification)
+                .filter(AdminNotification.status == "new")
                 .order_by(AdminNotification.created_at.desc())
-                .limit(5)
+                .limit(7)
                 .all()
             )
             return {
