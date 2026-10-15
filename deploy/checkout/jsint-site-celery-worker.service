@@ -28,6 +28,7 @@ RestrictSUIDSGID=true
 LockPersonality=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 ReadOnlyPaths=/home/projects/js
+ReadWritePaths=/var/lib/jsint-site/webpush
 
 [Install]
 WantedBy=multi-user.target
