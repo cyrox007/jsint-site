@@ -44,7 +44,7 @@
                     {{ '!' if item.severity in ('urgent', 'warning') else '•' }}
                 </span>
             </div>
-            <div class="contact-message__body">{{ item.summary }}</div>
+            <div class="contact-message__body">{{ item.summary|replace('\n', ' ')|truncate(160, true, '…') }}</div>
         </a>
         {% else %}
         <div class="admin-empty">
