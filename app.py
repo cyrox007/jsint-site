@@ -135,6 +135,18 @@ def create_app() -> Flask:
         response.headers["Cache-Control"] = "public, max-age=86400"
         return response
 
+    def favicon_ico():
+        response = current_app.send_static_file("favicon/jsinteractive.ico")
+        response.mimetype = "image/x-icon"
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
+
+    def apple_touch_icon():
+        response = current_app.send_static_file("favicon/jsinteractive-180.png")
+        response.mimetype = "image/png"
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
+
     def admin_pwa_manifest():
         response = current_app.send_static_file("admin-pwa/manifest.webmanifest")
         response.mimetype = "application/manifest+json"
@@ -153,6 +165,24 @@ def create_app() -> Flask:
         "/favicon.svg",
         endpoint="favicon_svg",
         view_func=favicon_svg,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/favicon.ico",
+        endpoint="favicon_ico",
+        view_func=favicon_ico,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/apple-touch-icon.png",
+        endpoint="apple_touch_icon",
+        view_func=apple_touch_icon,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        "/apple-touch-icon-precomposed.png",
+        endpoint="apple_touch_icon_precomposed",
+        view_func=apple_touch_icon,
         methods=["GET"],
     )
     app.add_url_rule(
