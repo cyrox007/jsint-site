@@ -6,7 +6,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -14,7 +14,7 @@ from pywebpush import WebPushException, webpush
 from sqlalchemy.orm import Session
 
 from database import Database
-from models.notification import AdminNotification
+from models.notification import AdminNotification, AdminNotificationPreferences
 from models.web_push import AdminWebPushSubscription
 from settings import config
 
@@ -51,13 +51,19 @@ class WebPushService:
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
-        temporary = path.with_suffix(path.suffix + ".tmp")
-        with temporary.open("wb") as handle:
-            handle.write(pem)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, path)
+        temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid4().hex}.tmp")
+        try:
+            with temporary.open("xb") as handle:
+                handle.write(pem)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temporary, 0o600)
+            if path.exists():
+                temporary.unlink(missing_ok=True)
+                return path
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
         logger.info("Создан локальный VAPID-ключ Web Push: %s", path)
         return path
 
@@ -75,7 +81,8 @@ class WebPushService:
     @staticmethod
     def _vapid_subject() -> str:
         configured = os.getenv("WEB_PUSH_VAPID_SUBJECT", "").strip()
-        return configured or f"mailto:admin@{config.SITE_BASE_URL.split('://', 1)[-1].split('/', 1)[0]}"
+        host = config.SITE_BASE_URL.split("://", 1)[-1].split("/", 1)[0]
+        return configured or f"mailto:admin@{host}"
 
     @staticmethod
     def _validate_subscription(payload: dict) -> tuple[str, str, str]:
@@ -143,8 +150,8 @@ class WebPushService:
         db.flush()
         return True
 
-    @staticmethod
-    def state(db: Session, *, user_id: UUID) -> dict:
+    @classmethod
+    def state(cls, db: Session, *, user_id: UUID) -> dict:
         subscriptions = (
             db.query(AdminWebPushSubscription)
             .filter(
@@ -156,7 +163,7 @@ class WebPushService:
         )
         return {
             "configured": True,
-            "public_key": WebPushService.public_key(),
+            "public_key": cls.public_key(),
             "subscriptions": [
                 {
                     "id": str(item.id),
@@ -167,6 +174,25 @@ class WebPushService:
                 for item in subscriptions
             ],
         }
+
+    @staticmethod
+    def _allowed_by_preferences(db: Session, notification: AdminNotification) -> bool:
+        if bool((notification.details or {}).get("force_push")):
+            return True
+        preferences = (
+            db.query(AdminNotificationPreferences)
+            .filter(AdminNotificationPreferences.id == 1)
+            .first()
+        )
+        if preferences is None:
+            return True
+        if notification.severity == "urgent" and preferences.notify_urgent:
+            return True
+        if notification.kind == "contact":
+            return bool(preferences.notify_contact)
+        if notification.kind == "diagnostic":
+            return bool(preferences.notify_diagnostic)
+        return False
 
     @classmethod
     def _send(cls, record: AdminWebPushSubscription, payload: dict) -> None:
@@ -189,6 +215,9 @@ class WebPushService:
         *,
         user_id: UUID | None = None,
     ) -> dict:
+        if not cls._allowed_by_preferences(db, notification):
+            return {"delivered": 0, "failed": 0, "expired": 0, "total": 0, "skipped": True}
+
         query = db.query(AdminWebPushSubscription).filter(
             AdminWebPushSubscription.enabled.is_(True)
         )
@@ -198,9 +227,7 @@ class WebPushService:
         payload = {
             "title": notification.title,
             "body": notification.summary,
-            "url": (
-                f"{config.ADMIN_ROUTE_PREFIX}/inbox/{notification.id}"
-            ),
+            "url": f"{config.ADMIN_ROUTE_PREFIX}/inbox/{notification.id}",
             "tag": f"admin-notification-{notification.id}",
             "severity": notification.severity,
         }
@@ -221,17 +248,19 @@ class WebPushService:
                 record.last_error = str(exc)[:500]
                 failed += 1
                 logger.warning("Web Push не доставлен на %s: %s", record.id, exc)
+                db.add(record)
             except Exception as exc:
                 record.last_error_at = _utcnow()
                 record.last_error = str(exc)[:500]
                 failed += 1
                 logger.exception("Ошибка Web Push для подписки %s", record.id)
+                db.add(record)
             else:
                 record.last_success_at = _utcnow()
                 record.last_error_at = None
                 record.last_error = None
                 delivered += 1
-            db.add(record)
+                db.add(record)
 
         db.commit()
         return {
@@ -239,6 +268,7 @@ class WebPushService:
             "failed": failed,
             "expired": expired,
             "total": len(subscriptions),
+            "skipped": False,
         }
 
     @classmethod
@@ -251,7 +281,7 @@ class WebPushService:
                 .first()
             )
             if notification is None:
-                return {"delivered": 0, "failed": 0, "expired": 0, "total": 0}
+                return {"delivered": 0, "failed": 0, "expired": 0, "total": 0, "skipped": False}
             return cls.deliver_notification(db, notification)
         finally:
             db.close()
