@@ -10,10 +10,14 @@ from sqlalchemy.orm import Session
 from components.auth.decorator import login_required, with_db_session
 from models.contact import ContactMessage
 from models.notification import AdminNotification, DiagnosticReport
-from services.admin_notifications import AdminNotificationService, DiagnosticService
+from services.admin_notifications import (
+    AdminNotificationService,
+    DiagnosticService,
+    NotificationDeliveryError,
+)
 
 
-_ALLOWED_STATUSES = {"new", "read", "archived"}
+_ALLOWED_STATUSES = {"new", "read", "archived", "all"}
 _ALLOWED_KINDS = {"contact", "diagnostic", "system"}
 
 
@@ -21,11 +25,14 @@ class InboxPage(MethodView):
     @login_required
     @with_db_session
     def get(self, db_session: Session):
-        status = request.args.get("status", "").strip()
+        # По умолчанию Inbox — это очередь внимания, а не полный журнал.
+        status = request.args.get("status", "new").strip() or "new"
         kind = request.args.get("kind", "").strip()
+        if status not in _ALLOWED_STATUSES:
+            status = "new"
 
         query = db_session.query(AdminNotification)
-        if status in _ALLOWED_STATUSES:
+        if status != "all":
             query = query.filter(AdminNotification.status == status)
         if kind in _ALLOWED_KINDS:
             query = query.filter(AdminNotification.kind == kind)
@@ -42,6 +49,7 @@ class InboxPage(MethodView):
             .count()
             for state in ("new", "read", "archived")
         }
+        counts["all"] = sum(counts.values())
         kind_counts = {
             item: db_session.query(AdminNotification)
             .filter(AdminNotification.kind == item)
@@ -81,8 +89,17 @@ class InboxSettingsPage(MethodView):
 
             notification = AdminNotificationService.create_test_push(db_session)
             db_session.commit()
-            AdminNotificationService.enqueue_push(notification.id)
-            flash("Тестовое push-уведомление поставлено в очередь.", "success")
+            try:
+                delivered = AdminNotificationService.deliver_push(notification.id)
+            except NotificationDeliveryError as exc:
+                flash(f"Тест push не доставлен: {exc}", "error")
+            except Exception as exc:
+                flash(f"Тест push завершился ошибкой: {exc}", "error")
+            else:
+                if delivered:
+                    flash("Тестовый push успешно принят сервером канала.", "success")
+                else:
+                    flash("Push не отправлен: проверьте настройки канала и фильтры событий.", "error")
             return redirect(url_for("admin.inbox.settings"))
 
         try:
