@@ -49,6 +49,14 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn("Прочитанные", contact_template)
         self.assertIn("Архив", contact_template)
 
+    def test_notification_filters_keep_checkbox_and_text_aligned_on_mobile(self):
+        styles = self.read("templates/dashboard/inbox/style.css")
+
+        self.assertIn(".notification-toggle{display:flex", styles)
+        self.assertIn('input[type="checkbox"]{width:20px!important', styles)
+        self.assertIn("flex:0 0 20px", styles)
+        self.assertIn(".notification-settings-card__actions .btn{width:100%", styles)
+
     def test_native_push_test_reports_delivery_synchronously(self):
         api = self.read("views/dashboard/inbox/webpush.py")
         settings = self.read("templates/dashboard/inbox/settings.html")
