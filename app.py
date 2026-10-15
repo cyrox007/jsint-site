@@ -135,10 +135,36 @@ def create_app() -> Flask:
         response.headers["Cache-Control"] = "public, max-age=86400"
         return response
 
+    def admin_pwa_manifest():
+        response = current_app.send_static_file("admin-pwa/manifest.webmanifest")
+        response.mimetype = "application/manifest+json"
+        response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    def admin_pwa_service_worker():
+        response = current_app.send_static_file("admin-pwa/service-worker.js")
+        response.mimetype = "application/javascript"
+        # Worker расположен под тем же ADMIN_ROUTE_PREFIX и управляет только
+        # административной частью; приватные ответы он не кэширует.
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
     app.add_url_rule(
         "/favicon.svg",
         endpoint="favicon_svg",
         view_func=favicon_svg,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/manifest.webmanifest",
+        endpoint="admin_pwa_manifest",
+        view_func=admin_pwa_manifest,
+        methods=["GET"],
+    )
+    app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/service-worker.js",
+        endpoint="admin_pwa_service_worker",
+        view_func=admin_pwa_service_worker,
         methods=["GET"],
     )
     app.add_url_rule("/robots.txt", endpoint="robots", view_func=public_seo.robots_txt, methods=["GET"])
