@@ -18,10 +18,33 @@ depends_on = None
 _TABLE = "admin_web_push_subscriptions"
 
 
+def _users_id_is_referenceable(inspector: sa.Inspector) -> bool:
+    """Проверяет, можно ли безопасно создать FK на users.id.
+
+    На старых production-инсталляциях таблица users могла существовать ещё до
+    актуальной Alembic-схемы и не иметь PK/UNIQUE на id. PostgreSQL запрещает
+    ссылаться внешним ключом на такой столбец, поэтому для legacy-схемы связь
+    остаётся логической на уровне приложения, а для нормальной схемы FK
+    создаётся как обычно.
+    """
+    primary_key = inspector.get_pk_constraint("users") or {}
+    if set(primary_key.get("constrained_columns") or []) == {"id"}:
+        return True
+
+    for constraint in inspector.get_unique_constraints("users"):
+        if list(constraint.get("column_names") or []) == ["id"]:
+            return True
+    return False
+
+
 def upgrade() -> None:
     inspector = sa.inspect(op.get_bind())
     if _TABLE in set(inspector.get_table_names()):
         return
+
+    user_id_constraints = []
+    if _users_id_is_referenceable(inspector):
+        user_id_constraints.append(sa.ForeignKey("users.id", ondelete="CASCADE"))
 
     op.create_table(
         _TABLE,
@@ -29,7 +52,7 @@ def upgrade() -> None:
         sa.Column(
             "user_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            *user_id_constraints,
             nullable=False,
         ),
         sa.Column("endpoint", sa.Text(), nullable=False, unique=True),
