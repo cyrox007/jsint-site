@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from flask import jsonify, request, session
@@ -72,11 +73,20 @@ class WebPushTestApi(MethodView):
     def post(self, db_session: Session):
         notification = AdminNotificationService.create_test_push(db_session)
         db_session.commit()
-        result = WebPushService.deliver_notification(
-            db_session,
-            notification,
-            user_id=_current_user_id(),
-        )
+        try:
+            result = WebPushService.deliver_notification(
+                db_session,
+                notification,
+                user_id=_current_user_id(),
+            )
+        finally:
+            # Техническая проверка не должна становиться задачей в очереди
+            # внимания. Оставляем её только в истории уведомлений.
+            notification.status = "read"
+            notification.read_at = datetime.now(timezone.utc)
+            db_session.add(notification)
+            db_session.commit()
+
         if result["total"] == 0:
             return jsonify({
                 "ok": False,
