@@ -2,8 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#c74761">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="JSI Admin">
+    <link rel="manifest" href="{{ url_for('admin_pwa_manifest') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
     <title>{% block title %}Панель управления{% endblock %}</title>
     {% block extra_head %}{% endblock %}
     <style>{% include 'dashboard/styles.css' %}</style>
@@ -43,6 +50,14 @@
                     flash.addEventListener('animationend', () => flash.remove(), {once: true});
                 }, timeout);
             });
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('{{ url_for("admin_pwa_service_worker") }}', {
+                    scope: '{{ config.ADMIN_ROUTE_PREFIX if config is defined else request.script_root }}'
+                }).catch(error => {
+                    console.warn('Не удалось зарегистрировать PWA панели управления:', error);
+                });
+            }
         });
     </script>
     {% block extra_js %}{% endblock %}
