@@ -17,9 +17,11 @@ class GlobalFaviconContractTests(unittest.TestCase):
 
         for template in (public_base, admin_base):
             self.assertIn("url_for('favicon_svg')", template)
-            self.assertIn("url_for('favicon_ico')", template)
             self.assertIn("url_for('apple_touch_icon')", template)
             self.assertNotIn("icons8-pastel-glyph", template)
+
+        self.assertNotIn("url_for('favicon_ico')", public_base)
+        self.assertIn("url_for('favicon_ico')", admin_base)
 
     def test_legacy_favicon_urls_serve_current_brand_assets(self):
         app = self.read("app.py")
