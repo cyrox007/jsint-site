@@ -24,7 +24,7 @@
 
     <div class="header-actions">
         <details class="header-notifications">
-            <summary class="notification-bell" aria-label="Уведомления">
+            <summary class="notification-bell" aria-label="События, требующие внимания">
                 <span class="notification-bell__icon"><svg class="notification-icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
                 {% if admin_unread_count %}
                 <span class="notification-bell__badge">{{ admin_unread_count if admin_unread_count < 100 else '99+' }}</span>
@@ -33,15 +33,15 @@
             <div class="notification-dropdown">
                 <div class="notification-dropdown__head">
                     <div>
-                        <strong>Уведомления</strong>
-                        <span>{{ admin_unread_count }} непрочитанных</span>
+                        <strong>Требуют внимания</strong>
+                        <span>{{ admin_unread_count }} активных событий</span>
                     </div>
                     <a href="{{ url_for('admin.inbox.settings') }}" aria-label="Настройки уведомлений">⚙</a>
                 </div>
 
                 <div class="notification-dropdown__list">
                     {% for item in admin_recent_notifications %}
-                    <a class="notification-dropdown__item {{ 'is-new' if item.status == 'new' else '' }}" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
+                    <a class="notification-dropdown__item is-new" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
                         <span class="notification-dropdown__marker">{{ '⚠' if item.severity == 'urgent' else '!' if item.severity == 'warning' else '•' }}</span>
                         <span class="notification-dropdown__copy">
                             <strong>{{ item.title }}</strong>
@@ -51,15 +51,15 @@
                     </a>
                     {% else %}
                     <div class="notification-dropdown__empty">
-                        <strong>Пока тихо</strong>
+                        <strong>Ничего не требует внимания</strong>
                         <span>Новые обращения и диагностика появятся здесь.</span>
                     </div>
                     {% endfor %}
                 </div>
 
                 <div class="notification-dropdown__footer">
-                    <a href="{{ url_for('admin.inbox.index') }}">Все уведомления</a>
-                    <a href="{{ url_for('admin.inbox.settings') }}">Настроить push</a>
+                    <a href="{{ url_for('admin.inbox.index', status='new') }}">Центр уведомлений</a>
+                    <a href="{{ url_for('admin.inbox.settings') }}">Настройки доставки</a>
                 </div>
             </div>
         </details>

@@ -13,7 +13,8 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
     def read(self, relative: str) -> str:
         return (ROOT / relative).read_text(encoding="utf-8")
 
-    def test_admin_header_has_visible_notification_center(self):
+    def test_admin_header_has_actionable_notification_center(self):
+        app = self.read("app.py")
         header = self.read("templates/dashboard/^shared/header/index.html")
         sidebar = self.read("templates/dashboard/^shared/sidebar/index.html")
         settings = self.read("templates/dashboard/inbox/settings.html")
@@ -22,13 +23,56 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn("header-notifications", header)
         self.assertIn("admin_unread_count", header)
         self.assertIn("admin_recent_notifications", header)
-        self.assertIn("Все уведомления", header)
-        self.assertIn("Настроить push", header)
+        self.assertIn("Требуют внимания", header)
+        self.assertIn("Центр уведомлений", header)
+        self.assertIn("Настройки доставки", header)
+        self.assertIn("AdminNotification.status == \"new\"", app)
         self.assertIn("<span>Уведомления</span>", sidebar)
         self.assertIn("admin.inbox.settings", router)
-        self.assertIn("ntfy topic URL", settings)
-        self.assertIn("Отправить тест", settings)
+        self.assertIn("URL темы ntfy", settings)
+        self.assertIn("Проверить доставку сейчас", settings)
         self.assertIn("Диагностика Notes", settings)
+
+    def test_inbox_and_contacts_default_to_attention_queue(self):
+        inbox = self.read("views/dashboard/inbox/views.py")
+        contacts = self.read("views/dashboard/contact/views.py")
+        inbox_template = self.read("templates/dashboard/inbox/index.html")
+        contact_template = self.read("templates/dashboard/contact/index.html")
+
+        self.assertIn('request.args.get("status", "new")', inbox)
+        self.assertIn('request.args.get("status", "new")', contacts)
+        self.assertIn("Требуют внимания", inbox_template)
+        self.assertIn("Прочитанные", inbox_template)
+        self.assertIn("Архив", inbox_template)
+        self.assertIn("Новые", contact_template)
+        self.assertIn("Прочитанные", contact_template)
+        self.assertIn("Архив", contact_template)
+
+    def test_push_test_reports_delivery_synchronously(self):
+        inbox = self.read("views/dashboard/inbox/views.py")
+        settings = self.read("templates/dashboard/inbox/settings.html")
+
+        self.assertIn("AdminNotificationService.deliver_push(notification.id)", inbox)
+        self.assertNotIn("enqueue_push(notification.id)", inbox)
+        self.assertIn("Тест push не доставлен", inbox)
+        self.assertIn("Тестовый push успешно принят сервером канала", inbox)
+        self.assertIn("Проверка выполняется сразу", settings)
+
+    def test_admin_panel_is_installable_pwa_without_private_cache(self):
+        app = self.read("app.py")
+        base = self.read("templates/dashboard/^core/base.html")
+        manifest = self.read("static/admin-pwa/manifest.webmanifest")
+        worker = self.read("static/admin-pwa/service-worker.js")
+
+        self.assertIn("admin_pwa_manifest", app)
+        self.assertIn("admin_pwa_service_worker", app)
+        self.assertIn('rel="manifest"', base)
+        self.assertIn("serviceWorker.register", base)
+        self.assertIn('"display": "standalone"', manifest)
+        self.assertIn('"start_url": "."', manifest)
+        self.assertNotIn("caches.open", worker)
+        self.assertNotIn("fetch", worker)
+        self.assertIn("notificationclick", worker)
 
     def test_push_token_encryption_round_trip_and_url_validation(self):
         token = "secret-token-for-test"

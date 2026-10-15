@@ -5,13 +5,13 @@
     <header class="admin-page__header">
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">Центр уведомлений</span>
-            <h1 class="admin-page__title">Уведомления</h1>
+            <h1 class="admin-page__title">Доставка уведомлений</h1>
             <p class="admin-page__description">
-                Внутренний Inbox работает всегда. Здесь настраивается дополнительный push на телефон через ntfy-compatible канал.
+                Внутренний центр событий работает всегда. Дополнительно можно отправлять важные события на телефон через ntfy-compatible канал. Для Android это уже работает как отдельные системные уведомления; PWA используется для быстрого входа в панель.
             </p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('admin.inbox.index') }}">Открыть журнал</a>
+            <a class="btn secondary" href="{{ url_for('admin.inbox.index', status='new') }}">Открыть центр</a>
         </div>
     </header>
 
@@ -23,31 +23,31 @@
             <div class="notification-settings-card__head">
                 <div>
                     <span class="status-badge {{ 'status-badge--success' if push.enabled else '' }}">
-                        {{ 'Push включён' if push.enabled else 'Push выключен' }}
+                        {{ 'Канал включён' if push.enabled else 'Канал выключен' }}
                     </span>
-                    <h2>Телефонный канал</h2>
+                    <h2>Push на телефон</h2>
                 </div>
             </div>
 
             <label class="notification-toggle">
                 <input type="checkbox" name="push_enabled" value="1" {% if push.enabled %}checked{% endif %}>
                 <span>
-                    <strong>Отправлять push</strong>
-                    <small>Событие сначала сохраняется в админке и только потом отправляется на телефон.</small>
+                    <strong>Отправлять внешние push</strong>
+                    <small>Событие сначала сохраняется в центре уведомлений, после чего отправляется на настроенный канал.</small>
                 </span>
             </label>
 
             <label class="notification-field">
-                <span>ntfy topic URL</span>
+                <span>URL темы ntfy</span>
                 <input
                     type="url"
                     name="push_url"
                     maxlength="1024"
                     value="{{ push.url }}"
-                    placeholder="https://ntfy.example.com/jsint-private-topic"
+                    placeholder="https://ntfy.sh/jsinteractive-случайная-приватная-тема"
                     autocomplete="off"
                 >
-                <small>Используйте приватную случайную тему или защищённый self-hosted ntfy.</small>
+                <small>Используйте длинное случайное имя темы или собственный защищённый ntfy-сервер. Не используйте легко угадываемые публичные темы.</small>
             </label>
 
             <label class="notification-field">
@@ -56,7 +56,7 @@
                     type="password"
                     name="push_token"
                     maxlength="2048"
-                    placeholder="{{ 'Token уже сохранён — оставьте пустым, чтобы не менять' if push.token_configured else 'Необязательно' }}"
+                    placeholder="{{ 'Token уже сохранён — оставьте пустым, чтобы не менять' if push.token_configured else 'Необязательно для публичной темы' }}"
                     autocomplete="new-password"
                 >
                 <small>Token хранится зашифрованным и обратно в браузер не выводится.</small>
@@ -73,15 +73,15 @@
                 <h3>Какие события отправлять</h3>
                 <label class="notification-toggle">
                     <input type="checkbox" name="notify_contact" value="1" {% if push.notify_contact %}checked{% endif %}>
-                    <span><strong>Обращения с сайта</strong><small>Новая заявка или сообщение из формы обратной связи.</small></span>
+                    <span><strong>Новые обращения</strong><small>Заявка или сообщение из формы обратной связи.</small></span>
                 </label>
                 <label class="notification-toggle">
                     <input type="checkbox" name="notify_diagnostic" value="1" {% if push.notify_diagnostic %}checked{% endif %}>
-                    <span><strong>Диагностика Notes</strong><small>Администратор Workspace Organizer отправил диагностический пакет.</small></span>
+                    <span><strong>Диагностика Notes</strong><small>Получен новый диагностический пакет от установки Notes.</small></span>
                 </label>
                 <label class="notification-toggle">
                     <input type="checkbox" name="notify_urgent" value="1" {% if push.notify_urgent %}checked{% endif %}>
-                    <span><strong>Критические события</strong><small>Rollback, проблема БД, storage или невозможность запуска.</small></span>
+                    <span><strong>Критические события</strong><small>Rollback, проблема БД, хранилища или невозможность запуска.</small></span>
                 </label>
             </div>
 
@@ -91,21 +91,37 @@
         </form>
 
         <aside class="admin-card notification-test-card">
-            <span class="admin-page__eyebrow">Проверка</span>
-            <h2>Тестовый push</h2>
+            <span class="admin-page__eyebrow">Android · проверка</span>
+            <h2>Подключение телефона</h2>
+            <ol class="notification-setup-steps">
+                <li><span>Установите приложение ntfy на Android или используйте свой совместимый клиент.</span></li>
+                <li><span>Подпишитесь в приложении на ту же тему, URL которой указан слева.</span></li>
+                <li><span>Сохраните настройки здесь и нажмите кнопку проверки доставки.</span></li>
+            </ol>
+
+            <div class="notification-channel-state">
+                <strong>Текущий канал</strong>
+                {% if push.enabled %}
+                <code>{{ push.url }}</code>
+                <span>{{ 'Авторизация настроена' if push.token_configured else 'Без Bearer token' }}</span>
+                {% else %}
+                <span>Канал пока не включён.</span>
+                {% endif %}
+            </div>
+
             <p>
-                После сохранения канала отправьте тест. В Inbox появится системное событие, а телефон должен получить push со ссылкой обратно в админку.
+                Проверка выполняется сразу, без фоновой очереди. После нажатия панель покажет реальный результат HTTP-доставки или понятную ошибку, поэтому ситуация «нажал и ничего не произошло» больше не должна возникать.
             </p>
             <form method="post">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="test">
                 <button class="btn secondary" type="submit" {% if not push.enabled %}disabled{% endif %}>
-                    Отправить тест
+                    Проверить доставку сейчас
                 </button>
             </form>
             <div class="notification-test-card__hint">
-                <strong>Важно</strong>
-                <span>Диагностические ZIP, логи, ключи и приватные данные в push не отправляются.</span>
+                <strong>Безопасность</strong>
+                <span>Диагностические ZIP, логи, ключи и другие приватные вложения в push не отправляются.</span>
             </div>
         </aside>
     </div>

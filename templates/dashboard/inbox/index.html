@@ -1,46 +1,60 @@
 {% extends '/dashboard/^core/base.html' %}
-{% block title %}Входящие | JSInteractive{% endblock %}
+{% block title %}Уведомления | JSInteractive{% endblock %}
 {% block content %}
 <div class="admin-page">
     <header class="admin-page__header">
         <div class="admin-page__heading">
-            <span class="admin-page__eyebrow">Центр событий</span>
+            <span class="admin-page__eyebrow">Центр внимания</span>
             <h1 class="admin-page__title">Уведомления</h1>
-            <p class="admin-page__description">Обращения с сайта, диагностика Workspace Organizer и системные события в одном месте.</p>
+            <p class="admin-page__description">Активный список содержит только события, которые ещё требуют реакции. Прочитанные и архивные события доступны отдельно.</p>
         </div>
         <div class="admin-page__actions">
-            <a class="btn secondary" href="{{ url_for('admin.inbox.settings') }}">Настроить push</a>
+            <a class="btn secondary" href="{{ url_for('admin.inbox.settings') }}">Настройки доставки</a>
         </div>
     </header>
 
     <nav class="contact-inbox__filters" aria-label="Фильтр входящих">
-        <a class="btn {{ 'primary' if not selected_status and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index') }}">Все</a>
-        <a class="btn {{ 'primary' if selected_status == 'new' and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='new') }}">Новые · {{ counts.new }}</a>
-        <a class="btn {{ 'primary' if selected_kind == 'contact' and not selected_status else 'secondary' }}" href="{{ url_for('admin.inbox.index', kind='contact') }}">Обращения · {{ kind_counts.contact }}</a>
-        <a class="btn {{ 'primary' if selected_kind == 'diagnostic' and not selected_status else 'secondary' }}" href="{{ url_for('admin.inbox.index', kind='diagnostic') }}">Диагностика · {{ kind_counts.diagnostic }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'new' and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='new') }}">Требуют внимания · {{ counts.new }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'read' and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='read') }}">Прочитанные · {{ counts.read }}</a>
         <a class="btn {{ 'primary' if selected_status == 'archived' and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='archived') }}">Архив · {{ counts.archived }}</a>
+        <a class="btn {{ 'primary' if selected_status == 'all' and not selected_kind else 'secondary' }}" href="{{ url_for('admin.inbox.index', status='all') }}">Все · {{ counts.all }}</a>
+        <a class="btn {{ 'primary' if selected_kind == 'contact' else 'secondary' }}" href="{{ url_for('admin.inbox.index', status=selected_status, kind='contact') }}">Обращения</a>
+        <a class="btn {{ 'primary' if selected_kind == 'diagnostic' else 'secondary' }}" href="{{ url_for('admin.inbox.index', status=selected_status, kind='diagnostic') }}">Диагностика</a>
     </nav>
 
     <div class="contact-inbox__list">
         {% for item in notifications %}
-        <a class="admin-card inbox-event {{ 'inbox-event--new' if item.status == 'new' else '' }}" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
+        <a class="admin-card inbox-event inbox-event--{{ item.status }} inbox-event--{{ item.severity }}" href="{{ url_for('admin.inbox.detail', notification_id=item.id) }}">
             <div class="contact-message__head">
                 <div>
                     <div class="contact-message__title">
                         <strong>{{ item.title }}</strong>
-                        <span class="status-badge {{ 'status-badge--success' if item.status == 'new' else '' }}">{{ item.status }}</span>
-                        <span class="status-badge">{{ 'Диагностика' if item.kind == 'diagnostic' else 'Обращение' if item.kind == 'contact' else item.kind }}</span>
+                        {% if item.status == 'new' %}
+                        <span class="status-badge status-badge--attention">Требует внимания</span>
+                        {% elif item.status == 'read' %}
+                        <span class="status-badge">Прочитано</span>
+                        {% else %}
+                        <span class="status-badge status-badge--muted">Архив</span>
+                        {% endif %}
+                        <span class="status-badge">{{ 'Диагностика' if item.kind == 'diagnostic' else 'Обращение' if item.kind == 'contact' else 'Система' }}</span>
                     </div>
                     <span>{{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
                 </div>
-                <span>{{ '⚠' if item.severity == 'urgent' else '!' if item.severity == 'warning' else '•' }}</span>
+                <span class="inbox-event__severity" aria-label="Важность">
+                    {{ '!' if item.severity in ('urgent', 'warning') else '•' }}
+                </span>
             </div>
             <div class="contact-message__body">{{ item.summary }}</div>
         </a>
         {% else %}
         <div class="admin-empty">
-            <strong>Входящих событий нет</strong>
-            <span>Новые обращения и диагностика Notes появятся здесь.</span>
+            {% if selected_status == 'new' %}
+            <strong>Ничего не требует внимания</strong>
+            <span>Новые обращения, диагностика и критические события появятся здесь.</span>
+            {% else %}
+            <strong>Событий по выбранному фильтру нет</strong>
+            <span>Выберите другой список или тип события.</span>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
