@@ -9,8 +9,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="JSI Admin">
-    <link rel="manifest" href="{{ url_for('admin_pwa_manifest') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/icons8-pastel-glyph-180.png') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon_svg') }}?v=20261015">
+    <link rel="alternate icon" type="image/x-icon" href="{{ url_for('favicon_ico') }}?v=20261015">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('apple_touch_icon') }}?v=20261015">
+    <link rel="manifest" href="{{ url_for('admin_pwa_manifest') }}?v=20261015">
     <title>{% block title %}Панель управления{% endblock %}</title>
     {% block extra_head %}{% endblock %}
     <style>{% include 'dashboard/styles.css' %}</style>
