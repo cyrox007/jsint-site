@@ -19,7 +19,7 @@ class ContentWorkspaceContractTests(unittest.TestCase):
         self.assertIn('name="action" value="create_category"', template)
         self.assertIn('name="action" value="update_category"', template)
         self.assertIn('name="action" value="delete_category"', template)
-        self.assertIn("Рубрики и публикации разделены по сайтам", template)
+        self.assertIn("Выберите сайт и работайте с его рубриками и публикациями", template)
 
     def test_content_workspace_is_site_scoped(self):
         template = self.read("templates/dashboard/publication/index.html")
