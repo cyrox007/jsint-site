@@ -1,7 +1,7 @@
 from flask import Flask
 
 from settings import config
-from views.dashboard.blog import views
+from views.dashboard.blog import views, workspace
 
 
 def install(app: Flask):
@@ -20,6 +20,18 @@ def install(app: Flask):
     app.add_url_rule(
         f"{config.ADMIN_ROUTE_PREFIX}/publications/edit/<uuid:id>",
         view_func=views.UpdatePost.as_view("admin.publication.edit"),
+    )
+    app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/publications/workspace/<uuid:id>",
+        view_func=workspace.WorkspacePost.as_view("admin.publication.workspace_edit"),
+    )
+    app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/publications/workspace/<uuid:id>/preview",
+        view_func=workspace.WorkspacePreviewPost.as_view("admin.publication.workspace_preview"),
+    )
+    app.add_url_rule(
+        f"{config.ADMIN_ROUTE_PREFIX}/publications/workspace/<uuid:id>/delete",
+        view_func=workspace.WorkspaceDeletePost.as_view("admin.publication.workspace_delete"),
     )
     app.add_url_rule(
         f"{config.ADMIN_ROUTE_PREFIX}/publications/preview/<uuid:id>",
