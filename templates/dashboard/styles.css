@@ -7,6 +7,7 @@
 {% include '/dashboard/auth/style.css' %}
 {% include '/dashboard/main/style.css' %}
 {% include '/dashboard/publication/style.css' %}
+{% include '/dashboard/publication/mobile-editor.css' %}
 {% include '/dashboard/catalog/style.css' %}
 {% include '/dashboard/sites/style.css' %}
 {% include '/dashboard/media/style.css' %}
