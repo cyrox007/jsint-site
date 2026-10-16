@@ -62,7 +62,7 @@
         <div class="admin-page__heading">
             <span class="admin-page__eyebrow">Публичный контент</span>
             <h1 class="admin-page__title">Контент</h1>
-            <p class="admin-page__description">Рубрики и публикации разделены по сайтам, но управляются из одной админки.</p>
+            <p class="admin-page__description">Выберите сайт и работайте с его рубриками и публикациями в одном и том же интерфейсе.</p>
         </div>
         <div class="admin-page__actions">
             <form method="get" class="site-switcher">
@@ -153,21 +153,23 @@
                     <div class="publication-card__body">
                         <div class="publication-card__icon" aria-hidden="true">▤</div>
                         <div class="publication-card__content">
-                            <a class="publication-card__title" href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}">{{ publication.title }}</a>
+                            <a class="publication-card__title" href="{{ url_for('admin.publication.workspace_edit', id=publication.id, site_id=selected_site.id) }}">{{ publication.title }}</a>
                             <div class="publication-card__meta">
                                 <span>{{ publication.category.title if publication.category else 'Без рубрики' }}</span>
                                 <span>{{ publication.source_type }}</span>
                                 <span>{{ publication.created_at.strftime('%d.%m.%Y') if publication.created_at else '—' }}</span>
+                                {% if publication.owner_site_id != selected_site.id %}<span>Размещение с другого сайта</span>{% endif %}
                             </div>
                             <div class="publication-card__slug">{{ publication.slug }}</div>
                         </div>
                     </div>
                     <div class="publication-card__actions">
                         <span class="status-badge {{ 'status-badge--success' if publication.is_published else 'status-badge--warning' }}">{{ 'Опубликовано' if publication.is_published else 'Черновик' }}</span>
-                        <a href="{{ url_for('admin.publication.edit', id=publication.id, site_id=selected_site.id) }}" class="btn secondary btn-small">Редактировать</a>
-                        <form method="post" action="{{ url_for('admin.publication.delete', id=publication.id) }}" onsubmit="return confirm('Удалить публикацию «{{ publication.title|e }}»?')">
+                        <a href="{{ url_for('admin.publication.workspace_edit', id=publication.id, site_id=selected_site.id) }}" class="btn secondary btn-small">Редактировать</a>
+                        <form method="post" action="{{ url_for('admin.publication.workspace_delete', id=publication.id, site_id=selected_site.id) }}" onsubmit="return confirm('Удалить {{ 'размещение' if publication.owner_site_id != selected_site.id else 'публикацию' }} «{{ publication.title|e }}»?')">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn danger btn-small">Удалить</button>
+                            <input type="hidden" name="site_id" value="{{ selected_site.id }}">
+                            <button type="submit" class="btn danger btn-small">{{ 'Убрать с сайта' if publication.owner_site_id != selected_site.id else 'Удалить' }}</button>
                         </form>
                     </div>
                 </article>
