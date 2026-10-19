@@ -13,7 +13,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 EnvironmentFile=/etc/jsint-site.env
 StateDirectory=jsint-site/webpush
 StateDirectoryMode=0750
-ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app worker --loglevel=INFO --concurrency=${CELERY_CONCURRENCY} --hostname=jsint-worker@%H
+ExecStart=/opt/jsint-site/current/.venv/bin/celery -A celery_app:celery_app worker --queues=jsint-site.celery --loglevel=INFO --concurrency=${CELERY_CONCURRENCY} --hostname=jsint-worker@%H
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=45
