@@ -311,18 +311,30 @@ class AdminNotificationService:
     @staticmethod
     def enqueue_push(notification_id: UUID | str) -> None:
         try:
-            from celery_app import celery_app
+            from celery_app import CELERY_QUEUE_NAME, celery_app
 
             celery_app.send_task(
                 "tasks.system.deliver_admin_push",
                 args=[str(notification_id)],
+                queue=CELERY_QUEUE_NAME,
+                routing_key=CELERY_QUEUE_NAME,
             )
         except Exception as exc:
-            logger.warning(
+            logger.exception(
                 "Не удалось поставить push-уведомление %s в очередь: %s",
                 notification_id,
                 exc,
             )
+            # Если брокер недоступен, отправляем уже сохранённое событие напрямую.
+            from services.web_push import WebPushService
+
+            try:
+                WebPushService.deliver_notification_by_id(notification_id)
+            except Exception:
+                logger.exception(
+                    "Резервная доставка push-уведомления %s не удалась",
+                    notification_id,
+                )
 
     @staticmethod
     def _click_url(notification_id: UUID) -> str:
