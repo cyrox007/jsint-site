@@ -7,6 +7,9 @@ from settings import config
 
 config.validate()
 
+CELERY_QUEUE_NAME = "jsint-site.celery"
+CELERY_REDIS_KEY_PREFIX = "jsint-site:celery:"
+
 celery_app = Celery(
     "jsint_site",
     broker=config.CELERY_BROKER_URL,
@@ -15,6 +18,12 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
+    task_default_queue=CELERY_QUEUE_NAME,
+    task_default_exchange=CELERY_QUEUE_NAME,
+    task_default_routing_key=CELERY_QUEUE_NAME,
+    task_routes={"*": {"queue": CELERY_QUEUE_NAME, "routing_key": CELERY_QUEUE_NAME}},
+    broker_transport_options={"global_keyprefix": CELERY_REDIS_KEY_PREFIX},
+    result_backend_transport_options={"global_keyprefix": CELERY_REDIS_KEY_PREFIX},
     accept_content=["json"],
     task_serializer="json",
     result_serializer="json",
