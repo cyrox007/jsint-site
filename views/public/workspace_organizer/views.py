@@ -62,12 +62,14 @@ class WorkspaceOrganizerPromoPage(MethodView):
                 "operatingSystem": "Web",
                 "softwareVersion": stable_version,
                 "description": (
-                    "Self-hosted рабочая платформа для заметок, задач, файлов, "
-                    "Messenger, профилей, администрирования и модульного развития."
+                    "Self-hosted рабочая платформа: заметки, задачи, файлы, "
+                    "Messenger, календарь, уведомления и администрирование."
                 ),
                 "creator": author_entity(site),
                 "featureList": [
                     "Зашифрованные заметки и база знаний",
+                    "Личный календарь и ежедневник (выпущено в 1.1.0)",
+                    "Общий центр уведомлений и SMTP (выпущено в 1.1.0)",
                     "Задачи, доски и исполнители",
                     "Приватное файловое хранилище и управляемый общий доступ",
                     "Messenger с Long Poll и WebSocket",
@@ -97,8 +99,9 @@ class WorkspaceOrganizerPromoPage(MethodView):
             ),
             seo_description=(
                 "Workspace Organizer — self-hosted платформа, которая более пяти "
-                "лет развивается от заметок к модульной рабочей среде: задачи, "
-                "файлы, Messenger, профили, Admin, обновления и recovery."
+                "лет развивается от заметок к модульной рабочей среде. "
+                "Выпущенная 1.1.0: календарь и общий центр уведомлений. "
+                "В разработке 1.2: Files, Tasks, E2EE, PWA, API и новые модули."
             ),
             canonical_url=canonical_url,
             seo_image_url=share_image_url(site),
