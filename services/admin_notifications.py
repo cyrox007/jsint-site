@@ -309,15 +309,21 @@ class AdminNotificationService:
         )
 
     @staticmethod
-    def enqueue_push(notification_id: UUID | str) -> None:
+    def enqueue_push(
+        notification_id: UUID | str, *, user_id: UUID | None = None, wait: bool = False,
+    ) -> dict | None:
+        options = {}
+        if user_id is not None:
+            options["kwargs"] = {"user_id": str(user_id)}
         try:
             from celery_app import CELERY_QUEUE_NAME, celery_app
 
-            celery_app.send_task(
+            task = celery_app.send_task(
                 "tasks.system.deliver_admin_push",
                 args=[str(notification_id)],
                 queue=CELERY_QUEUE_NAME,
                 routing_key=CELERY_QUEUE_NAME,
+                **options,
             )
         except Exception as exc:
             logger.exception(
@@ -329,12 +335,25 @@ class AdminNotificationService:
             from services.web_push import WebPushService
 
             try:
-                WebPushService.deliver_notification_by_id(notification_id)
+                if user_id is None:
+                    result = WebPushService.deliver_notification_by_id(notification_id)
+                else:
+                    result = WebPushService.deliver_notification_by_id(notification_id, user_id=user_id)
+                return {"web_push": result, "transport": "direct_fallback"}
             except Exception:
                 logger.exception(
                     "Резервная доставка push-уведомления %s не удалась",
                     notification_id,
                 )
+                if wait:
+                    raise
+            return None
+
+        # Do not fall back on a result timeout: the queued task may still run.
+        # A test must expose a stopped worker instead of bypassing it silently.
+        if wait:
+            return task.get(timeout=10, propagate=True)
+        return None
 
     @staticmethod
     def _click_url(notification_id: UUID) -> str:

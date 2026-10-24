@@ -3,7 +3,8 @@
 {% block content %}
 {% set status_labels = {'new': 'Новое', 'read': 'Прочитано', 'archived': 'В архиве'} %}
 {% set severity_labels = {'info': 'Обычное', 'warning': 'Требует внимания', 'urgent': 'Критическое'} %}
-{% set push_labels = {'sent': 'Отправлено', 'pending': 'В очереди', 'failed': 'Ошибка', 'skipped': 'Не отправлялось'} %}
+{% set push_labels = {'sent': 'Принято push-службой', 'partial': 'Отправлено частично', 'pending': 'В очереди', 'failed': 'Ошибка', 'skipped': 'Пропущено'} %}
+{% set web_push = (notification.details or {}).get('web_push') %}
 
 <div class="admin-page inbox-detail-page">
     <header class="inbox-detail-hero">
@@ -172,11 +173,18 @@
                         <dd>{{ severity_labels.get(notification.severity, notification.severity) }}</dd>
                     </div>
                     <div>
-                        <dt>Push</dt>
+                        <dt>Web Push</dt>
                         <dd>
-                            {{ push_labels.get(notification.push_status, notification.push_status) }}
-                            {% if notification.push_error %}
-                            <span class="inbox-info-list__error">Есть ошибка доставки</span>
+                            {% if web_push %}
+                            {{ push_labels.get(web_push.status, web_push.status) }}
+                            <span>{{ web_push.message }}</span>
+                            {% if web_push.total is defined %}
+                            <span>Принято: {{ web_push.delivered }}; ошибок: {{ web_push.failed }}; истекло подписок: {{ web_push.expired }}.</span>
+                            {% endif %}
+                            {% elif notification.push_status == 'pending' %}
+                            Ожидает обработки
+                            {% else %}
+                            Результат Web Push не записан
                             {% endif %}
                         </dd>
                     </div>

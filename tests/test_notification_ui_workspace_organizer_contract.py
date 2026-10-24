@@ -57,15 +57,18 @@ class NotificationUiAndWorkspaceOrganizerContractTests(unittest.TestCase):
         self.assertIn("flex:0 0 20px", styles)
         self.assertIn(".notification-settings-card__actions .btn{width:100%", styles)
 
-    def test_native_push_test_reports_delivery_synchronously(self):
+    def test_native_push_test_waits_for_queued_delivery(self):
         api = self.read("views/dashboard/inbox/webpush.py")
         settings = self.read("templates/dashboard/inbox/settings.html")
 
-        self.assertIn("WebPushService.deliver_notification", api)
+        self.assertIn("AdminNotificationService.enqueue_push", api)
+        self.assertIn("wait=True", api)
+        self.assertIn("except CeleryTimeoutError", api)
+        self.assertNotIn("WebPushService.deliver_notification(", api)
         self.assertIn("result[\"delivered\"]", api)
         self.assertIn("Push не доставлен", api)
         self.assertIn("Отправить тест", settings)
-        self.assertIn("Тест отправлен", settings)
+        self.assertIn("Тест через очередь принят push-службой", settings)
 
     def test_admin_panel_is_installable_pwa_without_private_cache(self):
         app = self.read("app.py")
