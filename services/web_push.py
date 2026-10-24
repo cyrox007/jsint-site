@@ -216,7 +216,9 @@ class WebPushService:
         user_id: UUID | None = None,
     ) -> dict:
         if not cls._allowed_by_preferences(db, notification):
-            return {"delivered": 0, "failed": 0, "expired": 0, "total": 0, "skipped": True}
+            result = {"delivered": 0, "failed": 0, "expired": 0, "total": 0, "skipped": True}
+            cls._record_delivery(db, notification, result)
+            return result
 
         query = db.query(AdminWebPushSubscription).filter(
             AdminWebPushSubscription.enabled.is_(True)
@@ -262,17 +264,38 @@ class WebPushService:
                 delivered += 1
                 db.add(record)
 
-        db.commit()
-        return {
+        result = {
             "delivered": delivered,
             "failed": failed,
             "expired": expired,
             "total": len(subscriptions),
             "skipped": False,
         }
+        cls._record_delivery(db, notification, result)
+        return result
+
+    @staticmethod
+    def _record_delivery(db: Session, notification: AdminNotification, result: dict) -> None:
+        if result["skipped"]:
+            status, message = "skipped", "Отключено фильтром событий"
+        elif result["delivered"]:
+            status = "partial" if result["failed"] or result["expired"] else "sent"
+            message = "Принято push-службой"
+        elif result["failed"]:
+            status, message = "failed", "Ошибка отправки; проверьте состояние устройств и журнал worker"
+        else:
+            status = "skipped"
+            message = "Подписки устройств истекли" if result["expired"] else "Нет активных подписок устройств"
+        # Keep Web Push independent of the legacy ntfy push_status fields.
+        notification.details = {
+            **(notification.details or {}),
+            "web_push": {**result, "status": status, "message": message, "updated_at": _utcnow().isoformat()},
+        }
+        db.add(notification)
+        db.commit()
 
     @classmethod
-    def deliver_notification_by_id(cls, notification_id: UUID | str) -> dict:
+    def deliver_notification_by_id(cls, notification_id: UUID | str, *, user_id: UUID | None = None) -> dict:
         db = Database.connect_database()
         try:
             notification = (
@@ -282,6 +305,16 @@ class WebPushService:
             )
             if notification is None:
                 return {"delivered": 0, "failed": 0, "expired": 0, "total": 0, "skipped": False}
-            return cls.deliver_notification(db, notification)
+            try:
+                return cls.deliver_notification(db, notification, user_id=user_id)
+            except Exception:
+                db.rollback()
+                db.refresh(notification)
+                notification.details = {
+                    **(notification.details or {}),
+                    "web_push": {"status": "failed", "message": "Ошибка обработки отправки; проверьте журнал worker", "updated_at": _utcnow().isoformat()},
+                }
+                db.commit()
+                raise
         finally:
             db.close()

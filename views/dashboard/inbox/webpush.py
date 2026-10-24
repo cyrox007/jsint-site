@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
+from celery.exceptions import TimeoutError as CeleryTimeoutError
 from flask import jsonify, request, session
 from flask.views import MethodView
 from sqlalchemy.orm import Session
@@ -74,14 +75,23 @@ class WebPushTestApi(MethodView):
         notification = AdminNotificationService.create_test_push(db_session)
         db_session.commit()
         try:
-            result = WebPushService.deliver_notification(
-                db_session,
-                notification,
+            delivery = AdminNotificationService.enqueue_push(
+                notification.id,
                 user_id=_current_user_id(),
+                wait=True,
             )
+            result = delivery["web_push"]
+        except CeleryTimeoutError:
+            return jsonify({
+                "ok": False,
+                "error": "Очередь не подтвердила отправку за 10 секунд. Проверьте Celery worker. Задача остаётся в очереди и может выполниться позже.",
+            }), 504
+        except Exception:
+            return jsonify({"ok": False, "error": "Ошибка фоновой отправки. Проверьте журнал Celery worker."}), 502
         finally:
             # Техническая проверка не должна становиться задачей в очереди
             # внимания. Оставляем её только в истории уведомлений.
+            db_session.refresh(notification)
             notification.status = "read"
             notification.read_at = datetime.now(timezone.utc)
             db_session.add(notification)
@@ -99,4 +109,4 @@ class WebPushTestApi(MethodView):
                 "error": "Push не доставлен. Проверьте разрешение браузера и состояние устройства.",
                 **result,
             }), 502
-        return jsonify({"ok": True, **result})
+        return jsonify({"ok": True, "transport": delivery.get("transport", "celery"), **result})

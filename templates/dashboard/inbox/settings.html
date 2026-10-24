@@ -55,7 +55,7 @@
                 <li><span>Откройте эту страницу по HTTPS в Chrome на Android или Safari на поддерживаемой iOS.</span></li>
                 <li><span>Установите JSInteractive через меню браузера «Установить приложение» / «На экран Домой».</span></li>
                 <li><span>Вернитесь сюда и нажмите «Включить уведомления». Разрешение запрашивается только после вашего нажатия.</span></li>
-                <li><span>Нажмите «Отправить тест» — результат появится здесь сразу.</span></li>
+                <li><span>Нажмите «Отправить тест» — проверка очереди и отправки занимает до 10 секунд. Тест обходит фильтры событий; для обращений включите «Новые обращения» ниже.</span></li>
             </ol>
             <div class="notification-test-card__hint">
                 <strong>Важно</strong>
@@ -242,7 +242,10 @@
                 method: 'POST',
                 body: '{}'
             });
-            setState(`Тест отправлен. Успешно: ${result.delivered}; ошибок: ${result.failed}.`, 'success');
+            const fallback = result.transport === 'direct_fallback';
+            setState(fallback
+                ? `Тест принят push-службой напрямую: ${result.delivered}. Очередь недоступна — проверьте фоновую отправку.`
+                : `Тест через очередь принят push-службой. Успешно: ${result.delivered}; ошибок: ${result.failed}.`, fallback ? 'warning' : 'success');
         } catch (error) {
             setState(`Тест не доставлен: ${error.message}`, 'error');
         } finally {

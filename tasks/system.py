@@ -55,22 +55,24 @@ def purge_revoked_license_keys():
 
 @celery_app.task(
     name="tasks.system.deliver_admin_push",
-    ignore_result=True,
+    ignore_result=False,
 )
-def deliver_admin_push(notification_id: str):
+def deliver_admin_push(notification_id: str, user_id: str | None = None):
     """Доставляет событие в PWA и, если настроен, в старый резервный канал."""
     result = {"web_push": None, "legacy": None}
 
-    try:
+    if user_id is None:
         result["web_push"] = WebPushService.deliver_notification_by_id(notification_id)
-    except Exception as exc:
-        logger.exception("Не удалось выполнить нативную Web Push-доставку: %s", exc)
-        result["web_push"] = {"error": str(exc)}
+    else:
+        from uuid import UUID
+
+        result["web_push"] = WebPushService.deliver_notification_by_id(notification_id, user_id=UUID(user_id))
 
     # Старый HTTP/ntfy-канал оставлен только как необязательный резервный путь.
     # Основной пользовательский сценарий больше от него не зависит.
     try:
-        result["legacy"] = AdminNotificationService.deliver_push(notification_id)
+        if user_id is None:
+            result["legacy"] = AdminNotificationService.deliver_push(notification_id)
     except Exception as exc:
         logger.warning("Резервный push-канал недоступен: %s", exc)
         result["legacy"] = False
