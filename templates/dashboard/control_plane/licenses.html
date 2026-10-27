@@ -226,7 +226,7 @@
 
                 <fieldset class="operator-section license-features">
                     <legend>Разрешённые модули</legend>
-                    <p class="admin-form-note">Отметьте доступные модули. Изменения вступят в силу после выпуска и активации нового токена в Workspace. Календарь требует версии 1.1 или новее.</p>
+                    <p class="admin-form-note">Отметьте доступные модули. Изменения вступят в силу после выпуска и активации нового токена в Workspace. Календарь требует версии 1.1 или новее; «Дефекты» и «Наряды и допуски» — версии 1.2 или новее.</p>
                     <div class="license-features__grid">
                         {% for code, label in license_feature_options %}
                         <label class="license-feature"><input type="checkbox" name="license_feature" value="{{ code }}" {{ 'checked' if not reissue_license or code in (reissue_license.features or []) }}><span>{{ label }}</span></label>

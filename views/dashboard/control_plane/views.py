@@ -10,6 +10,7 @@ from flask.views import MethodView
 from sqlalchemy.orm import Session
 
 from components.auth.decorator import login_required, with_db_session
+from config.notes_features import LICENSE_FEATURE_OPTIONS
 from config.notes_trust import LICENSE_TRUSTED_KEYS, UPDATE_TRUSTED_KEYS
 from models.control_plane import ControlPlaneAuditRecord, LicenseRecord, ReleaseRecord
 from services.control_plane_audit import ControlPlaneAuditService
@@ -124,15 +125,7 @@ def _license_context(db_session: Session, *, tab: str = "registry", **extra):
         "license_trusted_keys": LICENSE_TRUSTED_KEYS,
         "suggested_license_id": _license_id(""),
         "reissue_license": reissue_license,
-        "license_feature_options": [
-            ("workspace.notes", "Заметки"),
-            ("workspace.tasks", "Задачи"),
-            ("workspace.files", "Файлы"),
-            ("workspace.messenger", "Мессенджер"),
-            ("workspace.profile", "Профиль"),
-            ("workspace.admin", "Администрирование"),
-            ("workspace.calendar", "Календарь (1.1+)"),
-        ],
+        "license_feature_options": LICENSE_FEATURE_OPTIONS,
         "stats": {
             "total": len(records),
             "active": sum(1 for row in records if row.status == "active"),

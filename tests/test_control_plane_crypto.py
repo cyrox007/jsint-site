@@ -43,7 +43,7 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
             "issued_at": int(time.time()) - 5,
             "expires_at": None,
             "edition": "standard",
-            "features": ["workspace.notes", "workspace.tasks"],
+            "features": ["workspace.notes", "workspace.tasks", "workspace.defects", "workspace.work-permits"],
             "max_users": 20,
         }
         payload_encoded = b64url(
@@ -61,6 +61,7 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
         self.assertEqual(verified["license_id"], "lic-test-001")
         self.assertEqual(verified["installation_id"], installation_id)
         self.assertEqual(verified["_key_id"], key_id)
+        self.assertEqual(verified["features"], payload["features"])
 
         with self.assertRaises(ControlPlaneError) as raised:
             verify_license_token(
