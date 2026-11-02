@@ -16,7 +16,7 @@ from settings import config
 
 _SITEMAP_PAGE_SIZE = 100
 _SITEMAP_MAX_URLS = 50_000
-_SITEMAP_STATIC_URLS = 6
+_SITEMAP_STATIC_URLS = 7
 
 
 def _utc_date(value: datetime | None) -> str | None:
@@ -127,6 +127,7 @@ def sitemap_xml(db_session: Session) -> Response:
             static_modified,
         ),
         (urljoin(f"{base_url}/", "projects/the-game"), static_modified),
+        (urljoin(f"{base_url}/", "projects/impulse-arcade"), static_modified),
         (urljoin(f"{base_url}/", "projects/churchcms"), static_modified),
     ]
     for publication in publications:
