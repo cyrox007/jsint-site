@@ -28,6 +28,7 @@ class ApplicationSmokeTests(unittest.TestCase):
         for slug, title in (
             ("vanga", "Vanga"),
             ("the-game", "The-Game"),
+            ("impulse-arcade", "ИМПУЛЬС"),
             ("churchcms", "ChurchCMS"),
         ):
             with self.subTest(slug=slug):
@@ -106,6 +107,8 @@ class ApplicationSmokeTests(unittest.TestCase):
         self.assertNotIn(config.NOTES_UPDATE_API_PREFIX, body)
         self.assertNotIn("/demo/vanga", body)
         self.assertIn("/projects/vanga", body)
+        self.assertIn("/projects/impulse-arcade", body)
+        self.assertIn("/projects/the-game", body)
         self.assertIn("/workspace-organizer", body)
 
     def test_vanga_demo_is_noindex_and_canonicalized(self):
