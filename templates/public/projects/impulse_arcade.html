@@ -1,0 +1,175 @@
+{% extends "public/^core/base.html" %}
+
+{% block extra_head %}
+<style>{% include "public/projects/style.css" %}</style>
+<style>{% include "public/projects/impulse_arcade.css" %}</style>
+{% endblock %}
+
+{% block content %}
+<section class="project-promo project-promo--impulse">
+    <div class="project-promo__backdrop" aria-hidden="true"></div>
+    <div class="container project-promo__hero impulse-hero">
+        <a class="project-promo__back" href="{{ url_for('index') }}#systems">← Все проекты</a>
+
+        <div class="impulse-hero__grid">
+            <div class="impulse-hero__copy">
+                <span class="project-promo__eyebrow">Авторская игра · JavaScript / Canvas 2D</span>
+                <span class="impulse-version">{{ game_version }} · финальная приёмка</span>
+                <h1>ИМПУЛЬС<span>.</span></h1>
+                <strong>Пять секторов. Два босса. Одна арена, которая постоянно меняет правила.</strong>
+                <p>
+                    Мой браузерный арканоид: движущиеся и направленные кирпичи,
+                    мультишар, магнитная платформа, защитный барьер и пробивной импульс.
+                    Можно играть на компьютере и смартфоне — без установки и регистрации.
+                </p>
+                <div class="project-promo__actions">
+                    <a class="btn btn-primary" href="{{ demo_url }}" target="_blank" rel="noopener noreferrer">Играть в «Импульс» <span>↗</span></a>
+                    <a class="btn btn-secondary" href="{{ repository_url }}" target="_blank" rel="noopener noreferrer">Исходный код <span>↗</span></a>
+                </div>
+                <div class="project-promo__facts" aria-label="Характеристики игры">
+                    <span>5 секторов</span>
+                    <span>2 босса</span>
+                    <span>Canvas 2D</span>
+                    <span>ПК и смартфон</span>
+                </div>
+            </div>
+
+            <div class="impulse-preview" aria-label="Схематическое превью игровой арены «Импульс»">
+                <div class="impulse-preview__top">
+                    <div class="impulse-preview__brand"><span aria-hidden="true">✦</span> ИМПУЛЬС</div>
+                    <span>SECTOR 03 / 05</span>
+                </div>
+                <div class="impulse-preview__hud" aria-hidden="true">
+                    <div><span>СЧЁТ</span><strong>004820</strong></div>
+                    <div><span>РЕКОРД</span><strong>012600</strong></div>
+                    <div><span>ЖИЗНИ</span><strong>♥ ♥ ♥</strong></div>
+                </div>
+                <div class="impulse-preview__arena" aria-hidden="true">
+                    <div class="impulse-preview__scan"></div>
+                    <div class="impulse-preview__boss"><i></i><span>СТРАЖ ЯДРА</span><i></i></div>
+                    <div class="impulse-preview__bricks">
+                        <b class="is-blue"></b><b class="is-pink"></b><b class="is-gold"></b><b class="is-blue"></b><b class="is-pink"></b>
+                        <b class="is-blue"></b><b class="is-directional">↓</b><b class="is-blue"></b><b class="is-gold"></b><b class="is-blue"></b>
+                        <b class="is-pink"></b><b class="is-gold"></b><b class="is-blue"></b><b class="is-directional">←</b><b class="is-pink"></b>
+                    </div>
+                    <div class="impulse-preview__ball"></div>
+                    <div class="impulse-preview__trail"></div>
+                    <div class="impulse-preview__paddle"></div>
+                    <span class="impulse-preview__arena-label">ЗАРЯД ГОТОВ / ИМПУЛЬС</span>
+                </div>
+                <div class="impulse-preview__charge" aria-hidden="true"><span></span></div>
+                <p>Схематическое превью · игровой процесс открывается по кнопке</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section impulse-features" id="gameplay">
+    <div class="container">
+        <div class="portfolio-section-head portfolio-section-head--row">
+            <div>
+                <span class="section-kicker">Игровой процесс</span>
+                <h2>Не только разбивать кирпичи</h2>
+            </div>
+            <p>Каждый сектор меняет состав препятствий, а на третьем и пятом этапах предстоят отдельные бои с боссами.</p>
+        </div>
+        <div class="impulse-feature-grid">
+            <article>
+                <span>01 / КАРТА</span>
+                <h3>Пять секторов</h3>
+                <p>Обычные, бронированные, взрывные, призматические и движущиеся кирпичи. Некоторые цели открыты для удара только с одной стороны.</p>
+            </article>
+            <article>
+                <span>02 / БОССЫ</span>
+                <h3>Страж и Реактор</h3>
+                <p>Два противника с собственным движением, уязвимыми фазами и ответными снарядами. Нужно искать момент для удара, а не только удерживать шар.</p>
+            </article>
+            <article>
+                <span>03 / ТАКТИКА</span>
+                <h3>Импульс и бонусы</h3>
+                <p>Пробивной импульс заряжается по ходу игры. Мультишар, магнит, широкая платформа и барьер помогают менять тактику.</p>
+            </article>
+            <article>
+                <span>04 / ПРОГРЕСС</span>
+                <h3>Контрольные точки</h3>
+                <p>После прохождения сектора игра сохраняет начало следующего. Счёт, жизни, настройки и статистика остаются в браузере.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section impulse-technology">
+    <div class="container impulse-technology__grid">
+        <div>
+            <span class="section-kicker">Под капотом</span>
+            <h2>Своя игра без тяжёлого движка</h2>
+            <p>
+                «Импульс» написан на чистом JavaScript и Canvas 2D. Физика,
+                кирпичи, боссы, бонусы, хранение, интерфейс и отрисовка
+                разделены по назначению. Это отдельный игровой проект,
+                а не переделанная версия старого The-Game.
+            </p>
+            <a class="impulse-text-link" href="{{ repository_url }}" target="_blank" rel="noopener noreferrer">Посмотреть архитектуру на GitHub <span>↗</span></a>
+        </div>
+        <div class="impulse-technology__points">
+            <article>
+                <strong>Без сборщика</strong>
+                <span>Обычные JS-файлы и Canvas, запуск на статическом хостинге.</span>
+            </article>
+            <article>
+                <strong>Проверяемая логика</strong>
+                <span>Автотесты физических сценариев, сохранений, интерфейса и браузерных размеров.</span>
+            </article>
+            <article>
+                <strong>Управление под устройство</strong>
+                <span>Мышь, клавиатура и сенсор; настройки эффектов, звука и чувствительности.</span>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="project-promo-section impulse-start" id="controls">
+    <div class="container">
+        <div class="portfolio-section-head portfolio-section-head--row">
+            <div>
+                <span class="section-kicker">Как играть</span>
+                <h2>Открыл — и играешь</h2>
+            </div>
+            <p>Игра открывается в отдельной вкладке на GitHub Pages. Учётная запись не нужна.</p>
+        </div>
+        <div class="impulse-controls-grid">
+            <article>
+                <span>ПК</span>
+                <h3>Клавиатура и мышь</h3>
+                <p>Стрелки или A/D — платформа, пробел — запуск шара, F — импульс, P или Esc — пауза.</p>
+            </article>
+            <article>
+                <span>СМАРТФОН</span>
+                <h3>Касание экрана</h3>
+                <p>Веди пальцем по игровому полю. Запуск шара и импульс доступны через экранные кнопки.</p>
+            </article>
+        </div>
+        <p class="impulse-start__note">
+            <strong>Статус проекта:</strong> {{ game_version }} — релиз-кандидат.
+            Автоматические проверки проходят; ручная приёмка всех пяти секторов
+            и производительности на физическом Android ещё продолжается.
+        </p>
+    </div>
+</section>
+
+<section class="project-promo-cta impulse-cta">
+    <div class="container project-promo-cta__panel">
+        <div>
+            <span class="section-kicker">ИМПУЛЬС · БРАУЗЕРНАЯ АРКАДА</span>
+            <h2>Проверь, как далеко пройдёшь</h2>
+            <p>
+                Запускай пять секторов в браузере. А если хочется посмотреть,
+                с чего начинались игровые эксперименты, старый The-Game
+                сохранён отдельным учебным архивом.
+            </p>
+            <a class="impulse-text-link" href="{{ url_for('the_game_project') }}">The-Game: учебный архив Dino и Breakout <span>→</span></a>
+        </div>
+        <a class="btn btn-primary" href="{{ demo_url }}" target="_blank" rel="noopener noreferrer">Начать игру <span>↗</span></a>
+    </div>
+</section>
+{% endblock %}
