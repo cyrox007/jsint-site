@@ -43,7 +43,7 @@ class ImpulseArcadePromoContractTests(unittest.TestCase):
         self.assertIn("релиз-кандидат", template)
         self.assertIn("ручная приёмка", template)
         self.assertIn("пяти секторов", template)
-        self.assertIn("два босса", template)
+        self.assertIn("Два босса", template)
         self.assertNotIn("стабильные 60 FPS", template)
         self.assertIn('"@type": "VideoGame"', view)
         self.assertIn('"applicationCategory": "GameApplication"', view)
