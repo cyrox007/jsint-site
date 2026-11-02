@@ -14,13 +14,14 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
 
         self.assertIn("project_promo", template)
         self.assertIn("project_slug='vanga'", template)
-        self.assertIn("the_game_project", template)
+        self.assertIn("impulse_arcade_project", template)
         self.assertIn("project_slug='churchcms'", template)
         self.assertNotIn("github.com", template.lower())
         self.assertNotIn("<h3>Market</h3>", template)
-        self.assertIn("<h3>The-Game</h3>", template)
-        self.assertIn("Dino и Breakout", template)
-        self.assertIn("архив", template.lower())
+        self.assertIn("<h3>Импульс</h3>", template)
+        self.assertNotIn("<h3>The-Game</h3>", template)
+        self.assertIn("пять секторов, два босса", template)
+        self.assertIn("Подробнее и играть", template)
 
     def test_project_promo_registry_and_routes_exist(self):
         app = self.read("app.py")
@@ -31,6 +32,7 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
 
         self.assertIn("projects_router.install(app)", app)
         self.assertIn('"/projects/the-game"', router)
+        self.assertIn('"/projects/impulse-arcade"', router)
         self.assertIn('"/projects/<project_slug>"', router)
         self.assertIn('"vanga": ProjectPromo(', view)
         self.assertIn('"the-game": ProjectPromo(', view)
@@ -64,7 +66,9 @@ class PortfolioProjectsAndResumeContractTests(unittest.TestCase):
         self.assertIn(".the-game-console", styles)
         self.assertIn(".the-game-history-grid", styles)
         self.assertIn(".the-game-game-grid", styles)
-        self.assertIn("Dino и Breakout", home)
+        self.assertIn("Импульс", home)
+        self.assertIn("impulse_arcade_project", home)
+        self.assertNotIn("<h3>The-Game</h3>", home)
 
     def test_vanga_promo_targets_movie_audience_not_product_sales(self):
         view = self.read("views/public/projects/views.py")
