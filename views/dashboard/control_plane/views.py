@@ -54,7 +54,12 @@ def _release_preflight(db_session: Session, prepared: dict) -> dict:
             )
     if prepared["channel"] == "stable":
         lowered = prepared["version"].lower()
-        if any(marker in lowered for marker in ("alpha", "beta", "rc", "pre")):
+        github_rc_release = (
+            prepared.get("package_status") == "rc"
+            and prepared.get("github_prerelease") is False
+            and prepared.get("repository") == config.NOTES_RELEASE_GITHUB_REPOSITORY.strip()
+        )
+        if not github_rc_release and any(marker in lowered for marker in ("alpha", "beta", "rc", "pre")):
             warnings.append("Название версии похоже на prerelease, хотя канал указан stable.")
 
     return {
