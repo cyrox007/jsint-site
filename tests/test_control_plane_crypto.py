@@ -14,7 +14,9 @@ from uuid import uuid4
 
 from nacl.signing import SigningKey
 
-from services.github_release_automation import _inspect_workspace_zip, _source_floor_for_version
+from services.github_release_automation import (
+    _inspect_workspace_zip, _source_floor_for_version, _release_channel, _release_php_minimum,
+)
 from services.notes_control_plane import (
     ControlPlaneError,
     NotesControlPlane,
@@ -172,6 +174,40 @@ class ControlPlaneCryptoContractTest(unittest.TestCase):
         self.assertEqual(_source_floor_for_version(10006), 10005)
         self.assertEqual(_source_floor_for_version(10042), 10041)
         self.assertEqual(_source_floor_for_version(10100), 10099)
+
+    def test_rc_package_and_latest_delivery_channel(self):
+        package = io.BytesIO()
+        with zipfile.ZipFile(package, "w") as archive:
+            archive.writestr(
+                "workspace-organizer-v1.2.0-rc.1/core/Version.php",
+                "<?php class Version { public const VERSION = '1.2.0-rc.1'; "
+                "public const VERSION_CODE = 12000; public const STATUS = 'rc'; }",
+            )
+        package.seek(0)
+        meta = _inspect_workspace_zip(package)
+        self.assertEqual(meta, {"version": "1.2.0-rc.1", "version_code": 12000, "status": "rc"})
+        self.assertEqual(_release_channel(meta["status"], False), "stable")
+        self.assertEqual(_release_channel(meta["status"], True), "beta")
+        self.assertEqual(_source_floor_for_version(12000), 11000)
+        self.assertEqual(_release_php_minimum(12000, "8.1.0"), "8.3.0")
+        self.assertEqual(_release_php_minimum(12000, "8.4.0"), "8.4.0")
+        self.assertEqual(_release_php_minimum(11000, "8.1.0"), "8.2.0")
+
+    def test_invalid_status_and_github_mismatches_remain_rejected(self):
+        for status, prerelease in [("stable", True), ("beta", False), ("alpha", False), ("unknown", False)]:
+            with self.subTest(status=status, prerelease=prerelease):
+                with self.assertRaises(ControlPlaneError):
+                    _release_channel(status, prerelease)
+        for version, status in [("1.2.0", "rc"), ("1.2.0-rc.1", "unknown")]:
+            package = io.BytesIO()
+            with zipfile.ZipFile(package, "w") as archive:
+                archive.writestr("core/Version.php", "<?php class Version { "
+                    f"public const VERSION = '{version}'; public const VERSION_CODE = 12000; "
+                    f"public const STATUS = '{status}'; }}")
+            package.seek(0)
+            with self.subTest(version=version, status=status):
+                with self.assertRaises(ControlPlaneError):
+                    _inspect_workspace_zip(package)
 
     def test_presence_is_based_on_last_outbound_contact(self):
         now = datetime.now(timezone.utc)

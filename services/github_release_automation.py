@@ -324,8 +324,10 @@ def _inspect_workspace_zip(stream: BinaryIO) -> dict[str, Any]:
     version = version_match.group(1)
     version_code = int(code_match.group(1))
     status = status_match.group(1).lower()
-    if status not in {"stable", "beta", "alpha"}:
+    if status not in {"stable", "beta", "alpha", "rc"}:
         raise ControlPlaneError("Неподдерживаемый STATUS в release ZIP")
+    if status == "rc" and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*", version) is None:
+        raise ControlPlaneError("STATUS rc требует версию с суффиксом -rc.N")
     if version_code <= 1:
         raise ControlPlaneError("version_code недостаточен для последовательного обновления")
 
@@ -334,6 +336,21 @@ def _inspect_workspace_zip(stream: BinaryIO) -> dict[str, Any]:
         "version_code": version_code,
         "status": status,
     }
+
+
+def _release_channel(status: str, prerelease: bool) -> str:
+    # GitHub Latest is an explicit publisher choice; retain the RC identity
+    # inside the signed manifest while using the existing delivery channels.
+    if status == "rc":
+        return "beta" if prerelease else "stable"
+    if status not in {"stable", "beta", "alpha"} or prerelease != (status != "stable"):
+        raise ControlPlaneError("GitHub prerelease state не совпадает со STATUS пакета")
+    return status
+
+
+def _release_php_minimum(version_code: int, configured: str) -> str:
+    minimum = "8.3.0" if version_code >= 12000 else "8.2.0" if version_code >= 11000 else configured
+    return max((configured, minimum), key=lambda v: tuple(int(x) for x in v.split(".")))
 
 
 def _source_floor_for_version(version_code: int) -> int:
@@ -351,6 +368,8 @@ def _source_floor_for_version(version_code: int) -> int:
     if version_code == 10014:
         return 10012
 
+    if version_code == 12000:
+        return 11000
     if version_code == 11000:
         return 10016
 
@@ -463,12 +482,10 @@ class GitHubReleaseAutomation:
             package_meta = _inspect_workspace_zip(package_stream)
             version = package_meta["version"]
             version_code = package_meta["version_code"]
-            channel = package_meta["status"]
+            channel = _release_channel(package_meta["status"], bool(release.get("prerelease")))
 
             if tag_name != "v" + version:
                 raise ControlPlaneError("Версия внутри ZIP не совпадает с Git tag")
-            if bool(release.get("prerelease")) != (channel != "stable"):
-                raise ControlPlaneError("GitHub prerelease state не совпадает со STATUS пакета")
 
             existing = (
                 session.query(ReleaseRecord)
@@ -514,9 +531,7 @@ class GitHubReleaseAutomation:
         min_source_version_code = _resolve_release_codes(
             version_code, version_code_override, min_source_version_code_override
         )
-        requires_php = config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP
-        if version_code >= 11000 and tuple(int(x) for x in requires_php.split(".")) < (8, 2):
-            requires_php = "8.2.0"
+        requires_php = _release_php_minimum(version_code, config.NOTES_RELEASE_DEFAULT_REQUIRES_PHP)
         manifest, resolved_path = NotesControlPlane.prepare_release_manifest(
             package_path=stored["path"],
             version=version,
