@@ -546,6 +546,8 @@ class GitHubReleaseAutomation:
             "manifest": manifest,
             "package_path": resolved_path,
             "repository": _repository(),
+            "package_status": package_meta["status"],
+            "github_prerelease": bool(release.get("prerelease")),
             "tag": tag_name,
             "version": version,
             "version_code": version_code,
